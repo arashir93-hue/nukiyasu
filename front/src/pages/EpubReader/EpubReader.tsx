@@ -20,6 +20,9 @@ import {IconButton} from "../../ui/IconButton";
 import {Tooltip} from "../../ui/Tooltip";
 import {keys} from "../../lib/queryKeys";
 import {notifyReadingActivity, useIdleTimerPause, useReaderTimerStore, useReadingTimerTicker} from "../../stores/ReaderStore";
+import {useAuth} from "../../contexts/AuthContext";
+import {Loading} from "../Loading/Loading";
+import {Button} from "../../ui/Button";
 
 const epubShortcuts:ShortcutItem[] = [
     {keys:["t"], description:"Activar o pausar el cronómetro"},
@@ -55,6 +58,7 @@ export default function EpubReader():React.ReactElement {
     const [searchParams] = useSearchParams();
     const bookId = searchParams.get("yomiyasuId");
     const {siteSettings, readerSettings, modifyReaderSettings} = useSettingsStore();
+    const {loggedIn, userData} = useAuth();
     const navigate = useNavigate();
     const [showToolBar, setShowToolbar] = useState(true);
     const [chars, setChars] = useState(0);
@@ -69,13 +73,13 @@ export default function EpubReader():React.ReactElement {
 
     const iframe = useRef<HTMLIFrameElement>(null);
 
-    const {data:bookData} = useQuery({
+    const {data:bookData, isLoading:bookLoading, isFetching:bookFetching, isError:bookError} = useQuery({
         queryKey:keys.book(bookId ?? undefined),
         queryFn:async()=>{
             const res = await api.get<Book>(`books/book/${bookId}`);
             return res;
         },
-        enabled:!!bookId
+        enabled:loggedIn && !!bookId
     });
 
     useTitle(bookData ? bookData.visibleName : "Lector de novelas");
@@ -251,7 +255,28 @@ export default function EpubReader():React.ReactElement {
         }
     }, [id, navigate]);
 
+    const accessPending = loggedIn && !!bookId && (bookLoading || bookFetching);
+    // La comprobación de autorización (incluido isMature) es del backend. El
+    // endpoint devuelve 404 cuando el libro deja de estar permitido; el
+    // frontend no duplica la clasificación ni confía en ella para protegerlo.
+    const accessGranted = loggedIn && !!bookId && !!bookData && !bookError && !!userData;
+
     if (!id) return <></>;
+
+    // Nunca se monta el lector externo sin una respuesta autorizada del API de
+    // Nukiyasu. Un 401/404 y un libro adulto oculto se presentan igual para no
+    // revelar si el identificador existe.
+    if (accessPending) return <Loading/>;
+
+    if (!accessGranted) {
+        return (
+            <div className="flex h-[100svh] flex-col items-center justify-center gap-4 bg-app-bg px-4 text-center">
+                <h1 className="text-xl font-semibold text-fg">Libro no disponible</h1>
+                <p className="max-w-md text-sm text-fg-muted">No tienes acceso a este libro o la sesión ha caducado.</p>
+                <Button variant="secondary" onClick={()=>navigate(loggedIn ? "/app" : "/login")}>Volver</Button>
+            </div>
+        );
+    }
 
     return (
         <div className="text-app-text relative overflow-hidden h-[100svh] flex flex-col">

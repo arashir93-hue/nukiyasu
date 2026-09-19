@@ -19,6 +19,12 @@ export async function resetContentQueries(): Promise<void> {
   await queryClient.resetQueries();
 }
 
+/** Elimina respuestas en memoria al cambiar de cuenta o cerrar sesión. */
+export async function clearUserQueries(): Promise<void> {
+  await queryClient.cancelQueries();
+  queryClient.clear();
+}
+
 /** Estanterías del inicio: en progreso, tablero, novedades, leer más tarde y pausadas. */
 function invalidateShelves(): void {
   invalidate(["reading"]);

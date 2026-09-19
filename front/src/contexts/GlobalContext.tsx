@@ -65,6 +65,11 @@ export function GlobalProvider(props:ContextProps):React.ReactElement {
 
     useEffect(() => {
         async function handleMessage(e:MessageEvent):Promise<void> {
+            // Solo aceptamos eventos del iframe TTU que montó esta sesión.
+            // Una ventana cualquiera no debe poder convertir un ID arbitrario
+            // en una navegación del lector de Nukiyasu.
+            if (e.origin !== window.location.origin || e.source !== ttuConnector.current?.contentWindow) return;
+
             if (e.data.event === "finished") {
 
 
