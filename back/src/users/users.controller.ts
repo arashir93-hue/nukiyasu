@@ -19,6 +19,7 @@ import {Request} from "express";
 import {JwtAuthGuard} from "../auth/strategies/jwt.strategy";
 import {TokensService} from "../tokens/tokens.service";
 import {ParseObjectIdPipe} from "../validation/objectId";
+import {UpdateMatureContentPreferenceDto} from "./dto/update-mature-content-preference.dto";
 
 @Controller("users")
 @ApiTags("Usuarios")
@@ -82,5 +83,24 @@ export class UsersController {
         }
 
         return {status:"OK"};
+    }
+
+    @Patch("preferences/mature-content")
+    @UseGuards(JwtAuthGuard)
+    @ApiOkResponse({status:HttpStatus.OK})
+    async updateMatureContentPreference(
+        @Req() req:Request,
+        @Body() updatePreferenceDto:UpdateMatureContentPreferenceDto
+    ) {
+        if (!req.user) throw new UnauthorizedException();
+
+        const {userId} = req.user as {userId:Types.ObjectId};
+
+        const showMatureContent = await this.usersService.updateMatureContentPreference(
+            userId,
+            updatePreferenceDto.showMatureContent
+        );
+
+        return {showMatureContent};
     }
 }

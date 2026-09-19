@@ -1,5 +1,5 @@
 import {Serie} from "../schemas/series.schema";
-import {IsArray, IsNumber, IsOptional, IsString} from "class-validator";
+import {IsArray, IsBoolean, IsNumber, IsOptional, IsString, ValidateIf} from "class-validator";
 
 export class UpdateSeriesDto implements Partial<Serie> {
     @IsString()
@@ -37,4 +37,8 @@ export class UpdateSeriesDto implements Partial<Serie> {
     @IsArray()
     @IsOptional()
     alternativeNames?: string[];
+
+    @IsBoolean()
+    @ValidateIf((_object, value) => value !== undefined)
+    isMature?:boolean;
 }

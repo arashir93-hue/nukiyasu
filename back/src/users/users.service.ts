@@ -74,6 +74,21 @@ export class UsersService {
         return this.userModel.findByIdAndUpdate(id, query, {new: true});
     }
 
+    async updateMatureContentPreference(
+        id:Types.ObjectId,
+        showMatureContent:boolean
+    ):Promise<boolean> {
+        const updatedUser = await this.userModel.findByIdAndUpdate(
+            id,
+            {$set:{showMatureContent}},
+            {new:true}
+        );
+
+        if (!updatedUser) throw new UnauthorizedException();
+
+        return updatedUser.showMatureContent ?? false;
+    }
+
     async deleteUser(userId:Types.ObjectId) {
         return this.userModel.findByIdAndDelete(userId);
     }
