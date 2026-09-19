@@ -8,13 +8,15 @@ import {Types} from "mongoose";
 import {Request} from "express";
 import {SeriesService} from "../series/series.service";
 import {ParseObjectIdPipe} from "../validation/objectId";
+import {ContentAccessService} from "../content-access/content-access.service";
 
 @Controller("reviews")
 @UseGuards(JwtAuthGuard)
 export class ReviewsController {
     constructor(
         private readonly reviewsService: ReviewsService,
-        private readonly seriesService:SeriesService
+        private readonly seriesService:SeriesService,
+        private readonly contentAccessService:ContentAccessService
     ) {}
 
     @Post()
@@ -22,6 +24,9 @@ export class ReviewsController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+
+        await this.contentAccessService.assertSeriesAccessible(createReviewDto.serie, policy);
         
         const newReview:Review = {
             user:userId,
@@ -51,6 +56,10 @@ export class ReviewsController {
 
         if (!foundReview) throw new NotFoundException();
 
+        const policy = await this.contentAccessService.forUser(userId);
+
+        await this.contentAccessService.assertSeriesAccessible(foundReview.serie, policy);
+
         const response = await this.reviewsService.editReview(userId, reviewId, updateReviewDto);
 
         const difficulty = await this.reviewsService.getSerieDifficulty(foundReview.serie);
@@ -71,6 +80,10 @@ export class ReviewsController {
         const foundReview = await this.reviewsService.findById(reviewId);
 
         if (!foundReview) throw new NotFoundException();
+
+        const policy = await this.contentAccessService.forUser(userId);
+
+        await this.contentAccessService.assertSeriesAccessible(foundReview.serie, policy);
 
         const response = await this.reviewsService.removeReview(userId, reviewId);
 

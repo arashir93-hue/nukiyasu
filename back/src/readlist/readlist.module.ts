@@ -3,12 +3,14 @@ import {ReadlistService} from "./readlist.service";
 import {ReadlistController} from "./readlist.controller";
 import {MongooseModule} from "@nestjs/mongoose";
 import {ReadList, ReadListSchema} from "./schemas/readlist.schema";
+import {ContentAccessModule} from "../content-access/content-access.module";
 
 @Module({
     imports: [
         MongooseModule.forFeature([
             {name: ReadList.name, schema: ReadListSchema}
-        ])
+        ]),
+        ContentAccessModule
     ],
     controllers: [ReadlistController],
     providers: [ReadlistService],

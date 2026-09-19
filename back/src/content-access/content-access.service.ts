@@ -1,6 +1,6 @@
 import {Injectable, NotFoundException, UnauthorizedException} from "@nestjs/common";
 import {InjectModel} from "@nestjs/mongoose";
-import {FilterQuery, Model, Types} from "mongoose";
+import {FilterQuery, Model, PipelineStage, Types} from "mongoose";
 import {Serie, SerieDocument} from "../series/schemas/series.schema";
 import {UsersService} from "../users/users.service";
 
@@ -53,5 +53,27 @@ export class ContentAccessService {
                 condition
             ])
         );
+    }
+
+    seriesAccessStages(
+        policy:ContentAccessPolicy,
+        localField = "serie",
+        alias = "contentAccessSerie"
+    ):PipelineStage[] {
+        if (policy.showMatureContent) return [];
+
+        return [
+            {
+                $lookup:{
+                    from:"series",
+                    localField,
+                    foreignField:"_id",
+                    as:alias
+                }
+            },
+            {$unwind:{path:`$${alias}`}},
+            {$match:this.forJoinedSeries(alias, policy)},
+            {$unset:alias}
+        ];
     }
 }

@@ -9,6 +9,7 @@ import {
 import {ReadlistModule} from "../readlist/readlist.module";
 import {BooksModule} from "../books/books.module";
 import {SerieprogressModule} from "../serieprogress/serieprogress.module";
+import {ContentAccessModule} from "../content-access/content-access.module";
 
 @Module({
     imports: [
@@ -17,7 +18,8 @@ import {SerieprogressModule} from "../serieprogress/serieprogress.module";
         ]),
         ReadlistModule,
         BooksModule,
-        SerieprogressModule
+        SerieprogressModule,
+        ContentAccessModule
     ],
     controllers: [ReadprogressController],
     providers: [ReadprogressService],

@@ -3,11 +3,13 @@ import {InjectModel} from "@nestjs/mongoose";
 import {ReadList} from "./schemas/readlist.schema";
 import {Model, Types} from "mongoose";
 import {CreateReadList} from "./interfaces/readlist.interface";
+import {ContentAccessPolicy, ContentAccessService} from "../content-access/content-access.service";
 
 @Injectable()
 export class ReadlistService {
     constructor(
-        @InjectModel(ReadList.name) private readonly readListModel: Model<ReadList>
+        @InjectModel(ReadList.name) private readonly readListModel: Model<ReadList>,
+        private readonly contentAccessService:ContentAccessService
     ) {}
 
     create(createReadList: CreateReadList) {
@@ -22,7 +24,11 @@ export class ReadlistService {
         return (await this.readListModel.count({user, serie})) > 0;
     }
 
-    async getUserReadListSeries(user: Types.ObjectId, variant:"manga" | "novela") {
+    async getUserReadListSeries(
+        user:Types.ObjectId,
+        variant:"manga" | "novela",
+        policy:ContentAccessPolicy
+    ) {
         const result = await this.readListModel
             .aggregate()
             .match({user: new Types.ObjectId(user)})
@@ -33,6 +39,7 @@ export class ReadlistService {
                 as: "serieInfo"
             })
             .unwind({path:"$serieInfo"})
+            .match(this.contentAccessService.forJoinedSeries("serieInfo", policy))
             .match({"serieInfo.variant":variant});
 
         return result.map(x=>x.serieInfo);

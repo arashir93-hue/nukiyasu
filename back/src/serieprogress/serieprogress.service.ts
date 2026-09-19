@@ -5,11 +5,13 @@ import {Model, Types} from "mongoose";
 import {CreateOrModifySerieProgress} from "./interfaces/serieprogress";
 import {Book} from "../books/schemas/book.schema";
 import {FullSerie} from "../series/interfaces/serieWithProgress";
+import {ContentAccessPolicy, ContentAccessService} from "../content-access/content-access.service";
 
 @Injectable()
 export class SerieprogressService {
     constructor(
-        @InjectModel(SerieProgress.name) private readonly serieProgressModel: Model<SerieProgress>
+        @InjectModel(SerieProgress.name) private readonly serieProgressModel: Model<SerieProgress>,
+        private readonly contentAccessService:ContentAccessService
     ) {}
 
     async createOrModifySerieProgress(user:Types.ObjectId, serie:Types.ObjectId, books:Types.ObjectId[], variant:"manga" | "novela") {
@@ -57,17 +59,25 @@ export class SerieprogressService {
         return this.serieProgressModel.create(createProgress);
     }
 
-    async getUserSeriesProgress(user:Types.ObjectId) {
-        return this.serieProgressModel.aggregate()
-            .match({user:new Types.ObjectId(user)})
-            .lookup({from:"books", localField:"serie", foreignField:"serie", as:"serieBooks"});
+    async getUserSeriesProgress(user:Types.ObjectId, policy:ContentAccessPolicy) {
+        const result = this.serieProgressModel.aggregate()
+            .match({user:new Types.ObjectId(user)});
+
+        result.append(...this.contentAccessService.seriesAccessStages(policy));
+
+        return result.lookup({from:"books", localField:"serie", foreignField:"serie", as:"serieBooks"});
     }
 
-    async getUserPausedSeries(user:Types.ObjectId, variant:"manga" | "novela") {
+    async getUserPausedSeries(
+        user:Types.ObjectId,
+        variant:"manga" | "novela",
+        policy:ContentAccessPolicy
+    ) {
         const result = await this.serieProgressModel.aggregate()
             .match({user:new Types.ObjectId(user), paused:true})
             .lookup({from:"series", localField:"serie", foreignField:"_id", as:"serieInfo"})
             .unwind({path:"$serieInfo"})
+            .match(this.contentAccessService.forJoinedSeries("serieInfo", policy))
             .match({"serieInfo.variant":variant});
 
         return result.map(x=>x.serieInfo);

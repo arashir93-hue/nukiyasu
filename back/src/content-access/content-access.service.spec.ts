@@ -44,6 +44,12 @@ describe("ContentAccessService", () => {
         expect(service.forJoinedSeries("serieInfo", policy)).toEqual({
             "serieInfo.isMature":{$ne:true}
         });
+        expect(service.seriesAccessStages(policy)).toEqual([
+            {$lookup:{from:"series", localField:"serie", foreignField:"_id", as:"contentAccessSerie"}},
+            {$unwind:{path:"$contentAccessSerie"}},
+            {$match:{"contentAccessSerie.isMature":{$ne:true}}},
+            {$unset:"contentAccessSerie"}
+        ]);
         await expect(service.assertSeriesAccessible(normalId, policy)).resolves.toBeUndefined();
         await expect(service.assertSeriesAccessible(legacyId, policy)).resolves.toBeUndefined();
         await expect(service.assertSeriesAccessible(matureId, policy)).rejects.toBeInstanceOf(NotFoundException);
@@ -54,6 +60,7 @@ describe("ContentAccessService", () => {
         const policy = await service.forUser(new Types.ObjectId());
 
         expect(policy.seriesMatch).toEqual({});
+        expect(service.seriesAccessStages(policy)).toEqual([]);
         await expect(service.assertSeriesAccessible(normalId, policy)).resolves.toBeUndefined();
         await expect(service.assertSeriesAccessible(matureId, policy)).resolves.toBeUndefined();
     });

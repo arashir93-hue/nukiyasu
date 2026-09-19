@@ -7,13 +7,15 @@ import {
     UpdateReadProgress
 } from "./interfaces/readprogress.interface";
 import {SerieprogressService} from "../serieprogress/serieprogress.service";
+import {ContentAccessPolicy, ContentAccessService} from "../content-access/content-access.service";
 
 @Injectable()
 export class ReadprogressService {
     constructor(
         @InjectModel(ReadProgress.name)
         private readonly readProgressModel: Model<ReadProgress>,
-        private readonly seriesProgressService:SerieprogressService
+        private readonly seriesProgressService:SerieprogressService,
+        private readonly contentAccessService:ContentAccessService
     ) {}
 
     findProgressByBookAndUser(book:Types.ObjectId, user:Types.ObjectId, status?:ReadProgressStatus):Promise<ReadProgress | null> {
@@ -26,13 +28,20 @@ export class ReadprogressService {
         return query;
     }
 
-    async findUserProgresses(user:Types.ObjectId, page:number, limit:number, sort:string) {
+    async findUserProgresses(
+        user:Types.ObjectId,
+        page:number,
+        limit:number,
+        sort:string,
+        policy:ContentAccessPolicy
+    ) {
         const result = this.readProgressModel.aggregate()
             .match({user:new Types.ObjectId(user), status:{$ne:"unread"}})
-            .lookup({from:"books", localField:"book", foreignField:"_id", as:"bookInfo"})
-            .unwind({path:"$bookInfo"})
             .lookup({from:"series", localField:"serie", foreignField:"_id", as:"serieInfo"})
-            .unwind({path:"$serieInfo"});
+            .unwind({path:"$serieInfo"})
+            .match(this.contentAccessService.forJoinedSeries("serieInfo", policy))
+            .lookup({from:"books", localField:"book", foreignField:"_id", as:"bookInfo"})
+            .unwind({path:"$bookInfo"});
       
         if (sort === "book") {
             if (sort.includes("!")) {
@@ -70,6 +79,10 @@ export class ReadprogressService {
         return this.readProgressModel.create(createReadProgress);
     }
 
+    findByIdForUser(id:Types.ObjectId, user:Types.ObjectId):Promise<ReadProgress | null> {
+        return this.readProgressModel.findOne({_id:id, user});
+    }
+
     async modifyReadProgress(id:Types.ObjectId, updateReadProgress:UpdateReadProgress, user?:Types.ObjectId):Promise<ReadProgress | null> {
         if (user) {
             const foundProgress = await this.readProgressModel.findById(id);
@@ -82,10 +95,14 @@ export class ReadprogressService {
         return this.readProgressModel.findByIdAndUpdate(id, updateReadProgress, {new:true});
     }
 
-    async getReadingBooks(user:Types.ObjectId) {
-        const pipe = await this.readProgressModel.aggregate()
+    async getReadingBooks(user:Types.ObjectId, policy:ContentAccessPolicy) {
+        const result = this.readProgressModel.aggregate()
             .match({user:new Types.ObjectId(user)})
-            .match({status:"reading"})
+            .match({status:"reading"});
+
+        result.append(...this.contentAccessService.seriesAccessStages(policy));
+
+        return result
             .sort({lastUpdateDate:-1})
             .addFields({lastProgress: "$$ROOT"})
             .lookup({
@@ -104,7 +121,6 @@ export class ReadprogressService {
                 status: "reading",
                 type: "book"
             });
-        return pipe;
     }
 
     async deleteReadProgress(id:Types.ObjectId, user:Types.ObjectId) {
@@ -125,14 +141,22 @@ export class ReadprogressService {
         return this.readProgressModel.updateMany({serie:new Types.ObjectId(serie), user:new Types.ObjectId(user)}, {paused});
     }
 
-    async getReadingSeries(user:Types.ObjectId) {
-        return this.readProgressModel.find({user, status:"reading"});
+    async getReadingSeries(user:Types.ObjectId, policy:ContentAccessPolicy) {
+        const result = this.readProgressModel.aggregate()
+            .match({user:new Types.ObjectId(user), status:"reading"});
+
+        result.append(...this.contentAccessService.seriesAccessStages(policy));
+
+        return result;
     }
 
-    async getUserStats(user:Types.ObjectId) {
-        const res = await this.readProgressModel.aggregate()
-            .match({user:new Types.ObjectId(user), status:{$ne:"unread"}})
-            .group({
+    async getUserStats(user:Types.ObjectId, policy:ContentAccessPolicy) {
+        const result = this.readProgressModel.aggregate()
+            .match({user:new Types.ObjectId(user), status:{$ne:"unread"}});
+
+        result.append(...this.contentAccessService.seriesAccessStages(policy));
+
+        const res = await result.group({
                 _id: null,
                 totalMangaBooks: {
                     $sum: {
@@ -195,7 +219,7 @@ export class ReadprogressService {
                 }
             );
 
-        if (res) {
+        if (res.length > 0) {
             const [result] = res as {totalMangaBooks:number, totalNovelaBooks:number, totalMangaSeries:Types.ObjectId[], totalNovelaSeries:Types.ObjectId[], totalPagesRead:number, totalCharacters:number, totalTimeRead:number}[];
 
             return {...result, totalMangaSeries:result.totalMangaSeries.filter(x=>!!x).length, totalNovelaSeries:result.totalNovelaSeries.filter(x=>!!x).length};
@@ -203,10 +227,13 @@ export class ReadprogressService {
         return {};
     }
 
-    async getGraphStats(user:Types.ObjectId) {
-        const mangaRes = (await this.readProgressModel.aggregate()
-            .match({user:new Types.ObjectId(user), time:{$gt:0}, variant:"manga"})
-            .group({
+    async getGraphStats(user:Types.ObjectId, policy:ContentAccessPolicy) {
+        const mangaResult = this.readProgressModel.aggregate()
+            .match({user:new Types.ObjectId(user), time:{$gt:0}, variant:"manga"});
+
+        mangaResult.append(...this.contentAccessService.seriesAccessStages(policy));
+
+        const mangaRes = (await mangaResult.group({
                 _id: {
                     year: {$year: "$endDate"},
                     month: {$month: "$endDate"}
@@ -241,9 +268,12 @@ export class ReadprogressService {
                 }
             )).filter(x=>x._id.year !== null);
 
-        const novelaRes = (await this.readProgressModel.aggregate()
-            .match({user:new Types.ObjectId(user), time:{$gt:0}, variant:"novela"})
-            .group({
+        const novelaResult = this.readProgressModel.aggregate()
+            .match({user:new Types.ObjectId(user), time:{$gt:0}, variant:"novela"});
+
+        novelaResult.append(...this.contentAccessService.seriesAccessStages(policy));
+
+        const novelaRes = (await novelaResult.group({
                 _id: {
                     year: {$year: "$endDate"},
                     month: {$month: "$endDate"}
@@ -302,28 +332,23 @@ export class ReadprogressService {
         return this.readProgressModel.find({user, book});
     }
 
-    async getDayLogs(user:Types.ObjectId, year:number, month:number, day:number) {
-        const result = this.readProgressModel.aggregate([
-            {
-                $match: {
-                    user:new Types.ObjectId(user)
-                }
-            },
-            {
-                $addFields: {
-                    day: {$dayOfMonth: "$lastUpdateDate"},
-                    month: {$month: "$lastUpdateDate"},
-                    year: {$year: "$lastUpdateDate"}
-                }
-            },
-            {
-                $match: {
-                    day: day,
-                    month: month,
-                    year: year
-                }
-            }
-        ]);
+    async getDayLogs(
+        user:Types.ObjectId,
+        year:number,
+        month:number,
+        day:number,
+        policy:ContentAccessPolicy
+    ) {
+        const result = this.readProgressModel.aggregate()
+            .match({user:new Types.ObjectId(user)});
+
+        result.append(...this.contentAccessService.seriesAccessStages(policy));
+
+        result.addFields({
+            day:{$dayOfMonth:"$lastUpdateDate"},
+            month:{$month:"$lastUpdateDate"},
+            year:{$year:"$lastUpdateDate"}
+        }).match({day, month, year});
 
         result.lookup({from:"books", localField:"book", foreignField:"_id", as:"bookInfo"})
             .unwind({path:"$bookInfo"})
@@ -333,7 +358,12 @@ export class ReadprogressService {
         return result;
     }
 
-    async getMonthStreak(user:Types.ObjectId, year:number, month:number) {
+    async getMonthStreak(
+        user:Types.ObjectId,
+        year:number,
+        month:number,
+        policy:ContentAccessPolicy
+    ) {
         const startOfMonth = new Date(year, month);
         startOfMonth.setDate(1);
         startOfMonth.setHours(0, 0, 0, 0);
@@ -341,28 +371,17 @@ export class ReadprogressService {
         endOfMonth.setMonth(endOfMonth.getMonth() + 1, 0);
         endOfMonth.setHours(23, 59, 59, 999);
 
-        const aggregationResult = await this.readProgressModel.aggregate([
-            {
-                $match: {
-                    user:new Types.ObjectId(user),
-                    lastUpdateDate: {
-                        $gte: startOfMonth,
-                        $lte: endOfMonth
-                    }
-                }
-            },
-            {
-                $project: {
-                    dayOfMonth: {$dayOfMonth: "$lastUpdateDate"}
-                }
-            },
-            {
-                $group: {
-                    _id: "$dayOfMonth",
-                    count: {$sum: 1}
-                }
-            }
-        ]);
+        const result = this.readProgressModel.aggregate()
+            .match({
+                user:new Types.ObjectId(user),
+                lastUpdateDate:{$gte:startOfMonth, $lte:endOfMonth}
+            });
+
+        result.append(...this.contentAccessService.seriesAccessStages(policy));
+
+        const aggregationResult = await result
+            .project({dayOfMonth:{$dayOfMonth:"$lastUpdateDate"}})
+            .group({_id:"$dayOfMonth", count:{$sum:1}});
 
         if (aggregationResult.length > 0) {
             return aggregationResult.map(({_id, count}) => ({

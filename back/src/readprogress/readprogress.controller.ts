@@ -12,7 +12,7 @@ import {
     Param,
     Delete,
     Patch,
-    Inject
+    NotFoundException
 } from "@nestjs/common";
 import {ReadprogressService} from "./readprogress.service";
 import {ProgressDto} from "./dto/create-readprogress.dto";
@@ -27,13 +27,12 @@ import {ReadProgress, ReadProgressStatus} from "./schemas/readprogress.schema";
 import {BooksService} from "../books/books.service";
 import {ParseObjectIdPipe} from "../validation/objectId";
 import {ApiOkResponse, ApiTags} from "@nestjs/swagger";
-import {CACHE_MANAGER} from "@nestjs/cache-manager";
-import {Cache} from "cache-manager";
 import {SerieprogressService} from "../serieprogress/serieprogress.service";
 import {FullSerieProgress} from "../serieprogress/interfaces/serieprogress";
 import {Book} from "../books/schemas/book.schema";
 import {UpdateReadProgressDto} from "./dto/update-readprogress.dto";
 import {isNumberString} from "class-validator";
+import {ContentAccessPolicy, ContentAccessService} from "../content-access/content-access.service";
 
 @Controller("readprogress")
 @ApiTags("Progresos de Lectura")
@@ -44,23 +43,28 @@ export class ReadprogressController {
         private readonly readListService: ReadlistService,
         private readonly booksService:BooksService,
         private readonly serieProgressService:SerieprogressService,
-        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
+        private readonly contentAccessService:ContentAccessService
     ) {}
 
     @Post()
     @ApiOkResponse({status:HttpStatus.OK})
-    async modifyOrCreateProgress(@Req() req:Request, @Body() progressDto:ProgressDto, ignoreSerie?:boolean):Promise<ReadProgress | null> {
+    async modifyOrCreateProgress(
+        @Req() req:Request,
+        @Body() progressDto:ProgressDto,
+        ignoreSerie?:boolean,
+        accessPolicy?:ContentAccessPolicy
+    ):Promise<ReadProgress | null> {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId: Types.ObjectId};
+        const policy = accessPolicy ?? await this.contentAccessService.forUser(userId);
+        const foundBook = await this.booksService.findAccessibleById(progressDto.book, policy);
+
+        if (!foundBook) throw new BadRequestException();
 
         const foundProgress = await this.readprogressService.findProgressByBookAndUser(progressDto.book, userId);
 
         if (progressDto.status !== "reading" && foundProgress?.status === progressDto.status) return foundProgress;
-
-        const foundBook = await this.booksService.findById(progressDto.book);
-
-        if (!foundBook) throw new BadRequestException();
 
         if (progressDto.status !== "unread") {
             // Si el progreso es avanzar la lectura, quitarlo de la lista de lectura si existe
@@ -113,21 +117,29 @@ export class ReadprogressController {
 
     @Post(":serieId")
     async setSerieAsRead(@Req() req:Request, @Param("serieId", ParseObjectIdPipe) serieId:Types.ObjectId) {
+        if (!req.user) throw new UnauthorizedException();
+
+        const {userId} = req.user as {userId: Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+
+        await this.contentAccessService.assertSeriesAccessible(serieId, policy);
+
         const found = await this.booksService.getSerieBooks(serieId);
 
         const promises = found.map(async(book)=>{
-            await this.modifyOrCreateProgress(req, {book:book._id, status:"completed", currentPage:book.pages, characters:book.characters, endDate:new Date()}, true);
+            await this.modifyOrCreateProgress(
+                req,
+                {book:book._id, status:"completed", currentPage:book.pages, characters:book.characters, endDate:new Date()},
+                true,
+                policy
+            );
         });
 
         await Promise.all(promises);
 
         const [firstBook] = found;
 
-        if (!req.user) throw new UnauthorizedException();
-
         if (!firstBook) throw new BadRequestException();
-
-        const {userId} = req.user as {userId: Types.ObjectId};
 
         await this.serieProgressService.createOrModifySerieProgress(userId, serieId, found.map(x=>x._id), firstBook.variant);
 
@@ -140,6 +152,10 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId: Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+        const foundBook = await this.booksService.findAccessibleById(book, policy);
+
+        if (!foundBook) throw new NotFoundException();
 
         const found = await this.readprogressService.findProgressByBookAndUser(book, userId, status);
 
@@ -154,11 +170,7 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
-
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-        if (cached) {
-            return cached;
-        }
+        const policy = await this.contentAccessService.forUser(userId);
 
         if (!page) {
             page = 1;
@@ -172,11 +184,7 @@ export class ReadprogressController {
             sort = "!lastUpdateDate";
         }
 
-        const response = await this.readprogressService.findUserProgresses(userId, page, limit, sort);
-
-        await this.cacheManager.set(`${userId}-${req.url}`, response);
-
-        return response;
+        return this.readprogressService.findUserProgresses(userId, page, limit, sort, policy);
     }
 
     @Get("tablero")
@@ -185,14 +193,10 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
 
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-        if (cached) {
-            return cached;
-        }
-
-        const series:FullSerieProgress[] = await this.serieProgressService.getUserSeriesProgress(userId);
-        const readingSeries = (await this.readprogressService.getReadingSeries(userId)).map(x=>x.serie.toString());
+        const series:FullSerieProgress[] = await this.serieProgressService.getUserSeriesProgress(userId, policy);
+        const readingSeries = (await this.readprogressService.getReadingSeries(userId, policy)).map(x=>x.serie.toString());
 
         const returnBooks:{book:Book, date:Date}[] = [];
 
@@ -222,8 +226,6 @@ export class ReadprogressController {
 
         const result = returnBooks.map((v)=>v.book).filter(x=>x !== undefined);
 
-        await this.cacheManager.set(`${userId}-${req.url}`, result);
-
         return result;
     }
 
@@ -232,17 +234,9 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
 
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-        if (cached) {
-            return cached;
-        }
-
-        const response = await this.readprogressService.getReadingBooks(userId);
-
-        await this.cacheManager.set(`${userId}-${req.url}`, response);
-
-        return response;
+        return this.readprogressService.getReadingBooks(userId, policy);
     }
 
     @Get("mystats")
@@ -250,17 +244,9 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
 
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-        if (cached) {
-            return cached;
-        }
-
-        const response = await this.readprogressService.getUserStats(userId);
-
-        await this.cacheManager.set(`${userId}-${req.url}`, response);
-
-        return response;
+        return this.readprogressService.getUserStats(userId, policy);
     }
 
     @Get("mygraphs")
@@ -268,17 +254,9 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
 
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-        if (cached) {
-            return cached;
-        }
-
-        const response = await this.readprogressService.getGraphStats(userId);
-
-        await this.cacheManager.set(`${userId}-${req.url}`, response);
-
-        return response;
+        return this.readprogressService.getGraphStats(userId, policy);
     }
 
     @Get("serie/:serieId/speed")
@@ -286,17 +264,11 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
 
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-        if (cached) {
-            return cached;
-        }
+        await this.contentAccessService.assertSeriesAccessible(serie, policy);
 
-        const response = await this.readprogressService.getSerieSpeed(userId, serie);
-
-        await this.cacheManager.set(`${userId}-${req.url}`, response);
-
-        return response;
+        return this.readprogressService.getSerieSpeed(userId, serie);
     }
 
     @Get("book/:bookId")
@@ -304,17 +276,12 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+        const foundBook = await this.booksService.findAccessibleById(book, policy);
 
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-        if (cached) {
-            return cached;
-        }
+        if (!foundBook) throw new NotFoundException();
 
-        const response = await this.readprogressService.getBookProgresses(userId, book);
-
-        await this.cacheManager.set(`${userId}-${req.url}`, response);
-
-        return response;
+        return this.readprogressService.getBookProgresses(userId, book);
     }
 
     @Get("streak/:year/:month")
@@ -324,16 +291,9 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-        if (cached) {
-            return cached;
-        }
+        const policy = await this.contentAccessService.forUser(userId);
 
-        const response = await this.readprogressService.getMonthStreak(userId, parseInt(year), parseInt(month));
-
-        await this.cacheManager.set(`${userId}-${req.url}`, response);
-
-        return response;
+        return this.readprogressService.getMonthStreak(userId, parseInt(year), parseInt(month), policy);
     }
 
     @Get("logs/:year/:month/:day")
@@ -343,16 +303,9 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-        if (cached) {
-            return cached;
-        }
+        const policy = await this.contentAccessService.forUser(userId);
 
-        const response = await this.readprogressService.getDayLogs(userId, parseInt(year), parseInt(month), parseInt(day));
-
-        await this.cacheManager.set(`${userId}-${req.url}`, response);
-
-        return response;
+        return this.readprogressService.getDayLogs(userId, parseInt(year), parseInt(month), parseInt(day), policy);
     }
 
     @Patch(":progressId")
@@ -360,6 +313,12 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+        const foundProgress = await this.readprogressService.findByIdForUser(progress, userId);
+
+        if (!foundProgress) throw new NotFoundException();
+
+        await this.contentAccessService.assertSeriesAccessible(foundProgress.serie, policy);
 
         return this.readprogressService.modifyReadProgress(progress, progressDto, userId);
     }
@@ -369,6 +328,9 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+
+        await this.contentAccessService.assertSeriesAccessible(serie, policy);
 
         await this.readprogressService.modifyWholeSerie(serie, userId, true);
         return {status:"OK"};
@@ -379,6 +341,9 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+
+        await this.contentAccessService.assertSeriesAccessible(serie, policy);
 
         await this.readprogressService.modifyWholeSerie(serie, userId, false);
         return {status:"OK"};
@@ -389,7 +354,13 @@ export class ReadprogressController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
-        
+        const policy = await this.contentAccessService.forUser(userId);
+        const foundProgress = await this.readprogressService.findByIdForUser(id, userId);
+
+        if (!foundProgress) throw new NotFoundException();
+
+        await this.contentAccessService.assertSeriesAccessible(foundProgress.serie, policy);
+
         return this.readprogressService.deleteReadProgress(id, userId);
     }
 }
