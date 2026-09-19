@@ -1,4 +1,4 @@
-import {Controller, Get, Req, HttpStatus, Query, UseGuards, UnauthorizedException, Param, NotFoundException, Patch, Body, Inject, UseInterceptors, BadRequestException, Res, Post} from "@nestjs/common";
+import {Controller, Get, Req, HttpStatus, Query, UseGuards, UnauthorizedException, Param, NotFoundException, Patch, Body, Inject, BadRequestException, Res, Post} from "@nestjs/common";
 import {SeriesService} from "./series.service";
 import {ApiOkResponse, ApiTags} from "@nestjs/swagger";
 import {JwtAuthGuard} from "../auth/strategies/jwt.strategy";
@@ -12,12 +12,13 @@ import {UpdateSeriesDto} from "./dto/update-series.dto";
 import {WebsocketsGateway} from "../websockets/websockets.gateway";
 import {UsersService} from "../users/users.service";
 import {ReadlistService} from "../readlist/readlist.service";
-import {CacheTTL, CACHE_MANAGER, CacheInterceptor} from "@nestjs/cache-manager";
+import {CACHE_MANAGER} from "@nestjs/cache-manager";
 import {Cache} from "cache-manager";
 import {SerieprogressService} from "../serieprogress/serieprogress.service";
 import {mangaZipFilter, novelZipFilter, resolveInside, streamZipToResponse} from "../books/helpers/zipDownload";
 import * as path from "path";
 import * as fs from "fs-extra";
+import {ContentAccessService} from "../content-access/content-access.service";
 
 @Controller("series")
 @UseGuards(JwtAuthGuard)
@@ -30,14 +31,19 @@ export class SeriesController {
         private readonly usersService:UsersService,
         private readonly readListsService:ReadlistService,
         private readonly serieProgressService:SerieprogressService,
+        private readonly contentAccessService:ContentAccessService,
         @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
     ) {}
 
     @Get("genresAndArtists")
     @ApiOkResponse({status:HttpStatus.OK})
-    @UseInterceptors(CacheInterceptor)
-    async getGenresAndArtists() {
-        return this.seriesService.getArtistsAndGenres();
+    async getGenresAndArtists(@Req() req:Request) {
+        if (!req.user) throw new UnauthorizedException();
+
+        const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+
+        return this.seriesService.getArtistsAndGenres(policy);
     }
 
     @Post(":serieId/zip")
@@ -61,17 +67,11 @@ export class SeriesController {
 
     @Get(":variant")
     @ApiOkResponse({status:HttpStatus.OK})
-    @CacheTTL(60)
     async filterSeries(@Req() req:Request, @Query() query:SeriesSearch, @Param("variant") variant:"manga" | "novela" | "all") {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
-
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-
-        if (cached) {
-            return cached;
-        }
+        const policy = await this.contentAccessService.forUser(userId);
 
         if (!query.page || query.page < 1) {
             query.page = 1;
@@ -81,7 +81,7 @@ export class SeriesController {
             query.limit = 25;
         }
 
-        const foundSeries = await this.seriesService.filterSeries(userId, variant, query);
+        const foundSeries = await this.seriesService.filterSeries(userId, variant, query, policy);
 
         let skip = 0;
         let pages = foundSeries.pages;
@@ -126,8 +126,6 @@ export class SeriesController {
 
         const response = {data:paginatedSeries, pages};
 
-        await this.cacheManager.set(`${userId}-${req.url}`, response);
-
         return response;
     }
 
@@ -136,8 +134,9 @@ export class SeriesController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
 
-        const foundSeries = await this.seriesService.filterSeries(userId, variant, query);
+        const foundSeries = await this.seriesService.filterSeries(userId, variant, query, policy);
 
         const promises = foundSeries.data.map(async(serieElem)=>{
             const serieBooks = await this.booksService.getSerieBooks(serieElem._id);
@@ -213,9 +212,13 @@ export class SeriesController {
 
     @Get(":variant/alphabet")
     @ApiOkResponse({status:HttpStatus.OK})
-    @UseInterceptors(CacheInterceptor)
-    async getAlphabetGroups(@Query() query:SeriesSearch, @Param("variant") variant:"manga" | "novela") {
-        const filledLetters = await this.seriesService.getAlphabetCount(variant, query);
+    async getAlphabetGroups(@Req() req:Request, @Query() query:SeriesSearch, @Param("variant") variant:"manga" | "novela") {
+        if (!req.user) throw new UnauthorizedException();
+
+        const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+
+        const filledLetters = await this.seriesService.getAlphabetCount(variant, policy, query);
         const alphabet: {
             group: string;
             count: number;
@@ -347,13 +350,9 @@ export class SeriesController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
 
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-        if (cached) {
-            return cached;
-        }
-
-        const foundSerie = await this.seriesService.findById(id);
+        const foundSerie = await this.seriesService.findAccessibleById(id, policy);
 
         if (!foundSerie) throw new NotFoundException();
 
@@ -366,8 +365,6 @@ export class SeriesController {
                 readlist,
                 ...serieData
             };
-
-            await this.cacheManager.set(`${userId}-${req.url}`, serieWithProgress);
 
             return serieWithProgress;
         }

@@ -6,6 +6,7 @@ import {SeriesSearch, UpdateSerie} from "./interfaces/query";
 import {UsersService} from "../users/users.service";
 import {SerieWithReviews} from "./interfaces/serieWithProgress";
 import {ParsedReview} from "../reviews/interfaces/review";
+import {ContentAccessPolicy} from "../content-access/content-access.service";
 
 @Injectable()
 export class SeriesService {
@@ -16,8 +17,16 @@ export class SeriesService {
   private readonly logger = new Logger(SeriesService.name);
 
   async findById(id:Types.ObjectId) {
+      return this.findByIdMatching(id, {});
+  }
+
+  async findAccessibleById(id:Types.ObjectId, policy:ContentAccessPolicy) {
+      return this.findByIdMatching(id, policy.seriesMatch);
+  }
+
+  private async findByIdMatching(id:Types.ObjectId, seriesMatch:object) {
       const pipe = await this.seriesModel.aggregate()
-          .match({_id:new Types.ObjectId(id)})
+          .match({_id:new Types.ObjectId(id), ...seriesMatch})
           .lookup({
               from:"reviews",
               localField:"_id",
@@ -87,8 +96,15 @@ export class SeriesService {
       return this.seriesModel.findByIdAndUpdate(id, {$inc:{bookCount:1}, $set:{lastModifiedDate:new Date()}});
   }
 
-  async filterSeries(user:Types.ObjectId, variant:"manga" | "novela" | "all", query:SeriesSearch) {
+  async filterSeries(
+      user:Types.ObjectId,
+      variant:"manga" | "novela" | "all",
+      query:SeriesSearch,
+      policy:ContentAccessPolicy
+  ) {
       const result = this.seriesModel.aggregate().collation({locale: "es"}).match({bookCount:{$gt:0}});
+
+      result.match(policy.seriesMatch);
 
       if (variant !== "all") {
           result.match({variant});
@@ -205,8 +221,9 @@ export class SeriesService {
       return {data:results, pages: Math.ceil((countQuery[0] || {total:0}).total / (query.limit || 1))};
   }
 
-  async getArtistsAndGenres() {
+  async getArtistsAndGenres(policy:ContentAccessPolicy) {
       const pipe = await this.seriesModel.aggregate()
+          .match(policy.seriesMatch)
           .unwind({path:"$genres", preserveNullAndEmptyArrays:true})
           .unwind({path:"$authors", preserveNullAndEmptyArrays:true})
           .group({
@@ -217,8 +234,10 @@ export class SeriesService {
       return pipe[0] || {genres:[], authors:[]};
   }
 
-  getAlphabetCount(variant:"manga" | "novela", query?:SeriesSearch) {
-      const pipe = this.seriesModel.aggregate().match({variant});
+  getAlphabetCount(variant:"manga" | "novela", policy:ContentAccessPolicy, query?:SeriesSearch) {
+      const pipe = this.seriesModel.aggregate()
+          .match({variant})
+          .match(policy.seriesMatch);
       if (query) {
           if (query.author) {
               pipe.match({authors:{$in:[query.author]}});

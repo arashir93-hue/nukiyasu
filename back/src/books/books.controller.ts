@@ -1,4 +1,4 @@
-import {Controller, Get, Inject, Req, UnauthorizedException, UseGuards, Query, Param, HttpStatus, Patch, Body, NotFoundException, UseInterceptors, Res, BadRequestException} from "@nestjs/common";
+import {Controller, Get, Req, UnauthorizedException, UseGuards, Query, Param, HttpStatus, Patch, Body, NotFoundException, Res, BadRequestException} from "@nestjs/common";
 import {BooksService} from "./books.service";
 import {Request, Response} from "express";
 import {Types} from "mongoose";
@@ -13,11 +13,10 @@ import {getCharacterCount, getNovelCharacterCount} from "./helpers/helpers";
 import {ensureThumbnail} from "./helpers/thumbnail";
 import {resolveInside, streamFileToResponse, streamZipToResponse} from "./helpers/zipDownload";
 import {join} from "path";
-import {CacheInterceptor, CacheTTL, CACHE_MANAGER} from "@nestjs/cache-manager";
-import {Cache} from "cache-manager";
 import * as path from "path";
 import * as fs from "fs-extra";
 import EPub from "epub2";
+import {ContentAccessService} from "../content-access/content-access.service";
 
 @Controller("books")
 @ApiTags("Libros")
@@ -27,28 +26,27 @@ export class BooksController {
         private readonly booksService: BooksService,
         private readonly usersService:UsersService,
         private readonly websocketsGateway:WebsocketsGateway,
-        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
+        private readonly contentAccessService:ContentAccessService
     ) {}
   
     @Get("genresAndArtists")
-    @UseInterceptors(CacheInterceptor)
     @ApiOkResponse({status:HttpStatus.OK})
-    async getGenresAndArtists() {
-        return this.booksService.getArtistsAndGenres();
+    async getGenresAndArtists(@Req() req:Request) {
+        if (!req.user) throw new UnauthorizedException();
+
+        const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+
+        return this.booksService.getArtistsAndGenres(policy);
     }
 
     @Get(":variant")
-    @CacheTTL(60)
     @ApiOkResponse({status:HttpStatus.OK})
     async filterBooks(@Req() req:Request, @Query() query:SearchQuery, @Param("variant") variant:"manga" | "novela" | "all") {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId: Types.ObjectId};
-
-        const cached = await this.cacheManager.get(`${userId}-${req.url}`);
-        if (cached) {
-            return cached;
-        }
+        const policy = await this.contentAccessService.forUser(userId);
 
         if (!query.serie) {
             if (!query.page || query.page < 1) {
@@ -60,11 +58,7 @@ export class BooksController {
             }
         }
 
-        const response = await this.booksService.filterBooks(userId, variant, query);
-
-        await this.cacheManager.set(`${userId}-${req.url}`, response);
-
-        return response;
+        return this.booksService.filterAccessibleBooks(userId, variant, query, policy);
     }
 
     @Patch(":id")
@@ -169,10 +163,13 @@ export class BooksController {
     }
 
     @Get("book/:id")
-    @UseInterceptors(CacheInterceptor)
     @ApiOkResponse({status:HttpStatus.OK})
-    async getBook(@Param("id") book:Types.ObjectId) {
-        const foundBook = await this.booksService.findById(book);
+    async getBook(@Req() req:Request, @Param("id", ParseObjectIdPipe) book:Types.ObjectId) {
+        if (!req.user) throw new UnauthorizedException();
+
+        const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+        const foundBook = await this.booksService.findAccessibleById(book, policy);
 
         if (!foundBook) throw new NotFoundException();
 
@@ -187,7 +184,15 @@ export class BooksController {
     
     @Get(":id/defaultname")
     @ApiOkResponse({status:HttpStatus.OK})
-    async getBookDefaultName( @Param("id") book:Types.ObjectId) {
+    async getBookDefaultName(@Req() req:Request, @Param("id", ParseObjectIdPipe) book:Types.ObjectId) {
+        if (!req.user) throw new UnauthorizedException();
+
+        const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+        const foundBook = await this.booksService.findAccessibleById(book, policy);
+
+        if (!foundBook) throw new NotFoundException();
+
         return this.booksService.getDefaultName(book);
     }
 
@@ -196,12 +201,13 @@ export class BooksController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
 
-        const foundBook = await this.booksService.findById(id);
+        const foundBook = await this.booksService.findAccessibleById(id, policy);
 
         if (!foundBook) throw new NotFoundException();
 
-        const serieBooks = await this.booksService.filterBooks(userId, foundBook.variant, {serie:foundBook.serie, sort:"sortName"});
+        const serieBooks = await this.booksService.filterAccessibleBooks(userId, foundBook.variant, {serie:foundBook.serie, sort:"sortName"}, policy);
 
         const bookIndex = serieBooks.findIndex(x=>x.path === foundBook.path);
 
@@ -217,12 +223,13 @@ export class BooksController {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
 
-        const foundBook = await this.booksService.findById(id);
+        const foundBook = await this.booksService.findAccessibleById(id, policy);
 
         if (!foundBook) throw new NotFoundException();
 
-        const serieBooks = await this.booksService.filterBooks(userId, foundBook.variant, {serie:foundBook.serie, sort:"sortName"});
+        const serieBooks = await this.booksService.filterAccessibleBooks(userId, foundBook.variant, {serie:foundBook.serie, sort:"sortName"}, policy);
 
         const bookIndex = serieBooks.findIndex(x=>x.path === foundBook.path);
 

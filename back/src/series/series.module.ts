@@ -6,13 +6,15 @@ import {Serie, SerieSchema} from "./schemas/series.schema";
 import {BooksModule} from "../books/books.module";
 import {ReadlistModule} from "../readlist/readlist.module";
 import {SerieprogressModule} from "../serieprogress/serieprogress.module";
+import {ContentAccessModule} from "../content-access/content-access.module";
 
 @Module({
     imports: [
         MongooseModule.forFeature([{name: Serie.name, schema: SerieSchema}]),
         BooksModule,
         ReadlistModule,
-        SerieprogressModule
+        SerieprogressModule,
+        ContentAccessModule
     ],
     controllers: [SeriesController],
     providers: [SeriesService],

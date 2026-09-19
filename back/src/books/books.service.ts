@@ -8,17 +8,49 @@ import {listImageFiles} from "./helpers/helpers";
 import * as archiver from "archiver";
 import * as fs from "fs-extra";
 import * as path from "path";
+import {ContentAccessPolicy, ContentAccessService} from "../content-access/content-access.service";
 
 @Injectable()
 export class BooksService {
     constructor(
-        @InjectModel(Book.name) private readonly bookModel: Model<BookDocument>
+        @InjectModel(Book.name) private readonly bookModel: Model<BookDocument>,
+        private readonly contentAccessService:ContentAccessService
     ) {}
   private readonly logger = new Logger(BooksService.name);
 
   async filterBooks(user:Types.ObjectId, variant:"manga" | "novela" | "all", query:SearchQuery):Promise<UserBook[]> {
+      return this.queryBooks(user, variant, query);
+  }
+
+  async filterAccessibleBooks(
+      user:Types.ObjectId,
+      variant:"manga" | "novela" | "all",
+      query:SearchQuery,
+      policy:ContentAccessPolicy
+  ):Promise<UserBook[]> {
+      return this.queryBooks(user, variant, query, policy);
+  }
+
+  private async queryBooks(
+      user:Types.ObjectId,
+      variant:"manga" | "novela" | "all",
+      query:SearchQuery,
+      policy?:ContentAccessPolicy
+  ):Promise<UserBook[]> {
       const aggregate = this.bookModel.aggregate().collation({locale: "es"})
           .match({missing:false});
+
+      if (policy && !policy.showMatureContent) {
+          aggregate.lookup({
+              from:"series",
+              localField:"serie",
+              foreignField:"_id",
+              as:"contentAccessSerie"
+          })
+              .unwind({path:"$contentAccessSerie"})
+              .match(this.contentAccessService.forJoinedSeries("contentAccessSerie", policy))
+              .project({contentAccessSerie:0});
+      }
 
       if (variant !== "all") {
           aggregate.match({variant});
@@ -190,6 +222,19 @@ export class BooksService {
       return this.bookModel.findById(id);
   }
 
+  async findAccessibleById(
+      id:Types.ObjectId,
+      policy:ContentAccessPolicy
+  ):Promise<BookDocument | null> {
+      const book = await this.findById(id);
+
+      if (!book) return null;
+
+      await this.contentAccessService.assertSeriesAccessible(book.serie, policy);
+
+      return book;
+  }
+
   /**
    * Rutas de las imágenes de un tomo sin mokuro, en orden de lectura. Los
    * tomos con html no la necesitan: el propio html es el manifiesto.
@@ -356,8 +401,22 @@ export class BooksService {
       );
   }
 
-  getArtistsAndGenres() {
-      return this.bookModel.aggregate()
+  getArtistsAndGenres(policy:ContentAccessPolicy) {
+      const aggregate = this.bookModel.aggregate();
+
+      if (!policy.showMatureContent) {
+          aggregate.lookup({
+              from:"series",
+              localField:"serie",
+              foreignField:"_id",
+              as:"contentAccessSerie"
+          })
+              .unwind({path:"$contentAccessSerie"})
+              .match(this.contentAccessService.forJoinedSeries("contentAccessSerie", policy))
+              .project({contentAccessSerie:0});
+      }
+
+      return aggregate
           .group({
               _id:null,
               genres:{$addToSet:"$genres"},

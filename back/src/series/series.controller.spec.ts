@@ -11,6 +11,7 @@ import {Types} from "mongoose";
 import * as request from "supertest";
 import {JwtAuthGuard} from "../auth/strategies/jwt.strategy";
 import {BooksService} from "../books/books.service";
+import {ContentAccessService} from "../content-access/content-access.service";
 import {ReadlistService} from "../readlist/readlist.service";
 import {SerieprogressService} from "../serieprogress/serieprogress.service";
 import {UsersService} from "../users/users.service";
@@ -38,6 +39,7 @@ describe("SeriesController mature classification", () => {
                 {provide:UsersService, useValue:usersService},
                 {provide:ReadlistService, useValue:{}},
                 {provide:SerieprogressService, useValue:{}},
+                {provide:ContentAccessService, useValue:{}},
                 {provide:CACHE_MANAGER, useValue:{}},
                 {
                     provide:APP_PIPE,
