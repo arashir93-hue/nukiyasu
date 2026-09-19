@@ -1,4 +1,4 @@
-# Reglas R8 para Yomiyasu
+# Reglas R8 para Nukiyasu. El paquete histórico se conserva por compatibilidad.
 
 # kotlinx.serialization (además de las reglas del consumer del plugin)
 -keepattributes *Annotation*, InnerClasses

@@ -28,9 +28,9 @@
     "display": "standalone",
     "dir": "auto",
     "lang": "es-ES",
-    "name": "Yomiyasu",
-    "short_name": "yomiyasu",
+    "name": "Nukiyasu",
+    "short_name": "Nukiyasu",
     "start_url": "https://manga.manabe.es/",
-    "description": "YomiYasu - Biblioteca de manga con OCR",
+    "description": "Nukiyasu - Biblioteca de manga con OCR",
     "id": "yomiyasu-manabe"
 }

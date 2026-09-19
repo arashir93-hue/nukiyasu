@@ -124,7 +124,7 @@ export function MoreSheet({open, onOpenChange, onOpenSettings, onOpenAccount}:Mo
               <span className="text-xs text-fg-muted">Ajustes de cuenta</span>
             </span>
           </button>
-          <p className="px-2 pb-1 text-[11px] text-fg-muted">YomiYasu {APP_VERSION}</p>
+          <p className="px-2 pb-1 text-[11px] text-fg-muted">Nukiyasu {APP_VERSION}</p>
         </SheetBody>
       </SheetContent>
     </Sheet>

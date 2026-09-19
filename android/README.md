@@ -1,8 +1,8 @@
-# Yomiyasu Android
+# Nukiyasu Android
 
 Aplicación nativa (Kotlin + Jetpack Compose) para móvil, tablet y plegables: biblioteca,
 lector de manga (mokuro) y de novelas (EPUB), diccionario japonés y estadísticas, contra la
-API de Yomiyasu. Paridad funcional con la app iOS (`ios/`).
+Cliente Android de Nukiyasu. Paridad funcional con la app iOS (`ios/`). El `applicationId` conserva el identificador histórico para que las instalaciones existentes puedan actualizarse.
 
 ## Requisitos
 
@@ -34,8 +34,8 @@ Comandos:
 En esta máquina el emulador se creó con:
 
 ```sh
-avdmanager create avd -n yomiyasu -k "system-images;android-36;google_apis;arm64-v8a" -d pixel_7
-$ANDROID_HOME/emulator/emulator -avd yomiyasu -no-snapshot -no-audio -gpu host
+avdmanager create avd -n nukiyasu -k "system-images;android-36;google_apis;arm64-v8a" -d pixel_7
+$ANDROID_HOME/emulator/emulator -avd nukiyasu -no-snapshot -no-audio -gpu host
 ```
 
 > Usa `-gpu host`: con el renderizado por software (SwiftShader) el WebView del lector de
@@ -111,8 +111,11 @@ saltan. Se pueden tomar del mismo `ios/LocalFixtures/e2e.json`:
 publica el release rodante **`latest`** con nombres estables (los tests y el lint se ejecutan
 en local, no en CI):
 
-- `https://github.com/alexay7/yomiyasu/releases/latest/download/Yomiyasu-android-release.apk`
-- `https://github.com/alexay7/yomiyasu/releases/latest/download/Yomiyasu-android-debug.apk`
+- `https://github.com/alexay7/yomiyasu/releases/latest/download/Nukiyasu-android-release.apk`
+- `https://github.com/alexay7/yomiyasu/releases/latest/download/Nukiyasu-android-debug.apk`
+
+El workflow también publica alias con los nombres históricos `Yomiyasu-android-*.apk` para
+no romper enlaces o automatizaciones existentes.
 
 (El workflow de iOS publica el IPA en el mismo release como `Yomiyasu-ios.ipa`.)
 
@@ -160,9 +163,10 @@ app/src/main/java/es/manabe/yomiyasu/
   `Canvas` de Compose con texto vertical real (columnas derecha→izquierda, métricas de mokuro
   de 1.1 em) y el hit-testing reproduce el de CoreText (`TategakiLayout`).
 - El lector de novelas usa el Readium Kotlin toolkit (`EpubNavigatorFragment`) embebido en
-  Compose; la selección de texto añade la acción «Buscar en Yomiyasu». El progreso se mapea a
+  Compose; la selección de texto añade la acción «Buscar en Nukiyasu». El progreso se mapea a
   `characters` contando caracteres japoneses por capítulo.
-- Las descargas viven en `filesDir/Yomiyasu/Downloads` con un `manifest.json` y permiten leer
+- Las descargas viven en `filesDir/Yomiyasu/Downloads` (ruta histórica conservada para no perder
+  instalaciones existentes) con un `manifest.json` y permiten leer
   sin conexión (sin guardar progreso mientras no hay red).
 - Las páginas y portadas requieren `Authorization: Bearer`; Coil usa un cliente OkHttp con
   interceptor que lo inyecta.

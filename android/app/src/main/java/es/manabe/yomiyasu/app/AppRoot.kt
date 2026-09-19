@@ -78,7 +78,7 @@ private fun LoadingScreen() {
             modifier = Modifier.size(120.dp),
         )
         Text(
-            text = "Yomiyasu",
+            text = "Nukiyasu",
             style = MaterialTheme.typography.headlineMedium,
         )
         CircularProgressIndicator(modifier = Modifier.size(32.dp).padding(top = 8.dp))

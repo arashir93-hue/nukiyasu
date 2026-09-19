@@ -13,7 +13,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  *
  * Orden de resolución: extras del Intent (solo DEBUG, para E2E), URL
  * persistida por el usuario y, por último, `BuildConfig.SERVER_URL` (solo en
- * Debug puede hornearse con `-Pyomiyasu.serverUrl=...`). El websocket usa
+ * Debug puede hornearse con el flag histórico `-Pyomiyasu.serverUrl=...`). El websocket usa
  * siempre la misma URL que la API.
  */
 object ServerConfig {

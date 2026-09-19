@@ -261,7 +261,7 @@ export function SettingsSheet():React.ReactElement {
           <DialogTitle>¿Estás seguro?</DialogTitle>
           <DialogDescription>
             Si desactivas el lector nativo no se guardará el progreso de lo que leas ni podrás usar las
-            herramientas de aprendizaje de YomiYasu.
+                            herramientas de aprendizaje de Nukiyasu.
           </DialogDescription>
           <DialogBody />
           <DialogFooter>

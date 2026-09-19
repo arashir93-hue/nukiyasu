@@ -1,6 +1,6 @@
-# Yomiyasu
+# Nukiyasu
 
-Yomiyasu es un **servidor personal de lectura en japonés**: monta tu propia biblioteca de manga y novelas ligeras con progreso de lectura sincronizado, estadísticas, diccionario integrado y apps nativas para iOS y Android.
+Nukiyasu es un fork compatible de Yomiyasu: un **servidor personal de lectura en japonés** que monta tu propia biblioteca de manga y novelas ligeras con progreso de lectura sincronizado, estadísticas, diccionario integrado y apps nativas para iOS y Android.
 
 - 📖 **Manga**: lectura de tomos procesados con [mokuro](https://github.com/kha-white/mokuro) (doble página, zoom, recortes de burbujas)
 - 📚 **Novelas ligeras**: lector de EPUB con progreso sincronizado entre dispositivos vía websocket
@@ -12,7 +12,7 @@ Yomiyasu es un **servidor personal de lectura en japonés**: monta tu propia bib
 > [!IMPORTANT]
 > ## Contenido adquirido legalmente
 >
-> Yomiyasu **no incluye, distribuye ni descarga libros**. Es un servidor para leer tu propia biblioteca desde tus propios dispositivos, como alternativa a un lector local.
+> Nukiyasu **no incluye, distribuye ni descarga libros**. Es un servidor para leer tu propia biblioteca desde tus propios dispositivos, como alternativa a un lector local.
 >
 > **Solo debes subir a tu servidor contenido que hayas adquirido legalmente** (copias físicas o digitales con licencia). Reproducir, compartir o redistribuir obras protegidas sin autorización es responsabilidad exclusiva de quien lo haga, y va contra el propósito de este proyecto. No compartas el acceso a tu instancia con personas a las que no quieras dar acceso a tu biblioteca personal.
 
@@ -220,7 +220,7 @@ server {
 }
 ```
 
-El frontend de Yomiyasu ya manda `X-Robots-Tag: noindex`, así que tu instancia no aparecerá en buscadores.
+El frontend de Nukiyasu ya manda `X-Robots-Tag: noindex`, así que tu instancia no aparecerá en buscadores.
 
 ## Más usuarios y códigos de invitación
 
@@ -231,8 +231,8 @@ El frontend de Yomiyasu ya manda `X-Robots-Tag: noindex`, así que tu instancia 
 
 Las apps del [release `latest`](https://github.com/alexay7/yomiyasu/releases) apuntan al servidor del autor, así que para usar el tuyo tienes que compilarlas apuntándole a tu URL (modo debug):
 
-- iOS: variable `YOMIYASU_SERVER_URL` — ver `ios/README.md`
-- Android: `-Pyomiyasu.serverUrl` o extras del Intent — ver `android/README.md`
+- iOS: variable histórica `YOMIYASU_SERVER_URL` — ver `ios/README.md`
+- Android: propiedad histórica `-Pyomiyasu.serverUrl` o extras del Intent — ver `android/README.md`
 
 Ambas apps reutilizan las mismas credenciales y sincronizan el progreso con la web.
 

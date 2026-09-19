@@ -52,7 +52,7 @@ fun NovelNavigatorView(
 
         val selectionCallback = object : ActionMode.Callback {
             override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-                menu.add(Menu.NONE, SEARCH_ACTION_ID, Menu.NONE, "Buscar en Yomiyasu")
+                menu.add(Menu.NONE, SEARCH_ACTION_ID, Menu.NONE, "Buscar en Nukiyasu")
                 return true
             }
 

@@ -15,7 +15,7 @@ export interface FlameRatingProps {
   className?: string;
 }
 
-/** Llama de dificultad estilo YomiYasu (azul → rojo → púrpura). */
+/** Llama de dificultad estilo Nukiyasu (azul → rojo → púrpura). */
 export function FlameRating({value, max = 5, onChange, difficulty, size = "sm", className}:FlameRatingProps):React.ReactElement {
   const [hover, setHover] = useState(0);
   const active = hover || value;

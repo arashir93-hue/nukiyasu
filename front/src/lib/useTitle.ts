@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-const SUFFIX = " · YomiYasu";
+const SUFFIX = " · Nukiyasu";
 
 /** Gestiona document.title durante el ciclo de vida del componente. */
 export function useTitle(title?: string): void {

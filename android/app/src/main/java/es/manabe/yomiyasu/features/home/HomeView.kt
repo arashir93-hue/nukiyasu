@@ -281,7 +281,7 @@ fun HomeRoute(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Yomiyasu") },
+                title = { Text("Nukiyasu") },
                 actions = {
                     IconButton(onClick = { searchOpen = true }) {
                         Icon(Icons.Filled.Search, contentDescription = "Buscar")

@@ -121,7 +121,7 @@ export default function Words():React.ReactElement {
                                     icon={<ExternalLink className="size-3.5" />}
                                     onClick={()=>{
                                         window.open(`/ankiexport?word=${encodeURIComponent(word.word)}&reading=${encodeURIComponent(word.reading)}&definition=${encodeURIComponent(word.meaning.join("\n"))}`,
-                                            "YomiYasu - Exportar a Anki", "height=600,width=500,resizable=no,menubar=no,toolbar=no,location=no,status=no");
+                                            "Nukiyasu - Exportar a Anki", "height=600,width=500,resizable=no,menubar=no,toolbar=no,location=no,status=no");
                                     }}
                                 >
                                     Añadir a Anki

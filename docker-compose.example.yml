@@ -1,4 +1,4 @@
-# Ejemplo de despliegue de Yomiyasu.
+# Ejemplo de despliegue de Nukiyasu.
 # Copia este archivo como docker-compose.yml y ajusta los valores marcados
 # con comentarios. El resto (nombres de servicios, targets, etc.) funciona
 # tal cual en cualquier máquina con Docker.

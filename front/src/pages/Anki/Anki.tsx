@@ -232,7 +232,7 @@ function Anki():React.ReactElement {
         };
 
         // Nombre de archivo único por carta para no pisar medios entre notas
-        const mediaSlug = (word || reading || "yomiyasu").replace(/[^\p{L}\p{N}]+/gu, "-").slice(0, 40) || "yomiyasu";
+        const mediaSlug = (word || reading || "nukiyasu").replace(/[^\p{L}\p{N}]+/gu, "-").slice(0, 40) || "nukiyasu";
 
         if (image && imageField !== "") {
             const imageBase64 = await convertBase64(image);

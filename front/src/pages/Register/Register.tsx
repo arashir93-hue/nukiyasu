@@ -73,7 +73,7 @@ function Register():React.ReactElement {
 
     return (
         <AuthCard
-            title="Bienvenido a YomiYasu"
+            title="Bienvenido a Nukiyasu"
             subtitle={firstUser ? "Crea la cuenta de administrador del servidor" : "Crea tu cuenta con un código de invitación"}
             footer={
                 <p className="text-center text-xs text-fg-muted">

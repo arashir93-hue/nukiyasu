@@ -18,6 +18,8 @@ function refererFor(target: string): Record<string, string> {
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
+  // El prefijo YOMIYASU_ forma parte de la configuración existente; se
+  // conserva para que las instalaciones y scripts actuales sigan funcionando.
   const env = loadEnv(mode, process.cwd(), 'YOMIYASU_')
 
   const apiTarget = env.YOMIYASU_API_TARGET || 'http://localhost:3001'

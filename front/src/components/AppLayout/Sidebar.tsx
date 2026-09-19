@@ -40,7 +40,7 @@ export function Sidebar({collapsed, onToggleCollapsed, onOpenSettings, onOpenAcc
           )}
           aria-label="Ir al inicio"
         >
-          {collapsed ? "Y" : "YomiYasu"}
+          {collapsed ? "N" : "Nukiyasu"}
         </button>
         {!collapsed ? (
           <IconButton label="Contraer menú" size="sm" onClick={onToggleCollapsed}>
@@ -94,7 +94,7 @@ export function Sidebar({collapsed, onToggleCollapsed, onOpenSettings, onOpenAcc
             rel="noopener noreferrer"
             className="px-2 pb-1 text-[11px] text-fg-muted transition-colors hover:text-primary hover:no-underline"
           >
-            YomiYasu {APP_VERSION}
+            Nukiyasu {APP_VERSION}
           </a>
         ) : null}
       </div>

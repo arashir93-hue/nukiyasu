@@ -1,7 +1,7 @@
-# Yomiyasu Front
+# Nukiyasu Front
 
 Frontend web (React 19 + Vite + Tailwind CSS v4 + React Router 8 + zustand + TanStack
-Query v5 + socket.io-client) contra la API de Yomiyasu.
+Query v5 + socket.io-client) contra la API de Nukiyasu.
 
 El sistema de diseño propio vive en `src/ui/` (primitivas sobre Radix + Tailwind) con los
 tokens en `src/index.css` (`@theme`). Puede desplegarse con preflight de Tailwind sin

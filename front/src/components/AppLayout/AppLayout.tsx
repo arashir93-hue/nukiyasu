@@ -55,7 +55,7 @@ export default function AppLayout():React.ReactElement {
                         onClick={()=>navigate("/app")}
                         className="rounded-lg px-1 text-lg font-bold tracking-tight text-fg transition-colors hover:text-primary lg:hidden"
                     >
-                        YomiYasu
+                        Nukiyasu
                     </button>
 
                     <button

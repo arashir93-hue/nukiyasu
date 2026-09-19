@@ -36,7 +36,7 @@ export function defaultMokuroSettings(): MokuroStoredSettings {
     defaultZoomMode:"fit to screen",
     toggleOCRTextBoxes:false,
     backgroundColor:"#C4C3D0",
-    // Ajustes propios de YomiYasu (mokuro los ignora)
+    // Ajustes propios de Nukiyasu (mokuro los ignora)
     panAndZoom:true,
     nativeDictionary:true,
     dictionaryVersion:"word",
@@ -109,7 +109,7 @@ interface InjectMokuroParams {
 }
 
 /**
- * Inyecta el shim de YomiYasu en el documento de mokuro y aplica los ajustes.
+ * Inyecta el shim de Nukiyasu en el documento de mokuro y aplica los ajustes.
  * Idempotente: repetir la llamada sobre el mismo documento no duplica código.
  */
 export function injectMokuroShim({

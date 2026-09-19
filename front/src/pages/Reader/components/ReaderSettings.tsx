@@ -58,7 +58,7 @@ export function ReaderSettings(props:ReaderSettingsProps):React.ReactElement {
 
                 <SheetBody className="flex flex-col gap-5">
                     <section className="flex flex-col">
-                        <h3 className="pb-1 text-[13px] font-semibold uppercase tracking-wider text-fg-muted/80">YomiYasu</h3>
+                        <h3 className="pb-1 text-[13px] font-semibold uppercase tracking-wider text-fg-muted/80">Nukiyasu</h3>
                         {!isImages ? (
                             <SettingRow label="Activar diccionario nativo" htmlFor="setting-dict">
                                 <div className="flex justify-end">

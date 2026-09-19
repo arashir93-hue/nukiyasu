@@ -122,7 +122,7 @@ fun LoginView(
                     .padding(bottom = 8.dp),
             )
             Text(
-                text = "Yomiyasu",
+                text = "Nukiyasu",
                 style = MaterialTheme.typography.headlineLarge,
             )
             Text(

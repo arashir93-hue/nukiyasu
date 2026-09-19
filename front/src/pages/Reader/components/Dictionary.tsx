@@ -210,7 +210,7 @@ export function Dictionary(props:DictionaryProps):React.ReactElement {
                                                                 const definitions = definition.sense[0].gloss.map((x)=>x.text);
 
                                                                 window.open(`/ankiexport?word=${word}&reading=${reading}&definition=${encodeURIComponent(definitions.join("\n"))}`,
-                                                                    "YomiYasu - Exportar a Anki", "height=600,width=500,resizable=no,menubar=no,toolbar=no,location=no,status=no");
+                                                                    "Nukiyasu - Exportar a Anki", "height=600,width=500,resizable=no,menubar=no,toolbar=no,location=no,status=no");
                                                             }}
                                                         >
                                                             <ExternalLink />
