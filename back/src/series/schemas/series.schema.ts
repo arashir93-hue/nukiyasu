@@ -45,6 +45,9 @@ export class Serie {
   genres: string[];
 
   @Prop({type: Boolean, default: false})
+  isMature: boolean;
+
+  @Prop({type: Boolean, default: false})
   missing: boolean;
 
   @Prop({type: Number, default: 0})

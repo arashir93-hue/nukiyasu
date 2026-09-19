@@ -105,7 +105,8 @@ export class AuthController {
                 _id:authResult.user._id,
                 username:authResult.user.username,
                 email:authResult.user.email,
-                admin:authResult.user.admin
+                admin:authResult.user.admin,
+                showMatureContent:authResult.user.showMatureContent ?? false
             },
             ...this.tokensInBody(req, authResult.tokens)
         }).send();
@@ -176,7 +177,8 @@ export class AuthController {
             _id:foundUser._id,
             username:foundUser.username,
             email:foundUser.email,
-            admin:foundUser.admin
+            admin:foundUser.admin,
+            showMatureContent:foundUser.showMatureContent ?? false
         });
     }
 

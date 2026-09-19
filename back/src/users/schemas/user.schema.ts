@@ -21,6 +21,9 @@ export class User {
 
   @Prop({type:Boolean, default:false})
   admin:boolean;
+
+  @Prop({type:Boolean, default:false})
+  showMatureContent:boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
