@@ -1,6 +1,7 @@
 import {useState} from "react";
 import {toast} from "react-toastify";
 import {useSettingsStore} from "../../stores/SettingsStore";
+import {useAuth} from "../../contexts/AuthContext";
 import {Button} from "../../ui/Button";
 import {Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogTitle} from "../../ui/Dialog";
 import {Field} from "../../ui/Field";
@@ -15,24 +16,42 @@ interface SettingSwitchProps {
   description?:string;
   checked:boolean;
   onCheckedChange:(checked:boolean)=>void;
+  disabled?:boolean;
 }
 
-function SettingSwitch({label, description, checked, onCheckedChange}:SettingSwitchProps):React.ReactElement {
+function SettingSwitch({label, description, checked, onCheckedChange, disabled}:SettingSwitchProps):React.ReactElement {
   return (
     <label className="flex cursor-pointer items-center justify-between gap-4 py-1.5">
       <span className="flex flex-col">
         <span className="text-sm text-fg">{label}</span>
         {description ? <span className="text-xs text-fg-muted">{description}</span> : null}
       </span>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+      <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
     </label>
   );
 }
 
 export function SettingsSheet():React.ReactElement {
   const {siteSettings, modifySiteSettings, openSettings, setOpenSettings} = useSettingsStore();
+  const {userData, updateMatureContentPreference} = useAuth();
   const [openWarning, setOpenWarning] = useState(false);
   const [kindleEmail, setKindleEmail] = useState(siteSettings.kindleEmail || "");
+  const [updatingMatureContent, setUpdatingMatureContent] = useState(false);
+
+  async function changeMatureContent(checked:boolean):Promise<void> {
+    if (updatingMatureContent) return;
+
+    setUpdatingMatureContent(true);
+
+    try {
+      await updateMatureContentPreference(checked);
+      toast.success(checked ? "Contenido adulto activado" : "Contenido adulto oculto");
+    } catch {
+      toast.error("No se pudo actualizar la preferencia de contenido adulto");
+    } finally {
+      setUpdatingMatureContent(false);
+    }
+  }
 
   function saveKindleEmail():void {
     if (!isValidEmail(kindleEmail)) {
@@ -55,6 +74,13 @@ export function SettingsSheet():React.ReactElement {
           <SheetBody className="flex flex-col gap-6">
             <section className="flex flex-col gap-4">
               <h3 className="text-[13px] font-semibold uppercase tracking-wider text-fg-muted/80">Inicio</h3>
+              <SettingSwitch
+                label="Mostrar contenido adulto"
+                description="Incluye series y libros marcados como maduros en la biblioteca"
+                checked={userData?.showMatureContent === true}
+                onCheckedChange={(checked)=>void changeMatureContent(checked)}
+                disabled={updatingMatureContent}
+              />
               <Field label="¿Qué tipo de medio quieres ver en el inicio?">
                 <Select
                   value={siteSettings.mainView}

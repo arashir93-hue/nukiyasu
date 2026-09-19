@@ -20,6 +20,8 @@ export interface Serie {
     valoration:number;
     alternativeNames: string[];
     variant: "manga" | "novela";
+    /** Las series antiguas sin este campo se consideran no maduras. */
+    isMature?:boolean;
 }
 
 export type SerieWithProgress = {

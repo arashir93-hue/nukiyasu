@@ -9,6 +9,9 @@ export interface LoggedUser {
     email:string;
 
     admin:boolean;
+
+    /** Preferencia persistida; las respuestas antiguas se interpretan como false. */
+    showMatureContent?:boolean;
 }
 
 export interface RegisterUser {

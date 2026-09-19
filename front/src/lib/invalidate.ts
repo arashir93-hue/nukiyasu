@@ -13,6 +13,12 @@ function invalidate(prefix: readonly unknown[]): void {
   void queryClient.invalidateQueries({ queryKey: prefix });
 }
 
+/** Reinicia las respuestas para que no sobrevivan datos de otra preferencia. */
+export async function resetContentQueries(): Promise<void> {
+  await queryClient.cancelQueries();
+  await queryClient.resetQueries();
+}
+
 /** Estanterías del inicio: en progreso, tablero, novedades, leer más tarde y pausadas. */
 function invalidateShelves(): void {
   invalidate(["reading"]);

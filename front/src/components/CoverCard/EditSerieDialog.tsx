@@ -4,7 +4,7 @@ import {useState} from "react";
 import {useQuery} from "@tanstack/react-query";
 import {toast} from "react-toastify";
 import {api} from "../../api/api";
-import {invalidateSerie} from "../../lib/invalidate";
+import {invalidateSerie, resetContentQueries} from "../../lib/invalidate";
 import {keys} from "../../lib/queryKeys";
 import {AnilistGenres, AnilistSerie, AnilistStatus, type Serie, type SerieWithProgress} from "../../types/serie";
 import {Button} from "../../ui/Button";
@@ -16,6 +16,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "../
 import {TagInput} from "../../ui/TagInput";
 import {Textarea} from "../../ui/Textarea";
 import {Tooltip} from "../../ui/Tooltip";
+import {Switch} from "../../ui/Switch";
 
 interface EditSerieDialogProps {
   serie: SerieWithProgress;
@@ -115,6 +116,7 @@ export function EditSerieDialog({serie, open, onOpenChange}:EditSerieDialogProps
   const [genres, setGenres] = useState(serie.genres);
   const [authors, setAuthors] = useState(serie.authors);
   const [alternativeNames, setAlternativeNames] = useState(serie.alternativeNames || []);
+  const [isMature, setIsMature] = useState(serie.isMature === true);
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
 
@@ -154,7 +156,8 @@ export function EditSerieDialog({serie, open, onOpenChange}:EditSerieDialogProps
       status,
       genres,
       authors,
-      alternativeNames
+      alternativeNames,
+      isMature
     };
 
     setSaving(true);
@@ -166,6 +169,10 @@ export function EditSerieDialog({serie, open, onOpenChange}:EditSerieDialogProps
         toast.success(`Datos de ${name} actualizados con éxito`);
         onOpenChange(false);
         invalidateSerie(serie._id);
+
+        if ((serie.isMature === true) !== isMature) {
+          await resetContentQueries();
+        }
       }
     } catch {
       toast.error("No tienes permisos para realizar esa acción");
@@ -234,6 +241,19 @@ export function EditSerieDialog({serie, open, onOpenChange}:EditSerieDialogProps
             <Field label="Nombres alternativos" hint="Enter o coma para añadir">
               <TagInput value={alternativeNames} onChange={setAlternativeNames} placeholder="Añadir nombre…" />
             </Field>
+            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-app-border p-3">
+              <span className="flex flex-col gap-1">
+                <span className="text-sm font-medium text-fg">Contenido adulto o maduro</span>
+                <span className="text-xs text-fg-muted">
+                  Oculta esta serie para los usuarios que no hayan activado esta preferencia.
+                </span>
+              </span>
+              <Switch
+                checked={isMature}
+                onCheckedChange={setIsMature}
+                aria-label="Marcar serie como contenido adulto o maduro"
+              />
+            </label>
           </DialogBody>
           <DialogFooter>
             <Button variant="secondary" type="button" onClick={()=>onOpenChange(false)}>Cancelar</Button>

@@ -14,6 +14,7 @@ import {useOpenBook} from "../../lib/useOpenBook";
 import {bookThumbnail, serieThumbnail} from "../../lib/media";
 import {CoverImage} from "../CoverImage";
 import {cn} from "../../ui/cn";
+import {useAuth} from "../../contexts/AuthContext";
 
 interface GlobalSearchProps {
   open: boolean;
@@ -25,6 +26,7 @@ type SearchResult = {type:"serie", data:SerieWithProgress} | {type:"book", data:
 export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.ReactElement {
   const navigate = useNavigate();
   const openBook = useOpenBook();
+  const {userData} = useAuth();
 
   const [query, setQuery] = useState("");
   const [series, setSeries] = useState<SerieWithProgress[]>([]);
@@ -47,6 +49,8 @@ export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.React
 
     let cancelled = false;
     setLoading(true);
+    setSeries([]);
+    setBooks([]);
 
     async function getSeries():Promise<void> {
       const res = await api.get<SeriesFilter>(`series/all?name=${encodeURIComponent(term)}&sort=sortName`);
@@ -83,7 +87,7 @@ export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.React
     return ()=>{
       cancelled = true;
     };
-  }, [debouncedQuery]);
+  }, [debouncedQuery, userData?.showMatureContent]);
 
   const groups = useMemo(()=>{
     return {

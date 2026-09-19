@@ -6,6 +6,7 @@ import {HttpError} from "../types/error";
 import {toast} from "react-toastify";
 import {checkRefreshToken} from "../helpers/helpers";
 import {setCookie} from "../helpers/cookies";
+import {resetContentQueries} from "../lib/invalidate";
 
 export interface ContextProps {
     children?:React.ReactNode
@@ -18,6 +19,7 @@ type AuthContextType = {
     registerUser:(username:string, email:string, password:string)=>Promise<AuthResponse | undefined>;
     loginUser:(usernameOrEmail:string, password:string)=>Promise<AuthResponse | undefined>;
     logoutUser:()=>Promise<void>;
+    updateMatureContentPreference:(showMatureContent:boolean)=>Promise<boolean>;
     reauth:(v:boolean)=>void;
 };
 
@@ -26,6 +28,10 @@ export const AuthContext = createContext<AuthContextType>({} as AuthContextType)
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAuth():AuthContextType {
     return useContext(AuthContext);
+}
+
+function normalizeUser(user:LoggedUser):LoggedUser {
+    return {...user, showMatureContent:user.showMatureContent === true};
 }
 
 export function AuthProvider(props:ContextProps):React.ReactElement {
@@ -61,7 +67,7 @@ export function AuthProvider(props:ContextProps):React.ReactElement {
                 return;
             }
 
-            setUserData(response.user);
+            setUserData(normalizeUser(response.user));
             setLoggedIn(true);
             setLoading(false);
             setReauth(false);
@@ -83,6 +89,26 @@ export function AuthProvider(props:ContextProps):React.ReactElement {
         setUserData(undefined);
         setLoggedIn(false);
         setLoading(false);
+    }
+
+    async function updateMatureContentPreference(showMatureContent:boolean):Promise<boolean> {
+        const response = await api.patch<
+            {showMatureContent:boolean},
+            {showMatureContent:boolean}
+        >("users/preferences/mature-content", {showMatureContent});
+
+        if (!response || typeof response.showMatureContent !== "boolean") {
+            throw new Error("Respuesta inválida al actualizar la preferencia de contenido");
+        }
+
+        setUserData((current) => current ? {
+            ...current,
+            showMatureContent:response.showMatureContent
+        } : current);
+
+        await resetContentQueries();
+
+        return response.showMatureContent;
     }
 
     // Renueva el token de acceso cada hora
@@ -131,7 +157,7 @@ export function AuthProvider(props:ContextProps):React.ReactElement {
                 const myData = await checkAccessToken();
 
                 // No hay excepción, el usuario tenía un token de acceso
-                setUserData(myData);
+                setUserData(myData ? normalizeUser(myData) : myData);
                 setLoggedIn(true);
                 setLoading(false);
             } catch (e) {
@@ -152,7 +178,7 @@ export function AuthProvider(props:ContextProps):React.ReactElement {
                     const myData = await checkAccessToken();
 
                     // No hay excepción, el access token es válido
-                    setUserData(myData);
+                    setUserData(myData ? normalizeUser(myData) : myData);
                     setLoggedIn(true);
                     setLoading(false);
                 } catch (refreshError) {
@@ -173,6 +199,7 @@ export function AuthProvider(props:ContextProps):React.ReactElement {
             loggedIn:loggedIn,
             loading:loading,
             logoutUser:logoutUser,
+            updateMatureContentPreference:updateMatureContentPreference,
             reauth:setReauth
         }}
         >
