@@ -16,6 +16,7 @@ import es.manabe.yomiyasu.core.services.NetworkMonitor
 import es.manabe.yomiyasu.core.services.ProgressApi
 import es.manabe.yomiyasu.core.services.ReadProgressRequest
 import es.manabe.yomiyasu.core.services.StaticUrls
+import es.manabe.yomiyasu.core.services.SocketService
 import es.manabe.yomiyasu.core.settings.AppSettings
 import es.manabe.yomiyasu.core.settings.AppSettingsData
 import es.manabe.yomiyasu.core.settings.ReaderSettings
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.URLDecoder
@@ -50,6 +52,7 @@ class MangaReaderViewModel @Inject constructor(
     appSettings: AppSettings,
     private val network: NetworkMonitor,
     private val staticUrls: StaticUrls,
+    private val socket: SocketService,
     @ApplicationScope private val scope: CoroutineScope,
 ) : androidx.lifecycle.ViewModel() {
 
@@ -66,10 +69,22 @@ class MangaReaderViewModel @Inject constructor(
     val appSettingsData: StateFlow<AppSettingsData> = appSettings.flow
     val isOnline: StateFlow<Boolean> = network.isOnline
 
+    private var lastBookId: String? = null
+
+    init {
+        viewModelScope.launch {
+            socket.libraryUpdatedAt.collect {
+                if (it != null) lastBookId?.let(::load)
+            }
+        }
+    }
+
     fun load(bookId: String) {
+        lastBookId = bookId
         scope.launch {
             _isLoading.value = true
             _error.value = null
+            _state.value = ReaderLoadState()
 
             try {
                 val book = library.book(bookId)

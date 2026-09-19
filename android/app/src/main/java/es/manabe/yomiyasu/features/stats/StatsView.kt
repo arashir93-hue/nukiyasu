@@ -129,7 +129,9 @@ class StatsViewModel @Inject constructor(
 
     fun load() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update {
+                it.copy(stats = null, graphs = null, isLoading = true, error = null)
+            }
 
             try {
                 coroutineScope {

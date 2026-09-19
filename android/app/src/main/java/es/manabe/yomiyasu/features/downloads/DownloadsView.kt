@@ -61,12 +61,17 @@ import es.manabe.yomiyasu.core.services.ActiveDownload
 import es.manabe.yomiyasu.core.services.DownloadManager
 import es.manabe.yomiyasu.core.services.DownloadRecord
 import es.manabe.yomiyasu.core.services.LibraryApi
+import es.manabe.yomiyasu.core.session.SessionStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -85,17 +90,35 @@ data class DownloadsUiState(
 class DownloadsViewModel @Inject constructor(
     private val downloads: DownloadManager,
     private val libraryApi: LibraryApi,
+    private val session: SessionStore,
 ) : ViewModel() {
 
     val uiState: StateFlow<DownloadsUiState> = combine(
         downloads.records,
         downloads.states,
-    ) { _, _ -> snapshot() }
+        downloads.visibilityVersion,
+    ) { _, _, _ -> snapshot() }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = snapshot(),
+            // Se rellena después de validar la visibilidad contra el servidor;
+            // no mostramos registros locales antiguos durante esa comprobación.
+            initialValue = DownloadsUiState(),
         )
+
+    init {
+        viewModelScope.launch {
+            session.state
+                .map { current ->
+                    (current as? SessionStore.State.LoggedIn)?.user?.showMatureContent
+                }
+                .distinctUntilChanged()
+                .filterNotNull()
+                .collect { showMatureContent ->
+                    downloads.setMatureContentVisible(showMatureContent)
+                }
+        }
+    }
 
     private val _seriesDialogVisible = MutableStateFlow(false)
     val seriesDialogVisible: StateFlow<Boolean> = _seriesDialogVisible.asStateFlow()

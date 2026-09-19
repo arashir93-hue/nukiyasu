@@ -48,6 +48,36 @@ class ModelDecodingTest {
     }
 
     @Test
+    fun `mature fields default to false when absent`() {
+        val serie = json.decodeFromString(
+            Serie.serializer(),
+            """{"_id":"s1","visibleName":"Oshi"}""",
+        )
+        val user = json.decodeFromString(
+            AuthUser.serializer(),
+            """{"_id":"u1","username":"alex","email":"a@b.c"}""",
+        )
+
+        assertFalse(serie.isMature)
+        assertFalse(user.showMatureContent)
+    }
+
+    @Test
+    fun `mature fields decode when enabled`() {
+        val serie = json.decodeFromString(
+            Serie.serializer(),
+            """{"_id":"s1","visibleName":"Oshi","isMature":true}""",
+        )
+        val user = json.decodeFromString(
+            AuthUser.serializer(),
+            """{"_id":"u1","username":"alex","email":"a@b.c","showMatureContent":true}""",
+        )
+
+        assertTrue(serie.isMature)
+        assertTrue(user.showMatureContent)
+    }
+
+    @Test
     fun `serie decodes readlist object without id as false`() {
         val serie = json.decodeFromString(
             Serie.serializer(),

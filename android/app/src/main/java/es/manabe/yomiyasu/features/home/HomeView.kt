@@ -113,7 +113,12 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            socket.libraryUpdatedAt.collect { load() }
+            socket.libraryUpdatedAt.collect {
+                if (it != null) {
+                    _data.value = HomeData()
+                }
+                load()
+            }
         }
         viewModelScope.launch {
             settingsData

@@ -112,7 +112,13 @@ class LibraryViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            socket.libraryUpdatedAt.collect { if (didLoad) load(reset = true) }
+            socket.libraryUpdatedAt.collect {
+                if (it != null && didLoad) {
+                    _series.value = emptyList()
+                    _alphabet.value = emptyList()
+                    load(reset = true)
+                }
+            }
         }
     }
 

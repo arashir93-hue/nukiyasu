@@ -253,6 +253,8 @@ data class Serie(
     val thumbnailPath: String? = null,
     val currentBook: CurrentBook? = null,
     val reviews: List<Review>? = null,
+    /** Las series antiguas sin este campo se consideran no maduras. */
+    val isMature: Boolean = false,
 ) {
     val isInReadlist: Boolean get() = readlist?.isInReadlist ?: false
     val unreadCount: Int get() = unreadBooks ?: 0

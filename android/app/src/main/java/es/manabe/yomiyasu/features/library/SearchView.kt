@@ -53,6 +53,7 @@ import es.manabe.yomiyasu.core.models.SortValue
 import es.manabe.yomiyasu.core.models.Variant
 import es.manabe.yomiyasu.core.networking.ApiException
 import es.manabe.yomiyasu.core.services.LibraryApi
+import es.manabe.yomiyasu.core.services.SocketService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -66,6 +67,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val library: LibraryApi,
+    private val socket: SocketService,
 ) : ViewModel() {
 
     private val _queryText = MutableStateFlow("")
@@ -84,6 +86,18 @@ class SearchViewModel @Inject constructor(
     val error: StateFlow<String?> = _error.asStateFlow()
 
     private var searchJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            socket.libraryUpdatedAt.collect {
+                if (it != null) {
+                    _seriesResults.value = emptyList()
+                    _bookResults.value = emptyList()
+                    scheduleSearch()
+                }
+            }
+        }
+    }
 
     fun onQueryChange(text: String) {
         _queryText.value = text

@@ -69,7 +69,13 @@ class ReadlistViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            socket.libraryUpdatedAt.collect { load() }
+            socket.libraryUpdatedAt.collect {
+                if (it != null) {
+                    _manga.value = emptyList()
+                    _novela.value = emptyList()
+                    load()
+                }
+            }
         }
     }
 

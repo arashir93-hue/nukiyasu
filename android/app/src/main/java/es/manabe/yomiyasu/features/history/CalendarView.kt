@@ -163,6 +163,7 @@ class CalendarViewModel @Inject constructor(
             it.copy(
                 isLoading = true,
                 error = null,
+                days = if (clearSelection) emptyMap() else it.days,
                 selectedDay = if (clearSelection) null else it.selectedDay,
                 logs = if (clearSelection) emptyList() else it.logs,
             )

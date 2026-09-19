@@ -235,4 +235,45 @@ class SessionStoreTest {
         val state = session.state.value as SessionStore.State.LoggedIn
         assertEquals("nuevo", state.user.username)
     }
+
+    @Test
+    fun `mature preference updates the session and calls the existing endpoint`() = runTest {
+        session.bootstrap()
+        server.enqueue(MockResponse(code = 200, body = loginBody))
+        session.login("alex", "secret")
+        server.takeRequest()
+
+        server.enqueue(
+            MockResponse(code = 200, body = """{"showMatureContent":true}"""),
+        )
+
+        val effective = session.updateMatureContentPreference(true)
+
+        assertTrue(effective)
+        assertTrue((session.state.value as SessionStore.State.LoggedIn).user.showMatureContent)
+
+        val request = server.takeRequest()
+        assertEquals("/api/users/preferences/mature-content", request.url.encodedPath)
+        assertEquals("PATCH", request.method)
+        assertTrue(request.body!!.utf8().contains("\"showMatureContent\":true"))
+    }
+
+    @Test
+    fun `mature preference failure leaves the previous session value`() = runTest {
+        session.bootstrap()
+        server.enqueue(
+            MockResponse(
+                code = 200,
+                body = loginBody.replace("\"admin\":false", "\"admin\":false,\"showMatureContent\":true"),
+            ),
+        )
+        session.login("alex", "secret")
+        server.takeRequest()
+
+        server.enqueue(MockResponse(code = 500, body = """{"statusCode":500}"""))
+
+        runCatching { session.updateMatureContentPreference(false) }
+
+        assertTrue((session.state.value as SessionStore.State.LoggedIn).user.showMatureContent)
+    }
 }

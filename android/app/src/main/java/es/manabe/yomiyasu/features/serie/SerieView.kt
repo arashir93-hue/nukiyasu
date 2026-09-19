@@ -147,6 +147,8 @@ class SerieViewModel @Inject constructor(
     fun load(id: String) {
         lastSerieId = id
         viewModelScope.launch {
+            _serie.value = null
+            _books.value = emptyList()
             if (!didLoad) _isLoading.value = true
             _error.value = null
 

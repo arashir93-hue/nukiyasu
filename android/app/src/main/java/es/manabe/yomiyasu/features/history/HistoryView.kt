@@ -123,7 +123,14 @@ class HistoryViewModel @Inject constructor(
         viewModelScope.launch {
             if (reset) {
                 page = 1
-                _state.update { it.copy(isLoading = true, error = null) }
+                _state.update {
+                    it.copy(
+                        records = emptyList(),
+                        total = 0,
+                        isLoading = true,
+                        error = null,
+                    )
+                }
             } else {
                 page += 1
                 _state.update { it.copy(isLoadingMore = true, error = null) }

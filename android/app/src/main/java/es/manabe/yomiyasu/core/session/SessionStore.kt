@@ -5,6 +5,8 @@ import es.manabe.yomiyasu.core.models.AuthUser
 import es.manabe.yomiyasu.core.models.LoginRequest
 import es.manabe.yomiyasu.core.models.LoginResponse
 import es.manabe.yomiyasu.core.models.LogoutRequest
+import es.manabe.yomiyasu.core.models.MatureContentPreferenceRequest
+import es.manabe.yomiyasu.core.models.MatureContentPreferenceResponse
 import es.manabe.yomiyasu.core.models.RefreshRequest
 import es.manabe.yomiyasu.core.models.RefreshResponse
 import es.manabe.yomiyasu.core.models.StatusResponse
@@ -200,6 +202,24 @@ class SessionStore @Inject constructor(
         if (current is State.LoggedIn) {
             updateState(State.LoggedIn(current.user.copy(username = username)))
         }
+    }
+
+    /** Actualiza la preferencia en el servidor y notifica a las vistas de biblioteca. */
+    suspend fun updateMatureContentPreference(showMatureContent: Boolean): Boolean {
+        val response = api.send(
+            Endpoint.patch(
+                "api/users/preferences/mature-content",
+                body = jsonBody(MatureContentPreferenceRequest(showMatureContent)),
+            ),
+            MatureContentPreferenceResponse.serializer(),
+        )
+
+        val current = _state.value
+        if (current is State.LoggedIn) {
+            updateState(State.LoggedIn(current.user.copy(showMatureContent = response.showMatureContent)))
+        }
+        socket.markLibraryUpdated()
+        return response.showMatureContent
     }
 
     fun consumeNotice() {

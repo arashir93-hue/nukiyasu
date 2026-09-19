@@ -16,6 +16,7 @@ import es.manabe.yomiyasu.core.models.Book
 import es.manabe.yomiyasu.core.models.Variant
 import es.manabe.yomiyasu.core.networking.ApiException
 import es.manabe.yomiyasu.core.services.LibraryApi
+import es.manabe.yomiyasu.core.services.SocketService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +26,7 @@ import javax.inject.Inject
 @HiltViewModel
 class BookReaderViewModel @Inject constructor(
     private val library: LibraryApi,
+    private val socket: SocketService,
 ) : ViewModel() {
 
     private val _book = MutableStateFlow<Book?>(null)
@@ -33,11 +35,29 @@ class BookReaderViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private var lastBookId: String? = null
+
+    init {
+        viewModelScope.launch {
+            socket.libraryUpdatedAt.collect {
+                if (it != null) {
+                    lastBookId?.let { id ->
+                        _book.value = null
+                        load(id)
+                    }
+                }
+            }
+        }
+    }
+
     fun load(bookId: String) {
         if (_book.value?.id == bookId) return
 
+        lastBookId = bookId
+
         viewModelScope.launch {
             _error.value = null
+            _book.value = null
             try {
                 _book.value = library.book(bookId)
             } catch (error: ApiException) {

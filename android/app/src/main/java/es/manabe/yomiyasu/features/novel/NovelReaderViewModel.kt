@@ -14,6 +14,7 @@ import es.manabe.yomiyasu.core.services.LibraryApi
 import es.manabe.yomiyasu.core.services.NetworkMonitor
 import es.manabe.yomiyasu.core.services.ProgressApi
 import es.manabe.yomiyasu.core.services.ReadProgressRequest
+import es.manabe.yomiyasu.core.services.SocketService
 import es.manabe.yomiyasu.core.settings.AppSettings
 import es.manabe.yomiyasu.core.settings.AppSettingsData
 import es.manabe.yomiyasu.core.settings.ReaderSettings
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.lifecycle.viewModelScope
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
 import java.io.File
@@ -51,6 +53,7 @@ class NovelReaderViewModel @Inject constructor(
     settings: ReaderSettings,
     appSettings: AppSettings,
     private val network: NetworkMonitor,
+    private val socket: SocketService,
     @ApplicationScope private val scope: CoroutineScope,
 ) : androidx.lifecycle.ViewModel() {
 
@@ -67,7 +70,18 @@ class NovelReaderViewModel @Inject constructor(
     val appSettingsData: StateFlow<AppSettingsData> = appSettings.flow
     val isOnline: StateFlow<Boolean> = network.isOnline
 
+    private var lastBookId: String? = null
+
+    init {
+        viewModelScope.launch {
+            socket.libraryUpdatedAt.collect {
+                if (it != null) lastBookId?.let(::load)
+            }
+        }
+    }
+
     fun load(bookId: String) {
+        lastBookId = bookId
         scope.launch {
             _isLoading.value = true
             _error.value = null

@@ -60,12 +60,18 @@ import es.manabe.yomiyasu.BuildConfig
 import es.manabe.yomiyasu.app.ServerConfig
 import es.manabe.yomiyasu.app.ui.theme.ThemeMode
 import es.manabe.yomiyasu.core.models.MainView
+import es.manabe.yomiyasu.core.networking.ApiException
 import es.manabe.yomiyasu.core.session.SessionStore
 import es.manabe.yomiyasu.core.settings.AppSettings
 import es.manabe.yomiyasu.core.settings.AppSettingsData
 import es.manabe.yomiyasu.core.settings.BoardFlag
 import es.manabe.yomiyasu.core.settings.BookViewMode
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -77,6 +83,16 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     val data: StateFlow<AppSettingsData> = settings.flow
+
+    val showMatureContent: StateFlow<Boolean> = session.state
+        .map { current -> (current as? SessionStore.State.LoggedIn)?.user?.showMatureContent ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    private val _matureContentSaving = MutableStateFlow(false)
+    val matureContentSaving: StateFlow<Boolean> = _matureContentSaving.asStateFlow()
+
+    private val _matureContentError = MutableStateFlow<String?>(null)
+    val matureContentError: StateFlow<String?> = _matureContentError.asStateFlow()
 
     val serverUrl: String
         get() = ServerConfig.serverUrl?.toString() ?: ""
@@ -132,6 +148,24 @@ class SettingsViewModel @Inject constructor(
     fun setIdleTimeout(value: Int) {
         viewModelScope.launch { settings.setIdleTimeout(value) }
     }
+
+    fun setShowMatureContent(value: Boolean) {
+        if (_matureContentSaving.value || value == showMatureContent.value) return
+
+        viewModelScope.launch {
+            _matureContentSaving.value = true
+            _matureContentError.value = null
+            try {
+                session.updateMatureContentPreference(value)
+            } catch (error: ApiException) {
+                _matureContentError.value = error.userMessage
+            } catch (error: Exception) {
+                _matureContentError.value = "No se pudo actualizar la preferencia de contenido adulto."
+            } finally {
+                _matureContentSaving.value = false
+            }
+        }
+    }
 }
 
 @Composable
@@ -143,6 +177,9 @@ fun SettingsRoute(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val settings by viewModel.data.collectAsStateWithLifecycle()
+    val showMatureContent by viewModel.showMatureContent.collectAsStateWithLifecycle()
+    val matureContentSaving by viewModel.matureContentSaving.collectAsStateWithLifecycle()
+    val matureContentError by viewModel.matureContentError.collectAsStateWithLifecycle()
 
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val backAction: (() -> Unit)? = onBack ?: backDispatcher?.let { dispatcher ->
@@ -162,6 +199,10 @@ fun SettingsRoute(
         onShowCronoChange = viewModel::setShowCrono,
         onBoardChange = viewModel::setBoard,
         onIdleTimeoutChange = viewModel::setIdleTimeout,
+        showMatureContent = showMatureContent,
+        matureContentSaving = matureContentSaving,
+        matureContentError = matureContentError,
+        onMatureContentChange = viewModel::setShowMatureContent,
         onChangeServer = viewModel::changeServer,
         onOpenAccount = onOpenAccount,
         onLogout = onLogout,
@@ -183,6 +224,10 @@ private fun SettingsScreen(
     onShowCronoChange: (Boolean) -> Unit,
     onBoardChange: (BoardFlag, Boolean) -> Unit,
     onIdleTimeoutChange: (Int) -> Unit,
+    showMatureContent: Boolean,
+    matureContentSaving: Boolean,
+    matureContentError: String?,
+    onMatureContentChange: (Boolean) -> Unit,
     onChangeServer: (String) -> String?,
     onOpenAccount: () -> Unit,
     onLogout: () -> Unit,
@@ -240,6 +285,24 @@ private fun SettingsScreen(
             }
 
             item { SectionHeader("Biblioteca") }
+            item {
+                SwitchRow(
+                    title = "Mostrar contenido adulto",
+                    checked = showMatureContent,
+                    enabled = !matureContentSaving,
+                    onCheckedChange = onMatureContentChange,
+                )
+            }
+            matureContentError?.let { error ->
+                item {
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    )
+                }
+            }
             item {
                 SwitchRow(
                     title = "Ocultar spoilers de volúmenes no leídos",
@@ -575,6 +638,7 @@ private fun <T> ChoiceChips(
 private fun SwitchRow(
     title: String,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
@@ -582,6 +646,7 @@ private fun SwitchRow(
             .fillMaxWidth()
             .toggleable(
                 value = checked,
+                enabled = enabled,
                 role = Role.Switch,
                 onValueChange = onCheckedChange,
             )
@@ -593,7 +658,7 @@ private fun SwitchRow(
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f),
         )
-        Switch(checked = checked, onCheckedChange = null)
+        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
     }
 }
 

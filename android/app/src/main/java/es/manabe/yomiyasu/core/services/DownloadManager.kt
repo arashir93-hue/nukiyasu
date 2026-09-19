@@ -71,6 +71,10 @@ class DownloadManager @Inject constructor(
     private val _states = MutableStateFlow<Map<String, DownloadState>>(emptyMap())
     val states: StateFlow<Map<String, DownloadState>> = _states.asStateFlow()
 
+    private val _visibilityVersion = MutableStateFlow(0L)
+    val visibilityVersion: StateFlow<Long> = _visibilityVersion.asStateFlow()
+    private var hiddenByMatureContent: Set<String> = emptySet()
+
     private val mutex = Mutex()
     private val queue = ArrayDeque<Book>()
     private val bookNames = mutableMapOf<String, String>()
@@ -83,13 +87,16 @@ class DownloadManager @Inject constructor(
     }
 
     val sortedRecords: List<DownloadRecord>
-        get() = _records.value.values.sortedByDescending { it.downloadedAt }
+        get() = _records.value.values
+            .filterNot { hiddenByMatureContent.contains(it.bookId) }
+            .sortedByDescending { it.downloadedAt }
 
     val totalBytes: Long
-        get() = _records.value.values.sumOf { it.byteCount }
+        get() = sortedRecords.sumOf { it.byteCount }
 
     val active: List<ActiveDownload>
         get() = _states.value.entries
+            .filterNot { (bookId, _) -> hiddenByMatureContent.contains(bookId) }
             .filter { it.value.isActive }
             .mapNotNull { (bookId, state) ->
                 val name = bookNames[bookId] ?: return@mapNotNull null
@@ -100,6 +107,41 @@ class DownloadManager @Inject constructor(
                     else -> null
                 }
             }
+
+    /**
+     * Oculta descargas que el backend ya no permite consultar cuando el
+     * contenido adulto está desactivado. No borra los archivos locales.
+     */
+    suspend fun setMatureContentVisible(visible: Boolean) {
+        if (visible) {
+            hiddenByMatureContent = emptySet()
+            _visibilityVersion.value++
+            return
+        }
+
+        val candidates = buildSet {
+            addAll(_records.value.keys)
+            addAll(_states.value.filterValues { it.isActive }.keys)
+        }
+        // Oculta primero de forma conservadora; solo se vuelven a mostrar
+        // los libros que el backend confirme como accesibles.
+        hiddenByMatureContent = candidates
+        _visibilityVersion.value++
+
+        val accessible = mutableSetOf<String>()
+        for (bookId in candidates) {
+            val result = runCatching {
+                api.send(
+                    Endpoint.get("api/books/book/$bookId"),
+                    Book.serializer(),
+                )
+            }
+            if (result.isSuccess) accessible += bookId
+        }
+
+        hiddenByMatureContent = candidates - accessible
+        _visibilityVersion.value++
+    }
 
     fun stateFor(bookId: String): DownloadState =
         _states.value[bookId]
