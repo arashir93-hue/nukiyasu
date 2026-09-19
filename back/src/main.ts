@@ -1,6 +1,5 @@
 import {HttpAdapterHost, NestFactory} from "@nestjs/core";
 import {AppModule} from "./app.module";
-import {join} from "path";
 import {NestExpressApplication} from "@nestjs/platform-express";
 import * as cookieParser from "cookie-parser";
 import {AllExceptionsFilter} from "./filters/all-exception.filter";
@@ -10,9 +9,6 @@ async function bootstrap() {
 
     // Definir el prefijo del backend en /api, necesario para la redirección del nginx
     app.setGlobalPrefix("api");
-
-    // Servir los archivos dentro de la carpeta definida para ello
-    app.useStaticAssets(join(__dirname, "..", "..", "exterior"));
 
     app.use(cookieParser());
 

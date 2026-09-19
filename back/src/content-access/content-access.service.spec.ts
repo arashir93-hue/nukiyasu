@@ -9,9 +9,9 @@ describe("ContentAccessService", () => {
     const matureId = new Types.ObjectId();
     const legacyId = new Types.ObjectId();
     const records = [
-        {_id:normalId, isMature:false},
-        {_id:matureId, isMature:true},
-        {_id:legacyId}
+        {_id:normalId, path:"Normal", variant:"manga", isMature:false},
+        {_id:matureId, path:"Madura", variant:"manga", isMature:true},
+        {_id:legacyId, path:"Antigua", variant:"novela"}
     ];
     let findById:jest.Mock;
     let service:ContentAccessService;
@@ -21,10 +21,14 @@ describe("ContentAccessService", () => {
         const usersService = {findById} as unknown as UsersService;
         const seriesModel = {
             exists:jest.fn(async(query: {
-                _id:Types.ObjectId;
+                _id?:Types.ObjectId;
+                path?:string;
+                variant?:"manga" | "novela";
                 isMature?:{$ne:boolean};
             }) => {
-                const record = records.find(item => item._id.equals(query._id));
+                const record = query._id
+                    ? records.find(item => item._id.equals(query._id as Types.ObjectId))
+                    : records.find(item => item.path === query.path && item.variant === query.variant);
 
                 if (!record) return null;
                 if (query.isMature?.$ne === true && record.isMature === true) return null;
@@ -53,6 +57,9 @@ describe("ContentAccessService", () => {
         await expect(service.assertSeriesAccessible(normalId, policy)).resolves.toBeUndefined();
         await expect(service.assertSeriesAccessible(legacyId, policy)).resolves.toBeUndefined();
         await expect(service.assertSeriesAccessible(matureId, policy)).rejects.toBeInstanceOf(NotFoundException);
+        await expect(service.assertStaticFileAccessible("manga", "Normal", policy)).resolves.toBeUndefined();
+        await expect(service.assertStaticFileAccessible("novela", "Antigua", policy)).resolves.toBeUndefined();
+        await expect(service.assertStaticFileAccessible("manga", "Madura", policy)).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it("permite series normales y maduras cuando la preferencia está activa", async() => {
@@ -63,5 +70,6 @@ describe("ContentAccessService", () => {
         expect(service.seriesAccessStages(policy)).toEqual([]);
         await expect(service.assertSeriesAccessible(normalId, policy)).resolves.toBeUndefined();
         await expect(service.assertSeriesAccessible(matureId, policy)).resolves.toBeUndefined();
+        await expect(service.assertStaticFileAccessible("manga", "Madura", policy)).resolves.toBeUndefined();
     });
 });

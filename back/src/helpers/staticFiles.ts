@@ -5,6 +5,43 @@ import {Response} from "express";
 const THUMBNAILS_PREFIX = "/thumbnails/";
 const ORIGINAL_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".avif"];
 
+export interface LibraryStaticPath {
+    relativePath:string;
+    variant:"manga" | "novela";
+    seriePath:string;
+}
+
+/**
+ * Valida una ruta de /api/static y extrae la serie a la que pertenece.
+ * También reconoce el árbol paralelo de miniaturas. No normaliza segmentos
+ * peligrosos: los rechaza para que nunca puedan cambiar el archivo objetivo.
+ */
+export function parseLibraryStaticPath(relativePath:string):LibraryStaticPath | null {
+    if (!relativePath || relativePath.includes("\\") || relativePath.includes("\0")) return null;
+
+    const normalized = relativePath.replace(/^\/+/, "");
+    const segments = normalized.split("/");
+
+    if (
+        segments.length < 3 ||
+        segments.some(segment => !segment || segment === "." || segment === "..")
+    ) return null;
+
+    if (segments[0] === "thumbnails") segments.shift();
+
+    if (segments.length < 3) return null;
+
+    const [folder, seriePath] = segments;
+
+    if (folder !== "mangas" && folder !== "novelas") return null;
+
+    return {
+        relativePath:`/${normalized}`,
+        variant:folder === "mangas" ? "manga" : "novela",
+        seriePath
+    };
+}
+
 /**
  * Portada original asociada a una miniatura, o null si la ruta no es una
  * miniatura o no hay ninguna portada con ese nombre.

@@ -43,6 +43,22 @@ export class ContentAccessService {
         if (!accessibleSerie) throw new NotFoundException();
     }
 
+    async assertStaticFileAccessible(
+        variant:"manga" | "novela",
+        seriePath:string,
+        policy:ContentAccessPolicy
+    ):Promise<void> {
+        if (policy.showMatureContent) return;
+
+        const accessibleSerie = await this.seriesModel.exists({
+            path:seriePath,
+            variant,
+            ...policy.seriesMatch
+        });
+
+        if (!accessibleSerie) throw new NotFoundException();
+    }
+
     forJoinedSeries(
         alias:string,
         policy:ContentAccessPolicy

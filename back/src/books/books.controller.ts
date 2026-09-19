@@ -241,8 +241,12 @@ export class BooksController {
     }
 
     @Get(":bookId/download")
-    async downloadZip(@Res() res:Response, @Param("bookId", ParseObjectIdPipe) book:Types.ObjectId) {
-        const foundBook = await this.booksService.findById(book);
+    async downloadZip(@Req() req:Request, @Res() res:Response, @Param("bookId", ParseObjectIdPipe) book:Types.ObjectId) {
+        if (!req.user) throw new UnauthorizedException();
+
+        const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+        const foundBook = await this.booksService.findAccessibleById(book, policy);
 
         if (!foundBook) throw new NotFoundException();
 

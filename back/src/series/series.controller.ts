@@ -356,8 +356,12 @@ export class SeriesController {
     }
 
     @Get(":serieId/download")
-    async downloadZip(@Res() res:Response, @Param("serieId", ParseObjectIdPipe) serie:Types.ObjectId) {
-        const foundSerie = await this.seriesService.findById(serie);
+    async downloadZip(@Req() req:Request, @Res() res:Response, @Param("serieId", ParseObjectIdPipe) serie:Types.ObjectId) {
+        if (!req.user) throw new UnauthorizedException();
+
+        const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+        const foundSerie = await this.seriesService.findAccessibleById(serie, policy);
         const exteriorRoot = path.join(__dirname, "..", "..", "..", "exterior");
         const isNovela = foundSerie.variant === "novela";
 

@@ -23,6 +23,7 @@ import {redisStore} from "cache-manager-redis-yet";
 import {SerieprogressModule} from "./serieprogress/serieprogress.module";
 import {UserwordsModule} from "./userwords/userwords.module";
 import {InvisModule} from "./invis/invis.module";
+import {ContentAccessModule} from "./content-access/content-access.module";
 
 @Module({
     imports: [
@@ -61,7 +62,8 @@ import {InvisModule} from "./invis/invis.module";
         ReviewsModule,
         SerieprogressModule,
         UserwordsModule,
-        InvisModule
+        InvisModule,
+        ContentAccessModule
     ],
 
     controllers: [AppController],

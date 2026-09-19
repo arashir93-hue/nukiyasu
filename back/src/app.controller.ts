@@ -17,7 +17,8 @@ import {UsersService} from "./users/users.service";
 import {InjectQueue} from "@nestjs/bull";
 import {Queue} from "bull";
 import {Throttle} from "@nestjs/throttler";
-import {sendStaticFile} from "./helpers/staticFiles";
+import {parseLibraryStaticPath, sendStaticFile} from "./helpers/staticFiles";
+import {ContentAccessService} from "./content-access/content-access.service";
 
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -26,7 +27,8 @@ export class AppController {
     constructor(
         private readonly appService: AppService,
         private readonly usersService:UsersService,
-        @InjectQueue("rescan-library") private readonly rescanQueue: Queue
+        @InjectQueue("rescan-library") private readonly rescanQueue: Queue,
+        private readonly contentAccessService:ContentAccessService
     ) {}
 
     @ApiOkResponse({status:HttpStatus.OK})
@@ -54,7 +56,9 @@ export class AppController {
     @ApiOkResponse({status:HttpStatus.OK})
     @Get("static/*")
     @Throttle(200, 10)
-    serveFiles(@Req() req: Request, @Res() res: Response) {
+    async serveFiles(@Req() req: Request, @Res() res: Response) {
+        if (!req.user) throw new UnauthorizedException();
+
         let relativePath: string;
 
         /**
@@ -68,6 +72,22 @@ export class AppController {
             return;
         }
 
-        sendStaticFile(res, "./../exterior", relativePath);
+        const libraryPath = parseLibraryStaticPath(relativePath);
+
+        if (!libraryPath) {
+            res.sendStatus(404);
+            return;
+        }
+
+        const {userId} = req.user as {userId:Types.ObjectId};
+        const policy = await this.contentAccessService.forUser(userId);
+
+        await this.contentAccessService.assertStaticFileAccessible(
+            libraryPath.variant,
+            libraryPath.seriePath,
+            policy
+        );
+
+        sendStaticFile(res, "./../exterior", libraryPath.relativePath);
     }
 }
