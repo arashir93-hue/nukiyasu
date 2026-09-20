@@ -4,7 +4,8 @@ import type {
   NihongoTrackerMedia,
   NihongoTrackerMediaType,
   NihongoTrackerSearchResponse,
-  NihongoTrackerStatus
+  NihongoTrackerStatus,
+  NihongoTrackerBookStatus
 } from "../types/nihongoTracker";
 
 export function getNihongoTrackerStatus():Promise<NihongoTrackerStatus | undefined> {
@@ -41,6 +42,21 @@ export function linkNihongoTrackerSerie(
   );
 }
 
-export function logBookInNihongoTracker(bookId:string):Promise<{status:"logged" | "already_logged"; externalLogId?:string} | undefined> {
-  return api.post<void, {status:"logged" | "already_logged"; externalLogId?:string}>(`nihongo-tracker/books/${bookId}/log`);
+export function getNihongoTrackerBookStatus(bookId:string):Promise<NihongoTrackerBookStatus | undefined> {
+  return api.get<NihongoTrackerBookStatus>(`nihongo-tracker/books/${bookId}/status`);
+}
+
+export function setNihongoTrackerBookVolume(bookId:string, volumeNumber:number):Promise<unknown | undefined> {
+  return api.put<{volumeNumber:number}, unknown>(`nihongo-tracker/books/${bookId}/volume`, {volumeNumber});
+}
+
+export function clearNihongoTrackerBookVolume(bookId:string):Promise<{cleared:boolean} | undefined> {
+  return api.delete<{cleared:boolean}>(`nihongo-tracker/books/${bookId}/volume`);
+}
+
+export function logBookInNihongoTracker(bookId:string, volumeNumber?:number):Promise<{status:"logged" | "already_logged"; externalLogId?:string} | undefined> {
+  return api.post<{volumeNumber?:number}, {status:"logged" | "already_logged"; externalLogId?:string}>(
+    `nihongo-tracker/books/${bookId}/log`,
+    volumeNumber === undefined ? {} : {volumeNumber}
+  );
 }

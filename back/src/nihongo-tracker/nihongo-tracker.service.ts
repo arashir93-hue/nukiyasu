@@ -14,10 +14,13 @@ import {Serie, SerieDocument} from "../series/schemas/series.schema";
 import {ConnectNihongoTrackerDto} from "./dto/connect.dto";
 import {LinkNihongoTrackerDto} from "./dto/link.dto";
 import {SearchNihongoTrackerDto} from "./dto/search.dto";
+import {LogNihongoTrackerBookDto} from "./dto/log-book.dto";
 import {decryptNihongoTrackerKey, encryptNihongoTrackerKey} from "./crypto";
 import {NihongoTrackerIntegration, NihongoTrackerIntegrationDocument} from "./schemas/integration.schema";
 import {NihongoTrackerLink, NihongoTrackerLinkDocument} from "./schemas/link.schema";
 import {NihongoTrackerLog, NihongoTrackerLogDocument} from "./schemas/log.schema";
+import {NihongoTrackerBookOverride, NihongoTrackerBookOverrideDocument} from "./schemas/book-override.schema";
+import {resolveVolumeNumber, VolumeResolution} from "./volume-resolver";
 
 type MediaType = "manga" | "light-novel";
 
@@ -32,6 +35,8 @@ export class NihongoTrackerService {
         private readonly linkModel: Model<NihongoTrackerLinkDocument>,
         @InjectModel(NihongoTrackerLog.name)
         private readonly logModel: Model<NihongoTrackerLogDocument>,
+        @InjectModel(NihongoTrackerBookOverride.name)
+        private readonly overrideModel: Model<NihongoTrackerBookOverrideDocument>,
         @InjectModel(Serie.name)
         private readonly serieModel: Model<SerieDocument>,
         @InjectModel(Book.name)
@@ -169,13 +174,70 @@ export class NihongoTrackerService {
         ).select({_id:0, user:0, createdAt:0, updatedAt:0});
     }
 
-    async logBook(user: Types.ObjectId, bookId: Types.ObjectId) {
+    private async bookAndResolution(user:Types.ObjectId, bookId:Types.ObjectId):Promise<{
+        book:BookDocument;
+        serie:SerieDocument;
+        resolution:VolumeResolution;
+        override?:number;
+    }> {
         const policy = await this.contentAccessService.forUser(user);
         const book = await this.bookModel.findById(bookId);
         if (!book) throw new NotFoundException();
 
         const serie = await this.serieModel.findOne({_id:book.serie, ...policy.seriesMatch});
         if (!serie) throw new NotFoundException();
+
+        const books = await this.bookModel.find({serie:book.serie, variant:book.variant}).sort({sortName:1, _id:1});
+        const position = books.findIndex((item) => item._id?.equals(bookId)) + 1;
+        const override = await this.overrideModel.findOne({user, book:bookId});
+        const resolution = resolveVolumeNumber({
+            sortName:book.sortName,
+            visibleName:book.visibleName,
+            position,
+            override:override?.volumeNumber
+        });
+
+        return {book, serie, resolution, override:override?.volumeNumber};
+    }
+
+    async setBookVolume(user:Types.ObjectId, bookId:Types.ObjectId, volumeNumber:number) {
+        await this.bookAndResolution(user, bookId);
+        return this.overrideModel.findOneAndUpdate(
+            {user, book:bookId},
+            {user, book:bookId, volumeNumber},
+            {upsert:true, new:true, setDefaultsOnInsert:true, projection:{_id:0, user:0, book:0, createdAt:0, updatedAt:0}}
+        );
+    }
+
+    async clearBookVolume(user:Types.ObjectId, bookId:Types.ObjectId) {
+        await this.bookAndResolution(user, bookId);
+        await this.overrideModel.deleteOne({user, book:bookId});
+        return {cleared:true};
+    }
+
+    async bookStatus(user:Types.ObjectId, bookId:Types.ObjectId) {
+        const {book, serie, resolution} = await this.bookAndResolution(user, bookId);
+        const integration = await this.integrationModel.exists({user});
+        const link = await this.linkModel.findOne({user, serie:book.serie});
+        const progress = await this.progressModel.findOne({user, book:bookId, status:"completed"}).sort({endDate:-1, lastUpdateDate:-1});
+        const previous = progress?._id ? await this.logModel.findOne({user, progress:progress._id}) : null;
+
+        return {
+            connected:!!integration,
+            linked:!!link,
+            completed:!!progress,
+            alreadyLogged:!!previous,
+            volumeNumber:resolution.volumeNumber,
+            volumeSource:resolution.source,
+            serieName:serie.visibleName,
+            pages:book.variant === "manga" || book.mokured ? book.pages : undefined,
+            timeSeconds:progress?.time || 0,
+            characters:book.characters || progress?.characters || 0
+        };
+    }
+
+    async logBook(user: Types.ObjectId, bookId: Types.ObjectId, dto:LogNihongoTrackerBookDto = {}) {
+        const {book, serie, resolution} = await this.bookAndResolution(user, bookId);
 
         const link = await this.linkModel.findOne({user, serie:book.serie});
         if (!link) throw new BadRequestException("Vincula primero la serie con NihongoTracker");
@@ -188,8 +250,7 @@ export class NihongoTrackerService {
             return {status:"already_logged", externalLogId:previous.externalLogId};
         }
 
-        const books = await this.bookModel.find({serie:book.serie, variant:book.variant}).sort({sortName:1, _id:1});
-        const volume = Math.max(1, books.findIndex((item) => item._id?.equals(bookId)) + 1);
+        const volume = dto.volumeNumber ?? resolution.volumeNumber;
         const integration = await this.integrationFor(user);
         const payload = {
             type:link.mediaType,

@@ -22,6 +22,7 @@ import {
   Wand2,
 } from "lucide-react";
 import {lazy, Suspense, useState} from "react";
+import {useQueryClient} from "@tanstack/react-query";
 import {useNavigate} from "react-router";
 import {toast} from "react-toastify";
 import {api} from "../../api/api";
@@ -125,6 +126,7 @@ function BookCardMenu({book, insideSerie, deck, read, setRead, openBook}:Extract
   const {userData} = useAuth();
   const {siteSettings, setOpenSettings} = useSettingsStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [progressOpen, setProgressOpen] = useState(false);
   const [coversOpen, setCoversOpen] = useState(false);
@@ -166,6 +168,7 @@ function BookCardMenu({book, insideSerie, deck, read, setRead, openBook}:Extract
       } else if (response?.status === "logged") {
         toast.success("Volumen registrado en NihongoTracker");
       }
+      await queryClient.invalidateQueries({queryKey:["nihongo-tracker-book-status", book._id]});
     } catch {
       toast.error("No se pudo registrar el volumen. Comprueba que la serie esté vinculada y el volumen terminado.");
     }

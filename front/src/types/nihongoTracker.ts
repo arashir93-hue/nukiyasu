@@ -12,6 +12,21 @@ export interface NihongoTrackerLink {
   mediaTitle?:string;
 }
 
+export type NihongoTrackerVolumeSource = "manual" | "detected" | "position";
+
+export interface NihongoTrackerBookStatus {
+  connected:boolean;
+  linked:boolean;
+  completed:boolean;
+  alreadyLogged:boolean;
+  volumeNumber:number;
+  volumeSource:NihongoTrackerVolumeSource;
+  serieName:string;
+  pages?:number;
+  timeSeconds:number;
+  characters:number;
+}
+
 /** La API externa no expone una forma única en todas sus versiones. */
 export interface NihongoTrackerMedia {
   id?:string | number;

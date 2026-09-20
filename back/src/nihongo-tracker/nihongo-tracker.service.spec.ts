@@ -14,6 +14,7 @@ describe("NihongoTrackerService", () => {
     let integrationModel:Record<string, jest.Mock>;
     let linkModel:Record<string, jest.Mock>;
     let logModel:Record<string, jest.Mock>;
+    let overrideModel:Record<string, jest.Mock>;
     let serieModel:Record<string, jest.Mock>;
     let bookModel:Record<string, jest.Mock>;
     let progressModel:Record<string, jest.Mock>;
@@ -27,8 +28,10 @@ describe("NihongoTrackerService", () => {
         };
         linkModel = {findOne:jest.fn(), findOneAndUpdate:jest.fn(), countDocuments:jest.fn()};
         logModel = {findOne:jest.fn(), create:jest.fn()};
+        overrideModel = {findOne:jest.fn(), findOneAndUpdate:jest.fn(), deleteOne:jest.fn()};
         serieModel = {findOne:jest.fn()};
         bookModel = {findById:jest.fn(), find:jest.fn()};
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([])});
         progressModel = {findOne:jest.fn()};
 
         const contentAccessService = {
@@ -42,6 +45,7 @@ describe("NihongoTrackerService", () => {
             integrationModel as never,
             linkModel as never,
             logModel as never,
+            overrideModel as never,
             serieModel as never,
             bookModel as never,
             progressModel as never,
@@ -80,7 +84,7 @@ describe("NihongoTrackerService", () => {
     });
 
     it("convierte el tiempo local en segundos a minutos y evita duplicados locales", async() => {
-        const book = {_id:bookId, serie:serieId, variant:"manga", pages:200, characters:12000};
+        const book = {_id:bookId, serie:serieId, variant:"manga", pages:200, characters:12000, sortName:"oshi v04", visibleName:"oshi v04"};
         const serie = {_id:serieId, visibleName:"Serie de prueba", variant:"manga"};
         const link = {mediaType:"manga", mediaId:"123"};
         const progress = {
@@ -111,6 +115,63 @@ describe("NihongoTrackerService", () => {
                 method:"POST",
                 body:expect.stringContaining('"time":2')
             })
+        );
+    });
+
+    it("envía el volumen detectado en el nombre", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", pages:100, sortName:"oshi v04", visibleName:"oshi v04"};
+        bookModel.findById.mockResolvedValue(book);
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Oshi"});
+        linkModel.findOne.mockResolvedValue({mediaType:"manga", mediaId:"123"});
+        progressModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue({_id:progressId, time:60})});
+        logModel.findOne.mockResolvedValue(null);
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock.mockResolvedValue(new Response(JSON.stringify({id:"external-1"}), {status:201}));
+
+        await service.logBook(user, bookId);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            "https://nihongotracker.app/api/logs",
+            expect.objectContaining({body:expect.stringContaining('"volume":4')})
+        );
+    });
+
+    it("prioriza el override manual sobre la detección", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", pages:100, sortName:"oshi v04", visibleName:"oshi v04"};
+        bookModel.findById.mockResolvedValue(book);
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Oshi"});
+        linkModel.findOne.mockResolvedValue({mediaType:"manga", mediaId:"123"});
+        progressModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue({_id:progressId, time:60})});
+        logModel.findOne.mockResolvedValue(null);
+        overrideModel.findOne.mockResolvedValue({volumeNumber:7});
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock.mockResolvedValue(new Response(JSON.stringify({id:"external-1"}), {status:201}));
+
+        await service.logBook(user, bookId);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            "https://nihongotracker.app/api/logs",
+            expect.objectContaining({body:expect.stringContaining('"volume":7')})
+        );
+    });
+
+    it("usa la posición solo como fallback", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", pages:100, sortName:"oshi tercero", visibleName:"oshi tercero"};
+        const other = {_id:new Types.ObjectId(), sortName:"oshi primero"};
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([other, {}, book])});
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Oshi"});
+        linkModel.findOne.mockResolvedValue({mediaType:"manga", mediaId:"123"});
+        progressModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue({_id:progressId, time:60})});
+        logModel.findOne.mockResolvedValue(null);
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock.mockResolvedValue(new Response(JSON.stringify({id:"external-1"}), {status:201}));
+
+        await service.logBook(user, bookId);
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            "https://nihongotracker.app/api/logs",
+            expect.objectContaining({body:expect.stringContaining('"volume":3')})
         );
     });
 

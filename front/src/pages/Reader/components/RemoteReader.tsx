@@ -1,6 +1,7 @@
 import {CircleArrowLeft, CircleArrowRight, CircleQuestionMark, Languages, Maximize, Minimize, PanelRight, Settings, SkipBack, SkipForward} from "lucide-react";
 import React, { Fragment, type SetStateAction, useState } from "react";
 import { StopWatchMenu } from "./StopWatchMenu";
+import {NihongoTrackerReaderButton} from "./NihongoTrackerReaderButton";
 import { Book, BookProgress } from "../../../types/book";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
@@ -139,6 +140,12 @@ export default function RemoteReader({readerVars:{bookData, currentPage, bookPro
                 </Tooltip>
                 <StopWatchMenu characters={calculateCurrentCharacters()} oldProgress={bookProgress} bookData={bookData}
                     currentPage={currentPage}
+                />
+                <NihongoTrackerReaderButton
+                    book={bookData}
+                    currentPage={currentPage}
+                    atLastPage={currentPage >= Math.max(1, bookData.pages - (doublePages ? 1 : 0))}
+                    saveProgress={saveProgress}
                 />
                 <ReaderNavButton tooltip="Atajos de teclado (?)" onClick={()=>setShowShortcuts(true)}>
                     <CircleQuestionMark />

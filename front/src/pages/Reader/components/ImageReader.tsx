@@ -13,6 +13,7 @@ import type {Book, BookProgress} from "../../../types/book";
 import {cn} from "../../../ui/cn";
 import {MobilePageArrows, ReaderBottomBar, ReaderNavButton, ReaderTopBar, ReadingTimerIndicator} from "./ReaderChrome";
 import {StopWatchMenu} from "./StopWatchMenu";
+import {NihongoTrackerReaderButton} from "./NihongoTrackerReaderButton";
 
 /**
  * Lector de tomos sin mokuro: una carpeta de imágenes sin html ni texto OCR.
@@ -334,6 +335,7 @@ export default function ImageReader({readerVars:{bookData, bookProgress, current
                     }}
                 >
                     <StopWatchMenu characters={0} oldProgress={bookProgress} bookData={bookData} currentPage={currentPage}/>
+                    <NihongoTrackerReaderButton book={bookData} currentPage={currentPage} atLastPage={currentSpread.includes(bookData.pages)} saveProgress={saveProgress}/>
                     <ReaderNavButton tooltip="Atajos de teclado (?)" onClick={()=>setShowShortcuts(true)}>
                         <CircleQuestionMark />
                     </ReaderNavButton>

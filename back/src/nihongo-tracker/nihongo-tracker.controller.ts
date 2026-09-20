@@ -5,7 +5,9 @@ import {JwtAuthGuard} from "../auth/strategies/jwt.strategy";
 import {ParseObjectIdPipe} from "../validation/objectId";
 import {ConnectNihongoTrackerDto} from "./dto/connect.dto";
 import {LinkNihongoTrackerDto} from "./dto/link.dto";
+import {LogNihongoTrackerBookDto} from "./dto/log-book.dto";
 import {SearchNihongoTrackerDto} from "./dto/search.dto";
+import {VolumeOverrideDto} from "./dto/volume-override.dto";
 import {NihongoTrackerService} from "./nihongo-tracker.service";
 
 @Controller("nihongo-tracker")
@@ -49,7 +51,22 @@ export class NihongoTrackerController {
     }
 
     @Post("books/:bookId/log")
-    logBook(@Req() req:Request, @Param("bookId", ParseObjectIdPipe) bookId:Types.ObjectId) {
-        return this.nihongoTrackerService.logBook(this.userId(req), bookId);
+    logBook(@Req() req:Request, @Param("bookId", ParseObjectIdPipe) bookId:Types.ObjectId, @Body() dto:LogNihongoTrackerBookDto) {
+        return this.nihongoTrackerService.logBook(this.userId(req), bookId, dto);
+    }
+
+    @Get("books/:bookId/status")
+    bookStatus(@Req() req:Request, @Param("bookId", ParseObjectIdPipe) bookId:Types.ObjectId) {
+        return this.nihongoTrackerService.bookStatus(this.userId(req), bookId);
+    }
+
+    @Put("books/:bookId/volume")
+    setBookVolume(@Req() req:Request, @Param("bookId", ParseObjectIdPipe) bookId:Types.ObjectId, @Body() dto:VolumeOverrideDto) {
+        return this.nihongoTrackerService.setBookVolume(this.userId(req), bookId, dto.volumeNumber);
+    }
+
+    @Delete("books/:bookId/volume")
+    clearBookVolume(@Req() req:Request, @Param("bookId", ParseObjectIdPipe) bookId:Types.ObjectId) {
+        return this.nihongoTrackerService.clearBookVolume(this.userId(req), bookId);
     }
 }
