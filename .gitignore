@@ -18,3 +18,6 @@ cloudflare/*
 ebook-reader/*
 ebook-reader
 .idea
+# Android release signing
+android/*.jks
+android/keystore.properties
