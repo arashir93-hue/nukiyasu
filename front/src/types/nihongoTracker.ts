@@ -15,10 +15,20 @@ export interface NihongoTrackerLink {
 /** La API externa no expone una forma única en todas sus versiones. */
 export interface NihongoTrackerMedia {
   id?:string | number;
+  _id?:string | number;
   contentId?:string | number;
   mediaId?:string | number;
-  title?:string | {native?:string; romaji?:string; english?:string};
+  title?:string | {native?:string; romaji?:string; english?:string; default?:string; [key:string]:unknown};
+  mediaTitle?:string;
+  titleEnglish?:string;
+  titleNative?:string;
+  titleRomaji?:string;
+  originalTitle?:string;
+  englishTitle?:string;
+  nativeTitle?:string;
+  romajiTitle?:string;
   name?:string;
+  media?:NihongoTrackerMedia;
   [key:string]:unknown;
 }
 

@@ -35,16 +35,28 @@ function mediaItems(response:NihongoTrackerSearchResponse | NihongoTrackerMedia[
 }
 
 function mediaId(media:NihongoTrackerMedia):string | undefined {
-  const value = media.contentId ?? media.mediaId ?? media.id;
+  const value = media.contentId ?? media.mediaId ?? media.id ?? media._id
+    ?? media.media?.contentId ?? media.media?.mediaId ?? media.media?.id ?? media.media?._id;
   return value === undefined || value === null ? undefined : String(value);
 }
 
 function mediaTitle(media:NihongoTrackerMedia):string {
+  if (media.mediaTitle) return media.mediaTitle;
   if (typeof media.title === "string") return media.title;
   if (media.title && typeof media.title === "object") {
-    return media.title.native || media.title.english || media.title.romaji || "Sin título";
+    return media.title.native || media.title.english || media.title.romaji || media.title.default || "Sin título";
   }
-  return media.name || "Sin título";
+  const nestedTitle = media.media && media.media !== media ? mediaTitle(media.media) : undefined;
+  return (nestedTitle && nestedTitle !== "Sin título" ? nestedTitle : undefined)
+    || media.titleNative
+    || media.titleEnglish
+    || media.titleRomaji
+    || media.nativeTitle
+    || media.englishTitle
+    || media.romajiTitle
+    || media.originalTitle
+    || media.name
+    || "Sin título";
 }
 
 export function NihongoTrackerLinkDialog({serie, open, onOpenChange}:NihongoTrackerLinkDialogProps):React.ReactElement {
