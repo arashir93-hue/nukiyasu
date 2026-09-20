@@ -164,11 +164,12 @@ describe("NihongoTrackerService", () => {
         expect(response.alreadyLogged).toBe(hasPreviousLogs);
     });
 
-    it("permite registrar dos progresos completados distintos con su tiempo independiente", async() => {
+    it("permite registrar tres progresos completados distintos con su tiempo independiente", async() => {
         const book = {_id:bookId, serie:serieId, variant:"manga", pages:200, characters:12000, sortName:"oshi v05", visibleName:"oshi v05"};
         const serie = {_id:serieId, visibleName:"Oshi no Ko", variant:"manga"};
         const firstProgressId = new Types.ObjectId();
         const secondProgressId = new Types.ObjectId();
+        const thirdProgressId = new Types.ObjectId();
 
         bookModel.findById.mockResolvedValue(book);
         bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
@@ -177,7 +178,8 @@ describe("NihongoTrackerService", () => {
         linkModel.findOne.mockResolvedValue({mediaType:"manga", mediaId:"123"});
         progressModel.findOne
             .mockReturnValueOnce({sort:jest.fn().mockResolvedValue({_id:firstProgressId, time:125 * 60})})
-            .mockReturnValueOnce({sort:jest.fn().mockResolvedValue({_id:secondProgressId, time:102 * 60})});
+            .mockReturnValueOnce({sort:jest.fn().mockResolvedValue({_id:secondProgressId, time:102 * 60})})
+            .mockReturnValueOnce({sort:jest.fn().mockResolvedValue({_id:thirdProgressId, time:87 * 60})});
         logModel.findOne.mockResolvedValue(null);
         logModel.create
             .mockResolvedValueOnce({_id:new Types.ObjectId()})
@@ -185,16 +187,20 @@ describe("NihongoTrackerService", () => {
         integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
         fetchMock
             .mockResolvedValueOnce(new Response(JSON.stringify({id:"external-1"}), {status:201}))
-            .mockResolvedValueOnce(new Response(JSON.stringify({id:"external-2"}), {status:201}));
+            .mockResolvedValueOnce(new Response(JSON.stringify({id:"external-2"}), {status:201}))
+            .mockResolvedValueOnce(new Response(JSON.stringify({id:"external-3"}), {status:201}));
 
         await expect(service.logBook(user, bookId, {requestId:"550e8400-e29b-41d4-a716-446655440001"})).resolves.toEqual(expect.objectContaining({status:"logged"}));
         await expect(service.logBook(user, bookId, {requestId:"550e8400-e29b-41d4-a716-446655440002"})).resolves.toEqual(expect.objectContaining({status:"logged"}));
+        await expect(service.logBook(user, bookId, {requestId:"550e8400-e29b-41d4-a716-446655440005"})).resolves.toEqual(expect.objectContaining({status:"logged"}));
 
         const firstBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
         const secondBody = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
         expect(firstBody.time).toBe(125);
         expect(secondBody.time).toBe(102);
-        expect(fetchMock).toHaveBeenCalledTimes(2);
+        const thirdBody = JSON.parse(String(fetchMock.mock.calls[2][1]?.body));
+        expect(thirdBody.time).toBe(87);
+        expect(fetchMock).toHaveBeenCalledTimes(3);
     });
 
     it("reutiliza el registro local para una misma idempotency key", async() => {

@@ -4,11 +4,11 @@ import {useTitle} from "../../lib/useTitle";
 import {useNavigate, useParams, useSearchParams} from "react-router";
 import {useSettingsStore} from "../../stores/SettingsStore";
 import {StopWatchMenu} from "../Reader/components/StopWatchMenu";
-import {useQuery} from "@tanstack/react-query";
+import {useQuery, useQueryClient} from "@tanstack/react-query";
 import {Book, BookProgress} from "../../types/book";
 import {api} from "../../api/api";
 import {getBookProgress} from "../../helpers/ttu";
-import {createProgress} from "../../helpers/progress";
+import {beginReadingProgress, createProgress} from "../../helpers/progress";
 import {nextBook, prevBook} from "../../helpers/book";
 import {useGlobal} from "../../contexts/GlobalContext";
 import {twMerge} from "tailwind-merge";
@@ -30,9 +30,12 @@ const epubShortcuts:ShortcutItem[] = [
     {keys:["?"], description:"Mostrar esta ayuda"},
 ];
 
-async function saveProgressGlobal(bookId?:string, iframe?:HTMLIFrameElement, bookData?:Book, keepAlive = false):Promise<number> {
+async function saveProgressGlobal(bookId?:string, iframe?:HTMLIFrameElement, bookData?:Book, keepAlive = false,
+    readingSession?:Promise<BookProgress | undefined> | null):Promise<number> {
     if (!bookData || !bookId) return 0;
     if (!iframe || !iframe.contentWindow) return 0;
+
+    if (readingSession) await readingSession;
 
     const timer = useReaderTimerStore.getState().timer;
 
@@ -47,7 +50,7 @@ async function saveProgressGlobal(bookId?:string, iframe?:HTMLIFrameElement, boo
 
     window.localStorage.setItem(bookData._id, `${timer}`);
 
-    void createProgress(bookData, undefined, timer, currentChars, false, parseInt(bookId || "0"), keepAlive);
+    await createProgress(bookData, undefined, timer, currentChars, false, parseInt(bookId || "0"), keepAlive);
 
     return currentChars;
 }
@@ -60,6 +63,7 @@ export default function EpubReader():React.ReactElement {
     const {siteSettings, readerSettings, modifyReaderSettings} = useSettingsStore();
     const {loggedIn, userData} = useAuth();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [showToolBar, setShowToolbar] = useState(true);
     const [chars, setChars] = useState(0);
     const [changedTab, setChangedTab] = useState(false);
@@ -72,6 +76,8 @@ export default function EpubReader():React.ReactElement {
     useIdleTimerPause(siteSettings.idleTimeout);
 
     const iframe = useRef<HTMLIFrameElement>(null);
+    const startedSessionForBook = useRef<string | undefined>(undefined);
+    const readingSessionPromise = useRef<Promise<BookProgress | undefined> | null>(null);
 
     const {data:bookData, isLoading:bookLoading, isFetching:bookFetching, isError:bookError} = useQuery({
         queryKey:keys.book(bookId ?? undefined),
@@ -91,16 +97,26 @@ export default function EpubReader():React.ReactElement {
     // Evita re-restaurar el cronómetro del mismo libro si la query refetchea a mitad de lectura
     const restoredBookId = useRef<string | undefined>(undefined);
 
+    const saveCurrentProgress = React.useCallback(async(keepAlive = false):Promise<number> => {
+        return saveProgressGlobal(
+            id,
+            iframe.current ?? undefined,
+            bookDataRef.current,
+            keepAlive,
+            readingSessionPromise.current
+        );
+    }, [id]);
+
     // Guarda el progreso cuando la pestaña pasa a segundo plano o se cierra
     useEffect(()=>{
         function handleHidden():void {
             if (document.visibilityState === "hidden") {
-                void saveProgressGlobal(id, iframe.current ?? undefined, bookDataRef.current);
+                void saveCurrentProgress();
             }
         }
 
         function handleBeforeUnload():void {
-            void saveProgressGlobal(id, iframe.current ?? undefined, bookDataRef.current, true);
+            void saveCurrentProgress(true);
         }
 
         document.addEventListener("visibilitychange", handleHidden);
@@ -110,9 +126,9 @@ export default function EpubReader():React.ReactElement {
             document.removeEventListener("visibilitychange", handleHidden);
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
-    }, [id]);
+    }, [id, saveCurrentProgress]);
 
-    const {data:bookProgress} = useQuery({
+    const {data:bookProgress, isLoading:bookProgressLoading} = useQuery({
         queryKey:keys.bookProgress(bookId ?? undefined),
         queryFn:async()=>{
             const res = await api.get<BookProgress>(`readprogress?book=${bookId}&status=reading`);
@@ -131,9 +147,34 @@ export default function EpubReader():React.ReactElement {
         refetchOnWindowFocus:false,
         enabled:!!bookData && !!bookId
     });
-    const activeBookProgress = bookProgress?.status === "reading"
-        ? bookProgress
-        : latestBookProgress?.status === "reading" ? latestBookProgress : undefined;
+    // The latest-progress query is authoritative when it has returned.  The
+    // dedicated reading query is intentionally not refetched on mount, so it
+    // may still contain a stale reading progress after a previous completion.
+    const activeBookProgress = latestBookProgress
+        ? latestBookProgress.status === "reading" ? latestBookProgress : undefined
+        : bookProgress?.status === "reading" ? bookProgress : undefined;
+
+    // A completed progress is historical.  Reopening the book starts a new
+    // active session; subsequent saves then update that same progress.
+    useEffect(()=>{
+        if (!bookData || bookProgressLoading || latestProgressLoading || activeBookProgress || latestBookProgress?.status !== "completed") return;
+        if (startedSessionForBook.current === bookData._id) return;
+
+        startedSessionForBook.current = bookData._id;
+        const startPromise = beginReadingProgress(bookData).catch(()=>undefined);
+        readingSessionPromise.current = startPromise;
+
+        void startPromise.then((newProgress)=>{
+            if (!newProgress) {
+                startedSessionForBook.current = undefined;
+                readingSessionPromise.current = null;
+                return;
+            }
+
+            queryClient.setQueryData(keys.bookProgress(bookData._id), newProgress);
+            queryClient.setQueryData(["book-progress-latest", bookData._id], newProgress);
+        });
+    }, [activeBookProgress, bookData, bookProgressLoading, latestBookProgress, latestProgressLoading, queryClient]);
 
     useEffect(()=>{
         async function initProgress():Promise<void> {
@@ -250,15 +291,15 @@ export default function EpubReader():React.ReactElement {
                 lastSavedTimer = timer;
 
                 void (async()=>{
-                    const currentChars = await saveProgressGlobal(id, iframe.current ?? undefined, bookDataRef.current);
+                    const currentChars = await saveCurrentProgress();
                     setChars(currentChars);
                 })();
             }
         });
-    }, [id]);
+    }, [id, saveCurrentProgress]);
 
     async function refreshProgress():Promise<number> {
-        const currentChars = await saveProgressGlobal(id, (iframe.current || undefined), bookData);
+        const currentChars = await saveCurrentProgress();
         setChars(currentChars);
         return currentChars;
     }
@@ -308,7 +349,7 @@ export default function EpubReader():React.ReactElement {
                     <div className="flex items-center gap-2 px-2 shrink lg:w-1/2">
                         <Tooltip content="Volver atrás">
                             <IconButton label="Volver atrás" onClick={async()=>{
-                                await saveProgressGlobal(id, (iframe.current || undefined), bookData);
+                                await saveCurrentProgress();
 
                                 navigate(-1);
                             }}
@@ -371,7 +412,7 @@ export default function EpubReader():React.ReactElement {
                     <div className="justify-between flex items-center">
                         <Tooltip content="Ir al siguiente libro">
                             <IconButton label="Ir al siguiente libro" onClick={async()=>{
-                                await saveProgressGlobal(id, (iframe.current || undefined), bookData);
+                                await saveCurrentProgress();
                                 void nextBook({book:bookData, variant:"novela", connector:ttuConnector, navigate});
                             }}
                             className="text-app-text"
@@ -383,7 +424,7 @@ export default function EpubReader():React.ReactElement {
                     <div className="justify-between flex items-center">
                         <Tooltip content="Ir al libro anterior">
                             <IconButton label="Ir al libro anterior" onClick={async()=>{
-                                await saveProgressGlobal(id, (iframe.current || undefined), bookData);
+                                await saveCurrentProgress();
                                 void prevBook({book:bookData, variant:"novela", connector:ttuConnector, navigate});
                             }}
                             className="text-app-text"

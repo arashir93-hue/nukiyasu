@@ -64,6 +64,10 @@ export class ReadprogressController {
 
         const foundProgress = await this.readprogressService.findProgressByBookAndUser(progressDto.book, userId);
 
+        // A repeated terminal/unread event for the same current progress is
+        // idempotent.  Starting a new reading session is deliberately
+        // represented by `status: "reading"` after the latest progress was
+        // completed; that path must fall through and create a new document.
         if (progressDto.status !== "reading" && foundProgress?.status === progressDto.status) return foundProgress;
 
         if (progressDto.status !== "unread") {
@@ -92,7 +96,10 @@ export class ReadprogressController {
         }
 
         if (!foundProgress || foundProgress.status === "completed") {
-            // No se ha encontrado progreso ninguno o el ultimo proceso es de completado, se crea uno nuevo
+            // No hay progreso, o se está comenzando una nueva sesión después
+            // de una lectura completada.  A completed -> completed request was
+            // returned above, so duplicate completion events cannot create a
+            // second historical progress.
 
             const newProgress:CreateReadProgress = {
                 user:userId,

@@ -1,10 +1,10 @@
 import React, {useCallback, useEffect, useRef, useState} from "react";
 import {useNavigate, useParams} from "react-router";
-import {useQuery} from "@tanstack/react-query";
+import {useQuery, useQueryClient} from "@tanstack/react-query";
 import {api} from "../../api/api";
 import {Book, BookProgress} from "../../types/book";
 import {ReaderSettings} from "./components/ReaderSettings";
-import {createProgress} from "../../helpers/progress";
+import {beginReadingProgress, createProgress} from "../../helpers/progress";
 import {PageText} from "./components/PageText";
 import {Dictionary} from "./components/Dictionary";
 import {nextBook, prevBook} from "../../helpers/book";
@@ -64,6 +64,7 @@ function Reader(props:ReaderProps):React.ReactElement {
     const {readerSettings, siteSettings, modifyReaderSettings} = useSettingsStore();
     const {reauth} = useAuth();
     const {toggleFullscreen} = useFullscreen();
+    const queryClient = useQueryClient();
 
     const [currentPage, setCurrentPage] = useState(1);
     const [doublePages, setDoublePages] = useState(false);
@@ -74,6 +75,9 @@ function Reader(props:ReaderProps):React.ReactElement {
     const [changedTab, setChangedTab] = useState(false);
     const [forceSave, setForceSave] = useState(false);
     const [showShortcuts, setShowShortcuts] = useState(false);
+    const startedSessionForBook = useRef<string | undefined>(undefined);
+    const readingSessionPromise = useRef<Promise<BookProgress | undefined> | null>(null);
+    const restartingCompletedBook = useRef<string | undefined>(undefined);
 
     const {data:bookData} = useQuery({
         queryKey:keys.book(id),
@@ -112,15 +116,27 @@ function Reader(props:ReaderProps):React.ReactElement {
         refetchOnWindowFocus:false,
         enabled:!!id
     });
-    const activeBookProgress = bookProgress?.status === "reading"
-        ? bookProgress
-        : latestBookProgress?.status === "reading" ? latestBookProgress : undefined;
+    // The latest-progress query is authoritative when it has returned.  The
+    // dedicated reading query is intentionally not refetched on mount, so it
+    // may still contain a stale reading progress after that session was
+    // completed in a previous visit.
+    const activeBookProgress = latestBookProgress
+        ? latestBookProgress.status === "reading" ? latestBookProgress : undefined
+        : bookProgress?.status === "reading" ? bookProgress : undefined;
 
     useReadingTimerTicker();
     useIdleTimerPause(siteSettings.idleTimeout);
 
     const saveProgress = useCallback(async(keepAlive = false):Promise<void> => {
         if (!bookData) return;
+
+        // If this book was reopened after completion, wait for the explicit
+        // session-start request before saving a terminal page.  Otherwise a
+        // fast completion could still be attributed to the historical
+        // completed progress.
+        if (readingSessionPromise.current) {
+            await readingSessionPromise.current;
+        }
 
         const timer = useReaderTimerStore.getState().timer;
 
@@ -173,6 +189,31 @@ function Reader(props:ReaderProps):React.ReactElement {
             useReaderTimerStore.getState().start();
         }
     }, [siteSettings]);
+
+    // A completed progress is historical.  Opening the book again starts a
+    // fresh active session, which is later updated by the normal progress
+    // saves and eventually completed in place.
+    useEffect(()=>{
+        if (isLoading || latestProgressLoading || !bookData) return;
+        if (activeBookProgress || latestBookProgress?.status !== "completed") return;
+        if (startedSessionForBook.current === bookData._id) return;
+
+        startedSessionForBook.current = bookData._id;
+        restartingCompletedBook.current = bookData._id;
+        const startPromise = beginReadingProgress(bookData).catch(()=>undefined);
+        readingSessionPromise.current = startPromise;
+
+        void startPromise.then((newProgress)=>{
+            if (!newProgress) {
+                startedSessionForBook.current = undefined;
+                readingSessionPromise.current = null;
+                return;
+            }
+
+            queryClient.setQueryData(keys.bookProgress(bookData._id), newProgress);
+            queryClient.setQueryData(["book-progress-latest", bookData._id], newProgress);
+        });
+    }, [activeBookProgress, bookData, isLoading, latestBookProgress, latestProgressLoading, queryClient]);
 
     useEffect(()=>{
         if (isLoading || latestProgressLoading || !bookData) return;
@@ -233,6 +274,12 @@ function Reader(props:ReaderProps):React.ReactElement {
          * estado de mokuro que restaurar.
          */
         if (bookData && bookData.format !== "images") {
+            if (restartingCompletedBook.current === bookData._id) {
+                seedMokuroPage(bookData, 1, bookData.pages);
+                setCurrentPage(1);
+                return;
+            }
+
             const stored = readMokuroSettings(bookData);
             setDoublePages(!stored.singlePageView);
             setCurrentPage(Math.max(1, (stored.page_idx ?? 0) + 1));

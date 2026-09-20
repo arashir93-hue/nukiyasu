@@ -73,3 +73,21 @@ export async function createProgress(bookData:Book, page?:number, time?:number, 
     // la próxima vez que se monten (evita refetches continuos mientras se lee)
     invalidateProgress();
 }
+
+/**
+ * Starts a new active reading session after the latest progress was
+ * completed.  The backend keeps an existing reading/unread progress active,
+ * so repeating this request is safe and does not create another session.
+ */
+export async function beginReadingProgress(bookData:Book):Promise<BookProgress | undefined> {
+    // El modo incógnito existente no debe crear ni modificar progreso
+    // persistente, tampoco al iniciar una relectura.
+    if (new URLSearchParams(window.location.search).has("private")) return undefined;
+
+    return api.post<BookProgress, BookProgress>("readprogress", {
+        book:bookData._id,
+        status:"reading",
+        currentPage:1,
+        characters:0
+    });
+}
