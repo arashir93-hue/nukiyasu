@@ -44,7 +44,14 @@ function mediaTitle(media:NihongoTrackerMedia):string {
   if (media.mediaTitle) return media.mediaTitle;
   if (typeof media.title === "string") return media.title;
   if (media.title && typeof media.title === "object") {
-    return media.title.native || media.title.english || media.title.romaji || media.title.default || "Sin título";
+    return media.title.contentTitleNative
+      || media.title.contentTitleRomaji
+      || media.title.contentTitleEnglish
+      || media.title.native
+      || media.title.english
+      || media.title.romaji
+      || media.title.default
+      || "Sin título";
   }
   const nestedTitle = media.media && media.media !== media ? mediaTitle(media.media) : undefined;
   return (nestedTitle && nestedTitle !== "Sin título" ? nestedTitle : undefined)

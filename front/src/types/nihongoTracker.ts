@@ -18,7 +18,16 @@ export interface NihongoTrackerMedia {
   _id?:string | number;
   contentId?:string | number;
   mediaId?:string | number;
-  title?:string | {native?:string; romaji?:string; english?:string; default?:string; [key:string]:unknown};
+  title?:string | {
+    native?:string;
+    romaji?:string;
+    english?:string;
+    default?:string;
+    contentTitleNative?:string;
+    contentTitleRomaji?:string;
+    contentTitleEnglish?:string;
+    [key:string]:unknown;
+  };
   mediaTitle?:string;
   titleEnglish?:string;
   titleNative?:string;
