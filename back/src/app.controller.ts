@@ -55,7 +55,10 @@ export class AppController {
 
     @ApiOkResponse({status:HttpStatus.OK})
     @Get("static/*")
-    @Throttle(200, 10)
+    // Un lector puede solicitar cientos de páginas al abrir un tomo Mokuro.
+    // Mantener un límite evita abusos, pero 200 solicitudes bloquea volúmenes
+    // legítimos antes de que lleguen a sus últimas páginas.
+    @Throttle(5000, 10)
     async serveFiles(@Req() req: Request, @Res() res: Response) {
         if (!req.user) throw new UnauthorizedException();
 
