@@ -9,6 +9,7 @@ import { nextBook, prevBook } from "../../../helpers/book";
 import { useNavigate } from "react-router";
 import { useFullscreen } from "../../../helpers/useFullscreen";
 import { injectMokuroShim, readMokuroSettings } from "../../../lib/mokuro";
+import { mokuroHtmlUrl } from "../../../lib/media";
 import { IconButton } from "../../../ui/IconButton";
 import { Tooltip } from "../../../ui/Tooltip";
 import { MobilePageArrows, ReaderBottomBar, ReaderNavButton, ReaderStatsReadout, ReaderTopBar, ReadingTimerIndicator } from "./ReaderChrome";
@@ -166,7 +167,7 @@ export default function RemoteReader({readerVars:{bookData, currentPage, bookPro
         )}
         <iframe
             ref={iframe}
-            src={`/api/static/${bookData.variant}s/${bookData?.seriePath}/${bookData?.path}.html`}
+            src={mokuroHtmlUrl(bookData)}
             className="w-full measure"
             onLoad={injectCustomScript}
         />
