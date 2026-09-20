@@ -26,10 +26,11 @@ function createAggregate(results:unknown[] = []) {
 describe("BooksService mature visibility", () => {
     const standardPolicy:ContentAccessPolicy = {
         showMatureContent:false,
-        seriesMatch:{isMature:{$ne:true}}
+        seriesMatch:{missing:{$ne:true}, isMature:{$ne:true}}
     };
     const joinedSeriesMatch = {
         forJoinedSeries:jest.fn().mockReturnValue({
+            "contentAccessSerie.missing":{$ne:true},
             "contentAccessSerie.isMature":{$ne:true}
         })
     } as unknown as ContentAccessService;
@@ -52,7 +53,7 @@ describe("BooksService mature visibility", () => {
             stage.$lookup?.from === "series"
         );
         const matureMatchIndex = bookAggregate.stages.findIndex((stage:Record<string, unknown>) =>
-            JSON.stringify(stage) === JSON.stringify({$match:{"contentAccessSerie.isMature":{$ne:true}}})
+            JSON.stringify(stage) === JSON.stringify({$match:{"contentAccessSerie.missing":{$ne:true}, "contentAccessSerie.isMature":{$ne:true}}})
         );
         const paginationIndex = bookAggregate.stages.findIndex((stage:Record<string, unknown>) => "$skip" in stage);
 
@@ -89,7 +90,7 @@ describe("BooksService mature visibility", () => {
     it("devuelve 404 para un libro cuya serie no es accesible", async() => {
         const serieId = new Types.ObjectId();
         const bookModel = {
-            findById:jest.fn().mockResolvedValue({_id:new Types.ObjectId(), serie:serieId})
+            findOne:jest.fn().mockResolvedValue({_id:new Types.ObjectId(), serie:serieId})
         } as unknown as Model<BookDocument>;
         const contentAccessService = {
             assertSeriesAccessible:jest.fn().mockRejectedValue(new NotFoundException())
@@ -99,5 +100,46 @@ describe("BooksService mature visibility", () => {
         await expect(
             service.findAccessibleById(new Types.ObjectId(), standardPolicy)
         ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it("excluye libros marcados como desaparecidos antes de construir resultados", async() => {
+        const bookAggregate = createAggregate([]);
+        const service = new BooksService(
+            {aggregate:jest.fn().mockReturnValue(bookAggregate)} as unknown as Model<BookDocument>,
+            joinedSeriesMatch
+        );
+
+        await service.filterAccessibleBooks(new Types.ObjectId(), "manga", {}, {
+            showMatureContent:true,
+            seriesMatch:{missing:{$ne:true}}
+        });
+
+        expect(bookAggregate.stages).toContainEqual({$match:{missing:{$ne:true}}});
+    });
+
+    it("reactiva un Book desaparecido sin crear un duplicado", async() => {
+        const existing = {_id:new Types.ObjectId(), path:"v01", missing:true};
+        const findOneAndUpdate = jest.fn().mockResolvedValue({...existing, missing:false});
+        const bookModel = {
+            findOne:jest.fn().mockResolvedValue(existing),
+            findOneAndUpdate
+        } as unknown as Model<BookDocument>;
+        const service = new BooksService(bookModel, joinedSeriesMatch);
+
+        await service.updateOrCreate({
+            path:"v01",
+            visibleName:"v01",
+            sortName:"v01",
+            serie:new Types.ObjectId(),
+            seriePath:"Serie",
+            thumbnailPath:"001.jpg",
+            characters:0,
+            variant:"manga"
+        });
+
+        expect(findOneAndUpdate).toHaveBeenCalledWith(
+            {path:"v01", variant:"manga"},
+            {missing:false}
+        );
     });
 });

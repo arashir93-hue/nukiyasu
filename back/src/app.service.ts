@@ -174,9 +174,9 @@ export class AppService {
           if (foldersToMarkAsDeleted.length > 0) {
               this.logger.log(`\x1b[34mEncontradas series de ${variant === "doujinshi" ? "doujinshi" : "manga"} desaparecidas`);
               areChanges = true;
-              foldersToMarkAsDeleted.forEach(async(elem) => {
-                  await this.seriesService.markAsMissing(elem, variant);
-              });
+              await Promise.all(foldersToMarkAsDeleted.map((elem) =>
+                  this.seriesService.markAsMissing(elem, variant)
+              ));
           }
           // FIN PROCESO DE SERIES
 
@@ -339,10 +339,12 @@ export class AppService {
           if (booksToMarkAsDeleted.length > 0) {
               this.logger.log("\x1b[34mEncontrados libros desaparecidos");
               areChanges = true;
-              booksToMarkAsDeleted.forEach(async(elem) => {
-                  await this.booksService.markAsMissing(elem.path, variant);
-              });
+              await Promise.all(booksToMarkAsDeleted.map((elem) =>
+                  this.booksService.markAsMissing(elem.path, variant)
+              ));
           }
+
+          await this.syncBookCounts(variant);
           // FIN PROCESO DE LIBROS
           this.logger.log(`\x1b[34mProceso de búsqueda de ${variant === "doujinshi" ? "doujinshi" : "mangas"} finalizado`);
           if (areChanges) {
@@ -446,9 +448,9 @@ export class AppService {
           if (foldersToMarkAsDeleted.length > 0) {
               this.logger.log("\x1b[34mEncontradas series de novela desaparecidas");
               areChanges = true;
-              foldersToMarkAsDeleted.forEach(async(elem) => {
-                  await this.seriesService.markAsMissing(elem, "novela");
-              });
+              await Promise.all(foldersToMarkAsDeleted.map((elem) =>
+                  this.seriesService.markAsMissing(elem, "novela")
+              ));
           }
           // FIN PROCESO DE SERIES
 
@@ -516,10 +518,11 @@ export class AppService {
           if (booksToMarkAsDeleted.length > 0) {
               this.logger.log("\x1b[34mEncontrados novelas desaparecidas");
               areChanges = true;
-              booksToMarkAsDeleted.forEach(async(elem) => {
-                  await this.booksService.markAsMissing(elem.bookName, "novela");
-              });
+              await Promise.all(booksToMarkAsDeleted.map((elem) =>
+                  this.booksService.markAsMissing(elem.bookName, "novela")
+              ));
           }
+          await this.syncBookCounts("novela");
           // FIN PROCESO DE LIBROS
           this.logger.log("\x1b[34mProceso de búsqueda de novelas finalizado");
           if (areChanges) {
@@ -531,6 +534,23 @@ export class AppService {
           this.logger.error("Something went wrong");
           console.error(e);
       }
+  }
+
+  private async syncBookCounts(variant:LibraryVariant):Promise<void> {
+      const [series, books] = await Promise.all([
+          this.seriesService.findNonMissing(variant),
+          this.booksService.findAvailable(variant)
+      ]);
+      const counts = new Map<string, number>();
+
+      for (const book of books) {
+          const serieId = book.serie?.toString();
+          if (serieId) counts.set(serieId, (counts.get(serieId) ?? 0) + 1);
+      }
+
+      await Promise.all(series.map((serie) =>
+          this.seriesService.setBookCount(serie._id, counts.get(serie._id.toString()) ?? 0)
+      ));
   }
 
   /**

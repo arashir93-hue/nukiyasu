@@ -26,7 +26,9 @@ export class ContentAccessService {
 
         return {
             showMatureContent,
-            seriesMatch:showMatureContent ? {} : {isMature:{$ne:true}}
+            seriesMatch:showMatureContent
+                ? {missing:{$ne:true}}
+                : {missing:{$ne:true}, isMature:{$ne:true}}
         };
     }
 
@@ -34,8 +36,6 @@ export class ContentAccessService {
         serieId:Types.ObjectId,
         policy:ContentAccessPolicy
     ):Promise<void> {
-        if (policy.showMatureContent) return;
-
         const accessibleSerie = await this.seriesModel.exists({
             _id:new Types.ObjectId(serieId),
             ...policy.seriesMatch
@@ -49,8 +49,6 @@ export class ContentAccessService {
         seriePath:string,
         policy:ContentAccessPolicy
     ):Promise<void> {
-        if (policy.showMatureContent) return;
-
         const accessibleSerie = await this.seriesModel.exists({
             path:seriePath,
             variant,
@@ -77,8 +75,6 @@ export class ContentAccessService {
         localField = "serie",
         alias = "contentAccessSerie"
     ):PipelineStage[] {
-        if (policy.showMatureContent) return [];
-
         return [
             {
                 $lookup:{

@@ -55,4 +55,25 @@ describe("SeriesService mature classification", () => {
             {$set:{isMature:true}}
         );
     });
+
+    it("reactiva una serie desaparecida en la misma ruta y variant", async() => {
+        const findOneAndUpdate = jest.fn().mockResolvedValue({path:"Serie", variant:"manga", missing:false});
+        const seriesModel = {
+            findOne:jest.fn().mockResolvedValue({path:"Serie", variant:"manga", missing:true}),
+            findOneAndUpdate
+        } as unknown as Model<SerieDocument>;
+        const service = new SeriesService(seriesModel, {} as UsersService);
+
+        await service.updateOrCreate({
+            path:"Serie",
+            visibleName:"Serie",
+            sortName:"Serie",
+            variant:"manga"
+        });
+
+        expect(findOneAndUpdate).toHaveBeenCalledWith(
+            {path:"Serie", variant:"manga"},
+            {missing:false}
+        );
+    });
 });

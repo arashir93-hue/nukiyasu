@@ -26,13 +26,15 @@ describe("ContentAccessService", () => {
                 _id?:Types.ObjectId;
                 path?:string;
                 variant?:"manga" | "novela" | "doujinshi";
+                missing?:{$ne:boolean};
                 isMature?:{$ne:boolean};
             }) => {
-                const record = query._id
+                const record: { _id:Types.ObjectId; path:string; variant:string; isMature?:boolean; missing?:boolean } | undefined = query._id
                     ? records.find(item => item._id.equals(query._id as Types.ObjectId))
                     : records.find(item => item.path === query.path && item.variant === query.variant);
 
                 if (!record) return null;
+                if (query.missing?.$ne === true && record.missing === true) return null;
                 if (query.isMature?.$ne === true && record.isMature === true) return null;
 
                 return {_id:record._id};
@@ -46,14 +48,15 @@ describe("ContentAccessService", () => {
         findById.mockResolvedValue({showMatureContent:false});
         const policy = await service.forUser(new Types.ObjectId());
 
-        expect(policy.seriesMatch).toEqual({isMature:{$ne:true}});
+        expect(policy.seriesMatch).toEqual({missing:{$ne:true}, isMature:{$ne:true}});
         expect(service.forJoinedSeries("serieInfo", policy)).toEqual({
+            "serieInfo.missing":{$ne:true},
             "serieInfo.isMature":{$ne:true}
         });
         expect(service.seriesAccessStages(policy)).toEqual([
             {$lookup:{from:"series", localField:"serie", foreignField:"_id", as:"contentAccessSerie"}},
             {$unwind:{path:"$contentAccessSerie"}},
-            {$match:{"contentAccessSerie.isMature":{$ne:true}}},
+            {$match:{"contentAccessSerie.missing":{$ne:true}, "contentAccessSerie.isMature":{$ne:true}}},
             {$unset:"contentAccessSerie"}
         ]);
         await expect(service.assertSeriesAccessible(normalId, policy)).resolves.toBeUndefined();
@@ -69,8 +72,13 @@ describe("ContentAccessService", () => {
         findById.mockResolvedValue({showMatureContent:true});
         const policy = await service.forUser(new Types.ObjectId());
 
-        expect(policy.seriesMatch).toEqual({});
-        expect(service.seriesAccessStages(policy)).toEqual([]);
+        expect(policy.seriesMatch).toEqual({missing:{$ne:true}});
+        expect(service.seriesAccessStages(policy)).toEqual([
+            {$lookup:{from:"series", localField:"serie", foreignField:"_id", as:"contentAccessSerie"}},
+            {$unwind:{path:"$contentAccessSerie"}},
+            {$match:{"contentAccessSerie.missing":{$ne:true}}},
+            {$unset:"contentAccessSerie"}
+        ]);
         await expect(service.assertSeriesAccessible(normalId, policy)).resolves.toBeUndefined();
         await expect(service.assertSeriesAccessible(matureId, policy)).resolves.toBeUndefined();
         await expect(service.assertStaticFileAccessible("manga", "Madura", policy)).resolves.toBeUndefined();

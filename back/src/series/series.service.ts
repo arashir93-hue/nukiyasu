@@ -103,6 +103,14 @@ export class SeriesService {
       return this.seriesModel.findByIdAndUpdate(id, {$inc:{bookCount:1}, $set:{lastModifiedDate:new Date()}});
   }
 
+  async setBookCount(id:Types.ObjectId, bookCount:number) {
+      return this.seriesModel.findByIdAndUpdate(
+          id,
+          {$set:{bookCount, lastModifiedDate:new Date()}},
+          {new:true}
+      );
+  }
+
   async ensureVariantMaturity(variant:LibraryVariant):Promise<void> {
       if (variant !== "doujinshi") return;
       await this.seriesModel.updateMany(
@@ -117,7 +125,8 @@ export class SeriesService {
       query:SeriesSearch,
       policy:ContentAccessPolicy
   ) {
-      const result = this.seriesModel.aggregate().collation({locale: "es"}).match({bookCount:{$gt:0}});
+      const result = this.seriesModel.aggregate().collation({locale: "es"})
+          .match({missing:{$ne:true}, bookCount:{$gt:0}});
 
       result.match(policy.seriesMatch);
 
@@ -238,6 +247,7 @@ export class SeriesService {
 
   async getArtistsAndGenres(policy:ContentAccessPolicy) {
       const pipe = await this.seriesModel.aggregate()
+          .match({missing:{$ne:true}, bookCount:{$gt:0}})
           .match(policy.seriesMatch)
           .unwind({path:"$genres", preserveNullAndEmptyArrays:true})
           .unwind({path:"$authors", preserveNullAndEmptyArrays:true})
@@ -252,6 +262,7 @@ export class SeriesService {
   getAlphabetCount(variant:LibraryVariant, policy:ContentAccessPolicy, query?:SeriesSearch) {
       const pipe = this.seriesModel.aggregate()
           .match({variant})
+          .match({missing:{$ne:true}, bookCount:{$gt:0}})
           .match(policy.seriesMatch);
       if (query) {
           if (query.author) {

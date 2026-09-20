@@ -31,7 +31,7 @@ function createAggregate(results:unknown[] = []) {
 describe("SeriesService mature visibility", () => {
     const standardPolicy:ContentAccessPolicy = {
         showMatureContent:false,
-        seriesMatch:{isMature:{$ne:true}}
+        seriesMatch:{missing:{$ne:true}, isMature:{$ne:true}}
     };
 
     it("filtra y cuenta antes de paginar sin aceptar bypass del cliente", async() => {
@@ -53,7 +53,7 @@ describe("SeriesService mature visibility", () => {
         );
 
         const accessIndex = resultAggregate.stages.findIndex(
-            (stage:Record<string, unknown>) => JSON.stringify(stage) === JSON.stringify({$match:{isMature:{$ne:true}}})
+            (stage:Record<string, unknown>) => JSON.stringify(stage) === JSON.stringify({$match:{missing:{$ne:true}, isMature:{$ne:true}}})
         );
         const paginationIndex = resultAggregate.stages.findIndex(
             (stage:Record<string, unknown>) => "$skip" in stage
@@ -61,7 +61,7 @@ describe("SeriesService mature visibility", () => {
 
         expect(accessIndex).toBeGreaterThan(-1);
         expect(accessIndex).toBeLessThan(paginationIndex);
-        expect(countPipeline).toContainEqual({$match:{isMature:{$ne:true}}});
+        expect(countPipeline).toContainEqual({$match:{missing:{$ne:true}, isMature:{$ne:true}}});
         expect(countPipeline.some(stage => "$skip" in stage || "$limit" in stage)).toBe(false);
         expect(response.pages).toBe(2);
     });
@@ -119,6 +119,6 @@ describe("SeriesService mature visibility", () => {
         );
 
         expect(response.data).toHaveLength(2);
-        expect(resultAggregate.stages).toContainEqual({$match:{}});
+        expect(resultAggregate.stages).toContainEqual({$match:{missing:{$ne:true}, bookCount:{$gt:0}}});
     });
 });

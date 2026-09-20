@@ -39,7 +39,7 @@ export class BooksService {
       policy?:ContentAccessPolicy
   ):Promise<UserBook[]> {
       const aggregate = this.bookModel.aggregate().collation({locale: "es"})
-          .match({missing:false});
+          .match({missing:{$ne:true}});
 
       if (policy && !policy.showMatureContent) {
           aggregate.lookup({
@@ -227,7 +227,7 @@ export class BooksService {
       id:Types.ObjectId,
       policy:ContentAccessPolicy
   ):Promise<BookDocument | null> {
-      const book = await this.findById(id);
+      const book = await this.bookModel.findOne({_id:id, missing:{$ne:true}});
 
       if (!book) return null;
 
@@ -271,7 +271,7 @@ export class BooksService {
   }
 
   async getSerieBooks(serie:Types.ObjectId) {
-      return this.bookModel.find({serie:new Types.ObjectId(serie)}).sort({sortName:1});
+      return this.bookModel.find({serie:new Types.ObjectId(serie), missing:{$ne:true}}).sort({sortName:1});
   }
 
   async getSerieStats(userId:Types.ObjectId, serie:Types.ObjectId, variant:LibraryVariant) {
@@ -386,7 +386,11 @@ export class BooksService {
   }
 
   findNonMissing(variant:LibraryVariant): Promise<Book[]> {
-      return this.bookModel.find({missing: false, variant, mokured:{$ne:true}});
+      return this.bookModel.find({missing:{$ne:true}, variant, mokured:{$ne:true}});
+  }
+
+  findAvailable(variant:LibraryVariant): Promise<Book[]> {
+      return this.bookModel.find({missing:{$ne:true}, variant});
   }
 
   findMissing(variant:LibraryVariant): Promise<Book[]> {
