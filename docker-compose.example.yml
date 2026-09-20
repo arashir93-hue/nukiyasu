@@ -20,6 +20,10 @@ services:
       # openssl rand -hex 32
       ACCESS_SECRET: "CAMBIA_ESTE_SECRETO"
       REFRESH_SECRET: "CAMBIA_ESTE_SECRETO"
+      # Opcional: URL de la API de NihongoTracker y una clave para cifrar
+      # las claves de usuario. Si se omite el secreto se usa ACCESS_SECRET.
+      NIHONGO_TRACKER_URL: "https://nihongotracker.app/api"
+      NIHONGO_TRACKER_SECRET: "CAMBIA_ESTE_SECRETO_NIHONGO_TRACKER"
 
       # No cambiar: son los nombres internos de los servicios Docker.
       REDIS_HOST: cache

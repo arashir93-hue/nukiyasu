@@ -60,6 +60,9 @@ export const api = {
     patch: <TBody, TResponse>(url: string, body: TBody, keepAlive?:boolean):Promise<TResponse | undefined> =>
         request<TResponse | undefined>(url, {method: "PATCH", body:JSON.stringify(body), headers:{"Content-Type":"application/json"}, keepalive:keepAlive}),
 
+    put: <TBody, TResponse>(url: string, body: TBody):Promise<TResponse | undefined> =>
+        request<TResponse | undefined>(url, {method: "PUT", body:JSON.stringify(body), headers:{"Content-Type":"application/json"}}),
+
     delete: <TResponse>(url: string):Promise<TResponse | undefined> =>
         request<TResponse>(url, {method:"DELETE"})
 };

@@ -24,6 +24,7 @@ import {SerieprogressModule} from "./serieprogress/serieprogress.module";
 import {UserwordsModule} from "./userwords/userwords.module";
 import {InvisModule} from "./invis/invis.module";
 import {ContentAccessModule} from "./content-access/content-access.module";
+import {NihongoTrackerModule} from "./nihongo-tracker/nihongo-tracker.module";
 
 @Module({
     imports: [
@@ -63,7 +64,8 @@ import {ContentAccessModule} from "./content-access/content-access.module";
         SerieprogressModule,
         UserwordsModule,
         InvisModule,
-        ContentAccessModule
+        ContentAccessModule,
+        NihongoTrackerModule
     ],
 
     controllers: [AppController],

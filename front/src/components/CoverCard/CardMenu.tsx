@@ -10,6 +10,7 @@ import {
   EyeOff,
   Image,
   Info,
+  ListChecks,
   Pause,
   Play,
   RotateCcw,
@@ -24,6 +25,7 @@ import {lazy, Suspense, useState} from "react";
 import {useNavigate} from "react-router";
 import {toast} from "react-toastify";
 import {api} from "../../api/api";
+import {logBookInNihongoTracker} from "../../api/nihongoTracker";
 import {useAuth} from "../../contexts/AuthContext";
 import {addToReadlist, removeFromReadlist} from "../../helpers/series";
 import {invalidateBook, invalidateProgress, invalidateReadlist, invalidateSerie} from "../../lib/invalidate";
@@ -156,6 +158,19 @@ function BookCardMenu({book, insideSerie, deck, read, setRead, openBook}:Extract
     invalidateReadlist();
   }
 
+  async function logInNihongoTracker(): Promise<void> {
+    try {
+      const response = await logBookInNihongoTracker(book._id);
+      if (response?.status === "already_logged") {
+        toast.info("Este volumen ya estaba registrado en NihongoTracker");
+      } else if (response?.status === "logged") {
+        toast.success("Volumen registrado en NihongoTracker");
+      }
+    } catch {
+      toast.error("No se pudo registrar el volumen. Comprueba que la serie esté vinculada y el volumen terminado.");
+    }
+  }
+
   function sendToKindle(): void {
     if (!siteSettings.kindleEmail) {
       setOpenSettings(true);
@@ -212,6 +227,12 @@ function BookCardMenu({book, insideSerie, deck, read, setRead, openBook}:Extract
             <MenuItem onSelect={()=>void markAsUnread()}>
               {book.status === "reading" ? <Undo2 /> : <Trash2 />}
               {book.status === "reading" ? "Eliminar progreso actual" : "Marcar como no leído"}
+            </MenuItem>
+          ) : null}
+          {book.status === "completed" ? (
+            <MenuItem onSelect={()=>void logInNihongoTracker()}>
+              <ListChecks />
+              Registrar en NihongoTracker
             </MenuItem>
           ) : null}
 

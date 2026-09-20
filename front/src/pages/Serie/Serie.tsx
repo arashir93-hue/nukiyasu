@@ -25,6 +25,7 @@ import {IconButton} from "../../ui/IconButton";
 import {Spinner} from "../../ui/Spinner";
 import {Tooltip} from "../../ui/Tooltip";
 import {Reviews} from "./components/Reviews";
+import {NihongoTrackerLinkButton, NihongoTrackerLinkDialog} from "./components/NihongoTrackerLinkDialog";
 import {RerollFab} from "./components/RerollFab";
 import SpeedGraph from "./components/SpeedGraph";
 
@@ -38,6 +39,7 @@ function Serie():React.ReactElement {
     const [readMore, setReadMore] = useState(false);
     const [textOverflows, setTextOverflows] = useState(false);
     const [unreadBooks, setUnreadBooks] = useState(0);
+    const [nihongoTrackerOpen, setNihongoTrackerOpen] = useState(false);
 
     const overflowingText = useRef<HTMLParagraphElement | null>(null);
 
@@ -152,6 +154,7 @@ function Serie():React.ReactElement {
                     <Badge variant="neutral">{serieData.bookCount} libros</Badge>
 
                     <div className="ml-2 flex items-center gap-1">
+                        <NihongoTrackerLinkButton onClick={()=>setNihongoTrackerOpen(true)} />
                         <Tooltip content="Descargar serie">
                             <IconButton label="Descargar serie" onClick={()=>window.open(`/api/series/${serieData._id}/download`)}>
                                 <Download />
@@ -312,6 +315,11 @@ function Serie():React.ReactElement {
             </div>
 
             <RerollFab />
+            <NihongoTrackerLinkDialog
+                serie={serieData}
+                open={nihongoTrackerOpen}
+                onOpenChange={setNihongoTrackerOpen}
+            />
         </div>
     );
 }

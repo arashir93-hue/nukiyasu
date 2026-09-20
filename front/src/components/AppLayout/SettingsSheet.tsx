@@ -1,4 +1,5 @@
 import {useState} from "react";
+import {useQuery, useQueryClient} from "@tanstack/react-query";
 import {toast} from "react-toastify";
 import {useSettingsStore} from "../../stores/SettingsStore";
 import {useAuth} from "../../contexts/AuthContext";
@@ -10,6 +11,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "../
 import {Sheet, SheetBody, SheetContent, SheetDescription, SheetHeader, SheetTitle} from "../../ui/Sheet";
 import {Switch} from "../../ui/Switch";
 import {isValidEmail} from "../../lib/validators";
+import {connectNihongoTracker, disconnectNihongoTracker, getNihongoTrackerStatus} from "../../api/nihongoTracker";
 
 interface SettingSwitchProps {
   label:string;
@@ -37,6 +39,14 @@ export function SettingsSheet():React.ReactElement {
   const [openWarning, setOpenWarning] = useState(false);
   const [kindleEmail, setKindleEmail] = useState(siteSettings.kindleEmail || "");
   const [updatingMatureContent, setUpdatingMatureContent] = useState(false);
+  const [nihongoTrackerKey, setNihongoTrackerKey] = useState("");
+  const [updatingNihongoTracker, setUpdatingNihongoTracker] = useState(false);
+  const queryClient = useQueryClient();
+  const {data:nihongoTrackerStatus} = useQuery({
+    queryKey:["nihongo-tracker-status"],
+    queryFn:getNihongoTrackerStatus,
+    enabled:openSettings
+  });
 
   async function changeMatureContent(checked:boolean):Promise<void> {
     if (updatingMatureContent) return;
@@ -61,6 +71,38 @@ export function SettingsSheet():React.ReactElement {
 
     modifySiteSettings("kindleEmail", kindleEmail);
     toast.success("Email guardado correctamente");
+  }
+
+  async function connectTracker():Promise<void> {
+    const apiKey = nihongoTrackerKey.trim();
+    if (!apiKey || updatingNihongoTracker) return;
+
+    setUpdatingNihongoTracker(true);
+    try {
+      await connectNihongoTracker(apiKey);
+      setNihongoTrackerKey("");
+      await queryClient.invalidateQueries({queryKey:["nihongo-tracker-status"]});
+      toast.success("Cuenta de NihongoTracker conectada");
+    } catch {
+      toast.error("No se pudo conectar con NihongoTracker. Comprueba la clave API.");
+    } finally {
+      setUpdatingNihongoTracker(false);
+    }
+  }
+
+  async function disconnectTracker():Promise<void> {
+    if (updatingNihongoTracker) return;
+
+    setUpdatingNihongoTracker(true);
+    try {
+      await disconnectNihongoTracker();
+      await queryClient.invalidateQueries({queryKey:["nihongo-tracker-status"]});
+      toast.success("Cuenta de NihongoTracker desconectada");
+    } catch {
+      toast.error("No se pudo desconectar NihongoTracker");
+    } finally {
+      setUpdatingNihongoTracker(false);
+    }
   }
 
   return (
@@ -161,6 +203,42 @@ export function SettingsSheet():React.ReactElement {
                   />
                 </div>
               </div>
+            </section>
+
+            <section className="flex flex-col gap-4">
+              <h3 className="text-[13px] font-semibold uppercase tracking-wider text-fg-muted/80">NihongoTracker</h3>
+              <p className="text-xs text-fg-muted">
+                Conecta tu cuenta para registrar tus volúmenes terminados desde las acciones de cada libro. La clave se guarda cifrada en el servidor y nunca se muestra de nuevo.
+              </p>
+              {nihongoTrackerStatus?.connected ? (
+                <>
+                  <p className="text-sm text-fg">
+                    Cuenta conectada (clave que empieza por <span className="font-mono">{nihongoTrackerStatus.keyPrefix}…</span>).
+                    {nihongoTrackerStatus.linkedSeries > 0 ? ` ${nihongoTrackerStatus.linkedSeries} series vinculadas.` : ""}
+                  </p>
+                  <Button size="sm" variant="secondary" onClick={()=>void disconnectTracker()} loading={updatingNihongoTracker}>
+                    Desconectar
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Field
+                    label="Clave API de NihongoTracker"
+                    hint="Créala desde la sección de claves API de tu cuenta de NihongoTracker."
+                  >
+                    <Input
+                      type="password"
+                      value={nihongoTrackerKey}
+                      onChange={(e)=>setNihongoTrackerKey(e.target.value)}
+                      placeholder="Pega aquí tu clave API"
+                      autoComplete="off"
+                    />
+                  </Field>
+                  <Button size="sm" onClick={()=>void connectTracker()} loading={updatingNihongoTracker} disabled={!nihongoTrackerKey.trim()}>
+                    Conectar cuenta
+                  </Button>
+                </>
+              )}
             </section>
 
             <section className="flex flex-col gap-4">
