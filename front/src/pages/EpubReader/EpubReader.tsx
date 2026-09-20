@@ -124,19 +124,40 @@ export default function EpubReader():React.ReactElement {
         enabled:!!bookData
     });
 
+    const {data:latestBookProgress, isLoading:latestProgressLoading} = useQuery({
+        queryKey:["book-progress-latest", bookId],
+        queryFn:async()=>api.get<BookProgress>(`readprogress?book=${bookId}`),
+        refetchOnReconnect:false,
+        refetchOnWindowFocus:false,
+        enabled:!!bookData && !!bookId
+    });
+    const activeBookProgress = bookProgress?.status === "reading"
+        ? bookProgress
+        : latestBookProgress?.status === "reading" ? latestBookProgress : undefined;
+
     useEffect(()=>{
         async function initProgress():Promise<void> {
             const currentChars = await getBookProgress(parseInt(id || ""));
             setChars(currentChars);
 
-            if (bookProgress && restoredBookId.current !== id) {
+            if (!bookData || latestProgressLoading || restoredBookId.current === id) return;
+
+            if (restoredBookId.current !== id) {
                 restoredBookId.current = id ?? undefined;
-                useReaderTimerStore.getState().setTimer(bookProgress.time || 0);
+                const restartingCompleted = !activeBookProgress && latestBookProgress?.status === "completed";
+                const timer = restartingCompleted
+                    ? 0
+                    : activeBookProgress?.time && activeBookProgress.time !== 0
+                        ? activeBookProgress.time
+                        : parseInt(window.localStorage.getItem(bookData?._id || "") || "0");
+
+                if (restartingCompleted && bookData) window.localStorage.removeItem(bookData._id);
+                useReaderTimerStore.getState().setTimer(timer);
             }
         }
 
         void initProgress();
-    }, [bookProgress, id]);
+    }, [activeBookProgress, latestBookProgress, latestProgressLoading, id, bookData]);
 
     useEffect(()=>{
         function getselectedText(text:string):void {
@@ -308,7 +329,7 @@ export default function EpubReader():React.ReactElement {
                                 <Languages />
                             </IconButton>
                         </Tooltip>
-                        <StopWatchMenu characters={chars} oldProgress={bookProgress}
+                        <StopWatchMenu characters={chars} oldProgress={activeBookProgress}
                             refreshProgress={refreshProgress}
                             bookData={bookData}
                         />

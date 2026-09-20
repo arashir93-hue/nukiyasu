@@ -24,6 +24,16 @@ import {resolveVolumeNumber, VolumeResolution} from "./volume-resolver";
 
 type MediaType = "manga" | "light-novel";
 
+function isDuplicateKeyError(error:unknown):boolean {
+    if (typeof error === "object" && error !== null) {
+        const candidate = error as {code?:unknown; message?:unknown};
+        if (candidate.code === 11000) return true;
+        if (typeof candidate.message === "string" && candidate.message.includes("duplicate")) return true;
+    }
+    const text = String(error);
+    return text.includes("duplicate") || text.includes("E11000");
+}
+
 function mediaItems(value:unknown):unknown[] {
     if (Array.isArray(value)) return value;
     if (typeof value !== "object" || value === null) return [];
@@ -265,13 +275,23 @@ export class NihongoTrackerService {
         const integration = await this.integrationModel.exists({user});
         const link = await this.linkModel.findOne({user, serie:book.serie});
         const progress = await this.progressModel.findOne({user, book:bookId, status:"completed"}).sort({endDate:-1, lastUpdateDate:-1});
-        const previous = progress?._id ? await this.logModel.findOne({user, progress:progress._id}) : null;
+        const [logCount, lastLog] = await Promise.all([
+            this.logModel.countDocuments({user, book:bookId}),
+            this.logModel.findOne({user, book:bookId}).sort({createdAt:-1})
+        ]);
+        const hasPreviousLogs = logCount > 0;
+        const lastLoggedAt = (lastLog as unknown as {createdAt?:Date | string} | null)?.createdAt;
 
         return {
             connected:!!integration,
             linked:!!link,
             completed:!!progress,
-            alreadyLogged:!!previous,
+            // Kept for clients that still consume the old flag. It is now
+            // informational and must not be treated as a write lock.
+            alreadyLogged:hasPreviousLogs,
+            hasPreviousLogs,
+            logCount,
+            lastLoggedAt,
             volumeNumber:resolution.volumeNumber,
             volumeSource:resolution.source,
             serieName:serie.visibleName,
@@ -290,6 +310,17 @@ export class NihongoTrackerService {
         const progress = await this.progressModel.findOne({user, book:bookId, status:"completed"}).sort({endDate:-1, lastUpdateDate:-1});
         if (!progress?._id) throw new BadRequestException("El volumen todavía no está marcado como terminado");
 
+        const previousByRequest = dto.requestId
+            ? await this.logModel.findOne({user, requestId:dto.requestId})
+            : null;
+        if (previousByRequest) {
+            return {status:"already_logged", externalLogId:previousByRequest.externalLogId};
+        }
+
+        // One completed ReadProgress represents one deliberate reading. The
+        // existing unique (user, progress) index therefore blocks concurrent
+        // duplicate submissions without blocking a later reread, which gets a
+        // new ReadProgress document.
         const previous = await this.logModel.findOne({user, progress:progress._id});
         if (previous) {
             return {status:"already_logged", externalLogId:previous.externalLogId};
@@ -310,20 +341,42 @@ export class NihongoTrackerService {
             date:(progress.endDate || progress.lastUpdateDate || new Date()).toISOString()
         };
 
-        const external = await this.requestExternal<Record<string, unknown>>(
-            await this.keyFor(integration),
-            "/logs",
-            {method:"POST", body:JSON.stringify(payload)}
-        );
+        let reservation:NihongoTrackerLogDocument;
+        try {
+            reservation = await this.logModel.create({
+                user,
+                book:bookId,
+                progress:progress._id,
+                ...(dto.requestId ? {requestId:dto.requestId} : {})
+            });
+        } catch (error) {
+            if (!isDuplicateKeyError(error)) throw error;
+
+            const existing = await this.logModel.findOne({user, progress:progress._id});
+            if (existing) return {status:"already_logged", externalLogId:existing.externalLogId};
+            throw error;
+        }
+
+        let external:Record<string, unknown>;
+        try {
+            external = await this.requestExternal<Record<string, unknown>>(
+                await this.keyFor(integration),
+                "/logs",
+                {method:"POST", body:JSON.stringify(payload)}
+            );
+        } catch (error) {
+            // Release the reservation when the external request definitely
+            // failed, so the user can retry the same reading.
+            if (reservation?._id) await this.logModel.deleteOne({_id:reservation._id});
+            throw error;
+        }
 
         const externalLogId = typeof external._id === "string"
             ? external._id
             : typeof external.id === "string" ? external.id : undefined;
 
-        try {
-            await this.logModel.create({user, book:bookId, progress:progress._id, externalLogId});
-        } catch (error) {
-            if (!String(error).includes("duplicate") && !String(error).includes("E11000")) throw error;
+        if (reservation?._id && externalLogId) {
+            await this.logModel.updateOne({_id:reservation._id}, {$set:{externalLogId}});
         }
 
         return {status:"logged", externalLogId, payload};

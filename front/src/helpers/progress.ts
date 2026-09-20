@@ -62,6 +62,13 @@ export async function createProgress(bookData:Book, page?:number, time?:number, 
 
     await api.post<BookProgress, Book>("readprogress", newProgress, keepAlive);
 
+    // El cronómetro guardado por libro representa la sesión en curso. Una
+    // vez terminado el volumen, la siguiente apertura debe empezar una nueva
+    // lectura y no reutilizar el tiempo histórico de este progreso.
+    if (newProgress.status === "completed") {
+        window.localStorage.removeItem(bookData._id);
+    }
+
     // Marca como obsoletas las listas que muestran progreso para que se refresquen
     // la próxima vez que se monten (evita refetches continuos mientras se lee)
     invalidateProgress();

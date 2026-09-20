@@ -9,6 +9,7 @@ import {
 } from "../../../api/nihongoTracker";
 import type {NihongoTrackerBookStatus} from "../../../types/nihongoTracker";
 import type {Book} from "../../../types/book";
+import {useReaderTimerStore} from "../../../stores/ReaderStore";
 import {Button} from "../../../ui/Button";
 import {Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "../../../ui/Dialog";
 import {Input} from "../../../ui/Input";
@@ -35,6 +36,7 @@ export function NihongoTrackerReaderButton({book, currentPage, atLastPage, saveP
   const [saving, setSaving] = useState(false);
   const [volumeInput, setVolumeInput] = useState("");
   const registering = useRef(false);
+  const currentReadingSeconds = useReaderTimerStore((state)=>state.timer);
   const {data:status, refetch} = useQuery({
     queryKey:["nihongo-tracker-book-status", book._id],
     queryFn:()=>getNihongoTrackerBookStatus(book._id),
@@ -49,7 +51,8 @@ export function NihongoTrackerReaderButton({book, currentPage, atLastPage, saveP
 
   if (!(atLastPage ?? currentPage >= book.pages) || !status?.connected || !status.linked) return null;
 
-  const alreadyLogged = status.alreadyLogged;
+  const logCount = status.logCount ?? (status.alreadyLogged ? 1 : 0);
+  const alreadyLogged = logCount > 0 || status.hasPreviousLogs === true;
 
   async function register():Promise<void> {
     if (registering.current) return;
@@ -76,9 +79,9 @@ export function NihongoTrackerReaderButton({book, currentPage, atLastPage, saveP
 
       const response = await logBookInNihongoTracker(book._id);
       if (response?.status === "already_logged") {
-        toast.info("Este volumen ya estaba registrado en NihongoTracker");
+        toast.info("Esta lectura ya estaba registrada en NihongoTracker");
       } else {
-        toast.success("Volumen registrado en NihongoTracker");
+        toast.success(alreadyLogged ? "Otra lectura registrada en NihongoTracker" : "Volumen registrado en NihongoTracker");
       }
       await queryClient.invalidateQueries({queryKey:["nihongo-tracker-book-status", book._id]});
       setOpen(false);
@@ -95,10 +98,6 @@ export function NihongoTrackerReaderButton({book, currentPage, atLastPage, saveP
       <ReaderNavButton
         tooltip={alreadyLogged ? "Ya registrado en NihongoTracker" : "Registrar volumen en NihongoTracker"}
         onClick={()=>{
-          if (alreadyLogged) {
-            toast.info("Este volumen ya estaba registrado en NihongoTracker");
-            return;
-          }
           setOpen(true);
         }}
       >
@@ -127,11 +126,17 @@ export function NihongoTrackerReaderButton({book, currentPage, atLastPage, saveP
               <p className="text-xs text-fg-muted">El número se ha inferido por la posición del volumen. Puedes corregirlo antes de registrar.</p>
             ) : null}
             {status.pages !== undefined ? <p>Páginas: {status.pages}</p> : null}
-            <p>Tiempo de lectura: {formatReadingTime(status.timeSeconds)}</p>
+            <p>Tiempo de lectura: {formatReadingTime(currentReadingSeconds || status.timeSeconds)}</p>
+            {alreadyLogged ? (
+              <p className="rounded-md border border-app-border bg-tint p-2 text-xs text-fg-muted">
+                ✓ Este volumen ya fue registrado anteriormente.<br />
+                {logCount} {logCount === 1 ? "lectura registrada" : "lecturas registradas"}. Puedes registrar otra lectura.
+              </p>
+            ) : null}
           </DialogBody>
           <DialogFooter>
             <Button variant="ghost" onClick={()=>setOpen(false)} disabled={saving}>Cancelar</Button>
-            <Button onClick={()=>void register()} loading={saving}>Registrar</Button>
+            <Button onClick={()=>void register()} loading={saving}>{alreadyLogged ? "Registrar otra lectura" : "Registrar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

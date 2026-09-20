@@ -54,9 +54,18 @@ export function clearNihongoTrackerBookVolume(bookId:string):Promise<{cleared:bo
   return api.delete<{cleared:boolean}>(`nihongo-tracker/books/${bookId}/volume`);
 }
 
-export function logBookInNihongoTracker(bookId:string, volumeNumber?:number):Promise<{status:"logged" | "already_logged"; externalLogId?:string} | undefined> {
-  return api.post<{volumeNumber?:number}, {status:"logged" | "already_logged"; externalLogId?:string}>(
+function createRequestId():string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (character)=>{
+    const random = Math.floor(Math.random() * 16);
+    const value = character === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
+  });
+}
+
+export function logBookInNihongoTracker(bookId:string, volumeNumber?:number, requestId = createRequestId()):Promise<{status:"logged" | "already_logged"; externalLogId?:string} | undefined> {
+  return api.post<{volumeNumber?:number; requestId:string}, {status:"logged" | "already_logged"; externalLogId?:string}>(
     `nihongo-tracker/books/${bookId}/log`,
-    volumeNumber === undefined ? {} : {volumeNumber}
+    volumeNumber === undefined ? {requestId} : {volumeNumber, requestId}
   );
 }

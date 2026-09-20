@@ -101,6 +101,21 @@ function Reader(props:ReaderProps):React.ReactElement {
         enabled:!!id
     });
 
+    // El progreso de lectura activo se consulta por separado del último
+    // progreso para poder distinguir una relectura de una sesión que sigue en
+    // curso. Si el último progreso fue completado, el cronómetro local no debe
+    // arrastrarse a la nueva lectura.
+    const {data:latestBookProgress, isLoading:latestProgressLoading} = useQuery({
+        queryKey:["book-progress-latest", id],
+        queryFn:async()=>api.get<BookProgress>(`readprogress?book=${id}`),
+        refetchOnReconnect:false,
+        refetchOnWindowFocus:false,
+        enabled:!!id
+    });
+    const activeBookProgress = bookProgress?.status === "reading"
+        ? bookProgress
+        : latestBookProgress?.status === "reading" ? latestBookProgress : undefined;
+
     useReadingTimerTicker();
     useIdleTimerPause(siteSettings.idleTimeout);
 
@@ -160,18 +175,26 @@ function Reader(props:ReaderProps):React.ReactElement {
     }, [siteSettings]);
 
     useEffect(()=>{
-        if (isLoading || !bookData) return;
+        if (isLoading || latestProgressLoading || !bookData) return;
         if (restoredBookId.current === bookData._id) return;
 
         restoredBookId.current = bookData._id;
 
-        useReaderTimerStore.getState().setTimer(bookProgress && bookProgress.time && bookProgress.time !== 0 ? bookProgress.time : parseInt(window.localStorage.getItem(bookData._id) || "0"));
+        const restartingCompleted = !activeBookProgress && latestBookProgress?.status === "completed";
+        const timer = restartingCompleted
+            ? 0
+            : activeBookProgress?.time && activeBookProgress.time !== 0
+                ? activeBookProgress.time
+                : parseInt(window.localStorage.getItem(bookData._id) || "0");
+
+        if (restartingCompleted) window.localStorage.removeItem(bookData._id);
+        useReaderTimerStore.getState().setTimer(timer);
 
         // La API guarda páginas 1-based; mokuro usa page_idx 0-based
-        const page = bookProgress && bookProgress.currentPage ? bookProgress.currentPage : 1;
+        const page = activeBookProgress?.currentPage || 1;
         seedMokuroPage(bookData, page, bookData.pages);
         setCurrentPage(page);
-    }, [bookProgress, bookData, isLoading]);
+    }, [activeBookProgress, latestBookProgress, latestProgressLoading, bookData, isLoading]);
 
     useEffect(() => {
         if(!id)return;
@@ -467,9 +490,9 @@ function Reader(props:ReaderProps):React.ReactElement {
             <ShortcutsDialog open={showShortcuts} onClose={()=>setShowShortcuts(false)} shortcuts={isImageBook ? imageShortcuts : mangaShortcuts}/>
             {bookData && !isLoading && (
                 isImageBook ? (
-                    <ImageReader readerVars={{bookData,bookProgress,currentPage,setCurrentPage,showSettings,setShowSettings,setShowShortcuts,saveProgress}}/>
+                    <ImageReader readerVars={{bookData,bookProgress:activeBookProgress,currentPage,setCurrentPage,showSettings,setShowSettings,setShowShortcuts,saveProgress}}/>
                 ) : (
-                    <RemoteReader readerVars={{bookData,bookProgress,currentPage,iframe,showSettings,setShowSettings,doublePages,setOpenTextSidebar,setShowShortcuts,saveProgress}}/>
+                    <RemoteReader readerVars={{bookData,bookProgress:activeBookProgress,currentPage,iframe,showSettings,setShowSettings,doublePages,setOpenTextSidebar,setShowShortcuts,saveProgress}}/>
                 )
             )}
             {props.type === "local" && (

@@ -1,5 +1,5 @@
 import {Type} from "class-transformer";
-import {IsNumber, IsOptional, IsPositive} from "class-validator";
+import {IsNumber, IsOptional, IsPositive, IsUUID} from "class-validator";
 
 export class LogNihongoTrackerBookDto {
     @Type(() => Number)
@@ -7,4 +7,8 @@ export class LogNihongoTrackerBookDto {
     @IsPositive()
     @IsOptional()
     volumeNumber?: number;
+
+    @IsUUID()
+    @IsOptional()
+    requestId?: string;
 }

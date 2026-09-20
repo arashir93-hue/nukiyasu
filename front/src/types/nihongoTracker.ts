@@ -19,6 +19,9 @@ export interface NihongoTrackerBookStatus {
   linked:boolean;
   completed:boolean;
   alreadyLogged:boolean;
+  hasPreviousLogs?:boolean;
+  logCount?:number;
+  lastLoggedAt?:string;
   volumeNumber:number;
   volumeSource:NihongoTrackerVolumeSource;
   serieName:string;

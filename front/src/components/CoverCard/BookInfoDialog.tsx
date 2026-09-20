@@ -95,6 +95,12 @@ export function BookInfoDialog({book, open, onOpenChange}:BookInfoDialogProps):R
           {trackerStatus?.connected && trackerStatus.linked ? (
             <div className="mt-5 flex flex-col gap-2 border-t border-app-border/60 pt-4 text-sm">
               <p className="font-medium text-fg">NihongoTracker</p>
+              <p className="text-xs text-fg-muted">
+                {(() => {
+                  const count = trackerStatus.logCount ?? (trackerStatus.alreadyLogged ? 1 : 0);
+                  return `${count} ${count === 1 ? "lectura registrada" : "lecturas registradas"}`;
+                })()}
+              </p>
               <p className="text-xs text-fg-muted">Volumen resuelto: {trackerStatus.volumeNumber} ({trackerStatus.volumeSource === "position" ? "por posición" : trackerStatus.volumeSource === "manual" ? "manual" : "por nombre"})</p>
               <div className="flex items-center gap-2">
                 <Input type="number" min="0.01" step="0.01" value={volumeInput} onChange={(event)=>setVolumeInput(event.target.value)} aria-label="Número de volumen de NihongoTracker" />

@@ -21,12 +21,12 @@ import {
   Undo2,
   Wand2,
 } from "lucide-react";
-import {lazy, Suspense, useState} from "react";
+import {lazy, Suspense, useRef, useState} from "react";
 import {useQueryClient} from "@tanstack/react-query";
 import {useNavigate} from "react-router";
 import {toast} from "react-toastify";
 import {api} from "../../api/api";
-import {logBookInNihongoTracker} from "../../api/nihongoTracker";
+import {getNihongoTrackerBookStatus, logBookInNihongoTracker} from "../../api/nihongoTracker";
 import {useAuth} from "../../contexts/AuthContext";
 import {addToReadlist, removeFromReadlist} from "../../helpers/series";
 import {invalidateBook, invalidateProgress, invalidateReadlist, invalidateSerie} from "../../lib/invalidate";
@@ -132,6 +132,8 @@ function BookCardMenu({book, insideSerie, deck, read, setRead, openBook}:Extract
   const [coversOpen, setCoversOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [logging, setLogging] = useState(false);
+  const loggingRef = useRef(false);
 
   const {askPage, setAskPage, markAsRead, markAsReadPages, markAsUnread} = useMarkAsRead(book, setRead);
 
@@ -161,16 +163,28 @@ function BookCardMenu({book, insideSerie, deck, read, setRead, openBook}:Extract
   }
 
   async function logInNihongoTracker(): Promise<void> {
+    if (loggingRef.current) return;
+    loggingRef.current = true;
+    setLogging(true);
     try {
+      const trackerStatus = await getNihongoTrackerBookStatus(book._id);
+      const logCount = trackerStatus?.logCount ?? (trackerStatus?.alreadyLogged ? 1 : 0);
+      if (logCount > 0 || trackerStatus?.hasPreviousLogs) {
+        if (!await confirmDialog(`Este volumen ya tiene ${logCount} ${logCount === 1 ? "lectura registrada" : "lecturas registradas"}. ¿Registrar otra lectura?`)) return;
+      }
+
       const response = await logBookInNihongoTracker(book._id);
       if (response?.status === "already_logged") {
-        toast.info("Este volumen ya estaba registrado en NihongoTracker");
+        toast.info("Esta lectura ya estaba registrada en NihongoTracker");
       } else if (response?.status === "logged") {
-        toast.success("Volumen registrado en NihongoTracker");
+        toast.success(logCount > 0 ? "Otra lectura registrada en NihongoTracker" : "Volumen registrado en NihongoTracker");
       }
       await queryClient.invalidateQueries({queryKey:["nihongo-tracker-book-status", book._id]});
     } catch {
       toast.error("No se pudo registrar el volumen. Comprueba que la serie esté vinculada y el volumen terminado.");
+    } finally {
+      loggingRef.current = false;
+      setLogging(false);
     }
   }
 
@@ -233,7 +247,7 @@ function BookCardMenu({book, insideSerie, deck, read, setRead, openBook}:Extract
             </MenuItem>
           ) : null}
           {book.status === "completed" ? (
-            <MenuItem onSelect={()=>void logInNihongoTracker()}>
+            <MenuItem disabled={logging} onSelect={()=>void logInNihongoTracker()}>
               <ListChecks />
               Registrar en NihongoTracker
             </MenuItem>

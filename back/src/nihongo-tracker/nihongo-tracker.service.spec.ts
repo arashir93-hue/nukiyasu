@@ -24,10 +24,11 @@ describe("NihongoTrackerService", () => {
     beforeEach(() => {
         integrationModel = {
             findOne:jest.fn(),
-            findOneAndUpdate:jest.fn()
+            findOneAndUpdate:jest.fn(),
+            exists:jest.fn()
         };
         linkModel = {findOne:jest.fn(), findOneAndUpdate:jest.fn(), countDocuments:jest.fn()};
-        logModel = {findOne:jest.fn(), create:jest.fn()};
+        logModel = {findOne:jest.fn(), countDocuments:jest.fn(), create:jest.fn(), updateOne:jest.fn(), deleteOne:jest.fn()};
         overrideModel = {findOne:jest.fn(), findOneAndUpdate:jest.fn(), deleteOne:jest.fn()};
         serieModel = {findOne:jest.fn()};
         bookModel = {findById:jest.fn(), find:jest.fn()};
@@ -113,6 +114,128 @@ describe("NihongoTrackerService", () => {
 
         const urls = fetchMock.mock.calls.map(([input])=>String(input));
         expect(urls.some((url)=>url.includes("/media/anilist/search?") && url.includes("type=manga") && url.includes("format=NOVEL"))).toBe(true);
+    });
+
+    it("devuelve el historial de registros del libro sin bloquear la relectura", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", sortName:"oshi v05", visibleName:"oshi v05"};
+        const serie = {_id:serieId, visibleName:"Oshi no Ko", variant:"manga"};
+        const completedProgress = {_id:progressId, time:6120};
+        const lastLoggedAt = new Date("2026-09-21T12:00:00.000Z");
+
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        serieModel.findOne.mockResolvedValue(serie);
+        overrideModel.findOne.mockResolvedValue(null);
+        integrationModel.exists.mockResolvedValue(true);
+        linkModel.findOne.mockResolvedValue({mediaType:"manga", mediaId:"123"});
+        progressModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue(completedProgress)});
+        logModel.countDocuments.mockResolvedValue(3);
+        logModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue({createdAt:lastLoggedAt})});
+
+        const response = await service.bookStatus(user, bookId);
+
+        expect(response).toEqual(expect.objectContaining({
+            alreadyLogged:true,
+            hasPreviousLogs:true,
+            logCount:3,
+            lastLoggedAt
+        }));
+    });
+
+    it.each([
+        [0, false],
+        [1, true]
+    ])("representa correctamente %i registro(s) previo(s)", async(logCount, hasPreviousLogs) => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", sortName:"oshi v05", visibleName:"oshi v05"};
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Oshi no Ko"});
+        overrideModel.findOne.mockResolvedValue(null);
+        integrationModel.exists.mockResolvedValue(true);
+        linkModel.findOne.mockResolvedValue({mediaType:"manga", mediaId:"123"});
+        progressModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue({_id:progressId, time:60})});
+        logModel.countDocuments.mockResolvedValue(logCount);
+        logModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue(null)});
+
+        const response = await service.bookStatus(user, bookId);
+
+        expect(response.logCount).toBe(logCount);
+        expect(response.hasPreviousLogs).toBe(hasPreviousLogs);
+        expect(response.alreadyLogged).toBe(hasPreviousLogs);
+    });
+
+    it("permite registrar dos progresos completados distintos con su tiempo independiente", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", pages:200, characters:12000, sortName:"oshi v05", visibleName:"oshi v05"};
+        const serie = {_id:serieId, visibleName:"Oshi no Ko", variant:"manga"};
+        const firstProgressId = new Types.ObjectId();
+        const secondProgressId = new Types.ObjectId();
+
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        serieModel.findOne.mockResolvedValue(serie);
+        overrideModel.findOne.mockResolvedValue(null);
+        linkModel.findOne.mockResolvedValue({mediaType:"manga", mediaId:"123"});
+        progressModel.findOne
+            .mockReturnValueOnce({sort:jest.fn().mockResolvedValue({_id:firstProgressId, time:125 * 60})})
+            .mockReturnValueOnce({sort:jest.fn().mockResolvedValue({_id:secondProgressId, time:102 * 60})});
+        logModel.findOne.mockResolvedValue(null);
+        logModel.create
+            .mockResolvedValueOnce({_id:new Types.ObjectId()})
+            .mockResolvedValueOnce({_id:new Types.ObjectId()});
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock
+            .mockResolvedValueOnce(new Response(JSON.stringify({id:"external-1"}), {status:201}))
+            .mockResolvedValueOnce(new Response(JSON.stringify({id:"external-2"}), {status:201}));
+
+        await expect(service.logBook(user, bookId, {requestId:"550e8400-e29b-41d4-a716-446655440001"})).resolves.toEqual(expect.objectContaining({status:"logged"}));
+        await expect(service.logBook(user, bookId, {requestId:"550e8400-e29b-41d4-a716-446655440002"})).resolves.toEqual(expect.objectContaining({status:"logged"}));
+
+        const firstBody = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+        const secondBody = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
+        expect(firstBody.time).toBe(125);
+        expect(secondBody.time).toBe(102);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("reutiliza el registro local para una misma idempotency key", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", pages:200, sortName:"oshi v05", visibleName:"oshi v05"};
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Oshi no Ko"});
+        overrideModel.findOne.mockResolvedValue(null);
+        linkModel.findOne.mockResolvedValue({mediaType:"manga", mediaId:"123"});
+        progressModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue({_id:progressId, time:60})});
+        logModel.findOne
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce({externalLogId:"external-1"});
+        logModel.create.mockResolvedValue({_id:new Types.ObjectId()});
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock.mockResolvedValue(new Response(JSON.stringify({id:"external-1"}), {status:201}));
+
+        const requestId = "550e8400-e29b-41d4-a716-446655440003";
+        await service.logBook(user, bookId, {requestId});
+        await expect(service.logBook(user, bookId, {requestId})).resolves.toEqual({status:"already_logged", externalLogId:"external-1"});
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("no llama dos veces al externo si Mongo rechaza una reserva concurrente", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", pages:200, sortName:"oshi v05", visibleName:"oshi v05"};
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Oshi no Ko"});
+        overrideModel.findOne.mockResolvedValue(null);
+        linkModel.findOne.mockResolvedValue({mediaType:"manga", mediaId:"123"});
+        progressModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue({_id:progressId, time:60})});
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        logModel.findOne
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce({externalLogId:"external-1"});
+        logModel.create.mockRejectedValueOnce({code:11000, message:"duplicate key"});
+
+        await expect(service.logBook(user, bookId, {requestId:"550e8400-e29b-41d4-a716-446655440004"})).resolves.toEqual({status:"already_logged", externalLogId:"external-1"});
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it("rechaza el registro si el libro o la serie no son accesibles", async() => {

@@ -21,6 +21,10 @@ export class NihongoTrackerLog {
 
     @Prop({type:String})
     externalLogId?: string;
+
+    /** Identifies one deliberate registration attempt. Historical logs may not have it. */
+    @Prop({type:String})
+    requestId?: string;
 }
 
 export const NihongoTrackerLogSchema = SchemaFactory.createForClass(NihongoTrackerLog);
