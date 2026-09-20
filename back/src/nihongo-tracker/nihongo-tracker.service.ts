@@ -24,6 +24,41 @@ import {resolveVolumeNumber, VolumeResolution} from "./volume-resolver";
 
 type MediaType = "manga" | "light-novel";
 
+function mediaItems(value:unknown):unknown[] {
+    if (Array.isArray(value)) return value;
+    if (typeof value !== "object" || value === null) return [];
+    const candidate = value as {hits?:unknown[]; results?:unknown[]; items?:unknown[]; data?:unknown};
+    if (Array.isArray(candidate.hits)) return candidate.hits;
+    if (Array.isArray(candidate.results)) return candidate.results;
+    if (Array.isArray(candidate.items)) return candidate.items;
+    if (Array.isArray(candidate.data)) return candidate.data;
+    return [];
+}
+
+function mediaKey(value:unknown):string {
+    if (typeof value !== "object" || value === null) return JSON.stringify(value);
+    const item = value as {type?:unknown; contentId?:unknown; id?:unknown; _id?:unknown};
+    const id = item.contentId ?? item.id ?? item._id;
+    return id === undefined ? JSON.stringify(value) : `${String(item.type || "")}:${String(id)}`;
+}
+
+/** Matches NihongoTracker's own QuickLog ordering: local Meilisearch result,
+ * then AniList result, with duplicate media removed and the requested limit. */
+function mergeMediaResults(local:unknown[], external:unknown[], limit:number):unknown[] {
+    const merged:unknown[] = [];
+    const seen = new Set<string>();
+    for (let index = 0; index < Math.max(local.length, external.length); index += 1) {
+        for (const item of [local[index], external[index]]) {
+            if (item === undefined) continue;
+            const key = mediaKey(item);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            merged.push(item);
+        }
+    }
+    return merged.slice(0, limit);
+}
+
 @Injectable()
 export class NihongoTrackerService {
     private readonly baseUrl: string;
@@ -128,11 +163,21 @@ export class NihongoTrackerService {
 
     async search(user: Types.ObjectId, dto: SearchNihongoTrackerDto) {
         const integration = await this.integrationFor(user);
-        const params = new URLSearchParams({search:dto.search, type:dto.type});
-        if (dto.page !== undefined) params.set("page", String(dto.page));
-        if (dto.perPage !== undefined) params.set("perPage", String(dto.perPage));
+        const apiKey = await this.keyFor(integration);
+        const page = dto.page ?? 1;
+        const perPage = dto.perPage ?? 10;
+        const localParams = new URLSearchParams({search:dto.search, type:dto.type, page:String(page), perPage:String(perPage)});
+        const aniListParams = new URLSearchParams({search:dto.search, type:"manga", page:String(page), perPage:String(perPage)});
+        if (dto.type === "light-novel") aniListParams.set("format", "NOVEL");
 
-        return this.requestExternal<unknown>(await this.keyFor(integration), `/media/search?${params.toString()}`);
+        const [localResponse, aniListResponse] = await Promise.all([
+            this.requestExternal<unknown>(apiKey, `/media/search?${localParams.toString()}`)
+                .catch(() => []),
+            this.requestExternal<unknown>(apiKey, `/media/anilist/search?${aniListParams.toString()}`)
+                .catch(() => [])
+        ]);
+
+        return mergeMediaResults(mediaItems(localResponse), mediaItems(aniListResponse), perPage);
     }
 
     private async accessibleSerie(user: Types.ObjectId, serieId: Types.ObjectId): Promise<SerieDocument> {

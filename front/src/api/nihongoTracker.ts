@@ -24,7 +24,7 @@ export function searchNihongoTracker(
   search:string,
   type:NihongoTrackerMediaType
 ):Promise<NihongoTrackerSearchResponse | NihongoTrackerMedia[] | undefined> {
-  const params = new URLSearchParams({search, type, perPage:"20"});
+  const params = new URLSearchParams({search, type, page:"1", perPage:"10"});
   return api.get<NihongoTrackerSearchResponse | NihongoTrackerMedia[]>(`nihongo-tracker/media/search?${params.toString()}`);
 }
 

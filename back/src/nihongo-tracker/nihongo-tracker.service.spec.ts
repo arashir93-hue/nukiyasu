@@ -78,6 +78,43 @@ describe("NihongoTrackerService", () => {
         );
     });
 
+    it("reproduce la búsqueda combinada y conserva Unicode sin doble encoding", async() => {
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock.mockImplementation(async(input)=>{
+            const url = String(input);
+            if (url.includes("/media/search?")) {
+                return new Response(JSON.stringify([{contentId:"local-1", type:"manga"}]), {status:200});
+            }
+            return new Response(JSON.stringify([{contentId:"anilist-1", type:"manga"}]), {status:200});
+        });
+
+        const response = await service.search(user, {
+            search:"Fate/kaleid liner プリズマ☆イリヤ",
+            type:"manga",
+            page:1,
+            perPage:10
+        });
+
+        const urls = fetchMock.mock.calls.map(([input])=>String(input));
+        expect(urls).toContain("https://nihongotracker.app/api/media/search?search=Fate%2Fkaleid+liner+%E3%83%97%E3%83%AA%E3%82%BA%E3%83%9E%E2%98%86%E3%82%A4%E3%83%AA%E3%83%A4&type=manga&page=1&perPage=10");
+        expect(urls).toContain("https://nihongotracker.app/api/media/anilist/search?search=Fate%2Fkaleid+liner+%E3%83%97%E3%83%AA%E3%82%BA%E3%83%9E%E2%98%86%E3%82%A4%E3%83%AA%E3%83%A4&type=manga&page=1&perPage=10");
+        expect(urls.every((url)=>!url.includes("%252F"))).toBe(true);
+        expect(response).toEqual([
+            {contentId:"local-1", type:"manga"},
+            {contentId:"anilist-1", type:"manga"}
+        ]);
+    });
+
+    it("usa el filtro NOVEL para novelas ligeras en AniList", async() => {
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock.mockResolvedValue(new Response(JSON.stringify([]), {status:200}));
+
+        await service.search(user, {search:"Oshi no Ko", type:"light-novel"});
+
+        const urls = fetchMock.mock.calls.map(([input])=>String(input));
+        expect(urls.some((url)=>url.includes("/media/anilist/search?") && url.includes("type=manga") && url.includes("format=NOVEL"))).toBe(true);
+    });
+
     it("rechaza el registro si el libro o la serie no son accesibles", async() => {
         bookModel.findById.mockResolvedValue(null);
         await expect(service.logBook(user, bookId)).rejects.toBeInstanceOf(NotFoundException);
