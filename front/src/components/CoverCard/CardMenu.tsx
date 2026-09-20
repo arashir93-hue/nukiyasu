@@ -181,7 +181,7 @@ function BookCardMenu({book, insideSerie, deck, read, setRead, openBook}:Extract
       }
       await queryClient.invalidateQueries({queryKey:["nihongo-tracker-book-status", book._id]});
     } catch {
-      toast.error("No se pudo registrar el volumen. Comprueba que la serie esté vinculada y el volumen terminado.");
+      toast.error("No se pudo registrar el volumen. Comprueba que la serie esté configurada y el volumen terminado.");
     } finally {
       loggingRef.current = false;
       setLogging(false);

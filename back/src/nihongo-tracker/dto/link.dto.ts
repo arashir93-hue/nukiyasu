@@ -1,12 +1,18 @@
-import {IsIn, IsNotEmpty, IsOptional, IsString} from "class-validator";
+import {IsIn, IsOptional, IsString} from "class-validator";
 
 export class LinkNihongoTrackerDto {
+    @IsIn(["linked", "manual"])
+    @IsOptional()
+    mode?: "linked" | "manual";
+
+    /** Kept for old clients; the backend derives and validates the real type. */
     @IsIn(["manga", "light-novel"])
-    mediaType: "manga" | "light-novel";
+    @IsOptional()
+    mediaType?: "manga" | "light-novel";
 
     @IsString()
-    @IsNotEmpty()
-    mediaId: string;
+    @IsOptional()
+    mediaId?: string;
 
     @IsString()
     @IsOptional()

@@ -27,7 +27,7 @@ describe("NihongoTrackerService", () => {
             findOneAndUpdate:jest.fn(),
             exists:jest.fn()
         };
-        linkModel = {findOne:jest.fn(), findOneAndUpdate:jest.fn(), countDocuments:jest.fn()};
+        linkModel = {findOne:jest.fn(), findOneAndUpdate:jest.fn(), countDocuments:jest.fn(), deleteOne:jest.fn()};
         logModel = {findOne:jest.fn(), countDocuments:jest.fn(), create:jest.fn(), updateOne:jest.fn(), deleteOne:jest.fn()};
         overrideModel = {findOne:jest.fn(), findOneAndUpdate:jest.fn(), deleteOne:jest.fn()};
         serieModel = {findOne:jest.fn()};
@@ -353,5 +353,152 @@ describe("NihongoTrackerService", () => {
 
         await expect(service.logBook(user, bookId)).resolves.toEqual({status:"already_logged", externalLogId:"external-1"});
         expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("crea una configuración manual sin consultar un media externo", async() => {
+        const serie = {_id:serieId, visibleName:"Serie manual", variant:"manga"};
+        serieModel.findOne.mockResolvedValue(serie);
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        const saved = {mode:"manual", mediaType:"manga", mediaId:"", mediaTitle:"Título manual"};
+        linkModel.findOneAndUpdate.mockReturnValue({select:jest.fn().mockResolvedValue(saved)});
+
+        await expect(service.link(user, serieId, {
+            mode:"manual",
+            mediaTitle:"  Título manual  "
+        })).resolves.toEqual(saved);
+
+        expect(fetchMock).not.toHaveBeenCalled();
+        expect(linkModel.findOneAndUpdate).toHaveBeenCalledWith(
+            {user, serie:serieId},
+            expect.objectContaining({mode:"manual", mediaType:"manga", mediaId:"", mediaTitle:"Título manual"}),
+            expect.any(Object)
+        );
+    });
+
+    it("rechaza títulos manuales vacíos y vínculos sin mediaId", async() => {
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Serie", variant:"manga"});
+        await expect(service.link(user, serieId, {mode:"manual", mediaTitle:"   "})).rejects.toThrow("título");
+        await expect(service.link(user, serieId, {mode:"linked", mediaTitle:"Serie"})).rejects.toThrow("mediaId");
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("registra un manga manual con mediaId vacío y el título configurado", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", pages:150, characters:10000, sortName:"serie v01", visibleName:"serie v01"};
+        const serie = {_id:serieId, visibleName:"Nombre local", variant:"manga"};
+        const progress = {_id:progressId, time:65 * 60, endDate:new Date("2026-09-21T12:00:00.000Z")};
+
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        serieModel.findOne.mockResolvedValue(serie);
+        linkModel.findOne.mockResolvedValue({mode:"manual", mediaType:"manga", mediaId:"", mediaTitle:"Título configurado"});
+        progressModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue(progress)});
+        logModel.findOne.mockResolvedValue(null);
+        logModel.create.mockResolvedValue({_id:new Types.ObjectId()});
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock.mockResolvedValue(new Response(JSON.stringify({_id:"external-manual"}), {status:201}));
+
+        await expect(service.logBook(user, bookId)).resolves.toEqual(expect.objectContaining({status:"logged", externalLogId:"external-manual"}));
+        expect(logModel.updateOne).toHaveBeenCalledWith(expect.anything(), {$set:{externalLogId:"external-manual"}});
+
+        const payload = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+        expect(payload).toEqual(expect.objectContaining({
+            type:"manga",
+            mediaId:"",
+            description:"Título configurado",
+            volume:1,
+            pages:150,
+            chars:10000,
+            time:65,
+            date:"2026-09-21T12:00:00.000Z"
+        }));
+    });
+
+    it("registra doujinshi manual como manga", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"doujinshi", pages:20, characters:1000, sortName:"doujin v01", visibleName:"doujin v01"};
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Doujin", variant:"doujinshi"});
+        linkModel.findOne.mockResolvedValue({mode:"manual", mediaType:"manga", mediaId:"", mediaTitle:"Doujin manual"});
+        progressModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue({_id:progressId, time:60})});
+        logModel.findOne.mockResolvedValue(null);
+        logModel.create.mockResolvedValue({_id:new Types.ObjectId()});
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock.mockResolvedValue(new Response(JSON.stringify({_id:"external-doujin"}), {status:201}));
+
+        await service.logBook(user, bookId);
+
+        expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).type).toBe("manga");
+    });
+
+    it("registra novela manual como light-novel y omite pages", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"novela", pages:0, characters:50000, sortName:"novela v02", visibleName:"novela v02"};
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Novela", variant:"novela"});
+        linkModel.findOne.mockResolvedValue({mode:"manual", mediaType:"light-novel", mediaId:"", mediaTitle:"Novela manual"});
+        progressModel.findOne.mockReturnValue({sort:jest.fn().mockResolvedValue({_id:progressId, time:120})});
+        logModel.findOne.mockResolvedValue(null);
+        logModel.create.mockResolvedValue({_id:new Types.ObjectId()});
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock.mockResolvedValue(new Response(JSON.stringify({_id:"external-novel"}), {status:201}));
+
+        await service.logBook(user, bookId);
+
+        const payload = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+        expect(payload.type).toBe("light-novel");
+        expect(payload.mediaId).toBe("");
+        expect(payload.description).toBe("Novela manual");
+        expect(payload).not.toHaveProperty("pages");
+    });
+
+    it("rechaza un vínculo antiguo marcado como linked si perdió su mediaId", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", sortName:"serie v01", visibleName:"serie v01"};
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Serie", variant:"manga"});
+        linkModel.findOne.mockResolvedValue({mediaType:"manga", mediaTitle:"Serie"});
+
+        await expect(service.logBook(user, bookId)).rejects.toThrow("mediaId");
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("mantiene el bloqueo de una serie no accesible por la política de contenido", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"doujinshi", sortName:"doujin v01", visibleName:"doujin v01"};
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        // ContentAccessService produces no matching series for a hidden mature
+        // series, so the integration must answer as not found as well.
+        serieModel.findOne.mockResolvedValue(null);
+
+        await expect(service.logBook(user, bookId)).rejects.toBeInstanceOf(NotFoundException);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("permite desvincular sin borrar libros ni progresos", async() => {
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Serie", variant:"manga"});
+        linkModel.deleteOne.mockResolvedValue({deletedCount:1});
+
+        await expect(service.unlink(user, serieId)).resolves.toEqual({unlinked:true});
+        expect(linkModel.deleteOne).toHaveBeenCalledWith({user, serie:serieId});
+    });
+
+    it("permite cambiar una serie entre linked y manual", async() => {
+        serieModel.findOne.mockResolvedValue({_id:serieId, visibleName:"Serie", variant:"manga"});
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        const select = jest.fn()
+            .mockResolvedValueOnce({mode:"linked", mediaType:"manga", mediaId:"123", mediaTitle:"Serie"})
+            .mockResolvedValueOnce({mode:"manual", mediaType:"manga", mediaId:"", mediaTitle:"Serie manual"});
+        linkModel.findOneAndUpdate.mockReturnValue({select});
+        fetchMock.mockResolvedValue(new Response(JSON.stringify({contentId:"123"}), {status:200}));
+
+        await service.link(user, serieId, {mode:"linked", mediaType:"manga", mediaId:"123", mediaTitle:"Serie"});
+        await service.link(user, serieId, {mode:"manual", mediaTitle:"Serie manual"});
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(linkModel.findOneAndUpdate).toHaveBeenLastCalledWith(
+            {user, serie:serieId},
+            expect.objectContaining({mode:"manual", mediaId:"", mediaTitle:"Serie manual"}),
+            expect.any(Object)
+        );
     });
 });

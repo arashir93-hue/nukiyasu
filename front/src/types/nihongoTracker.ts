@@ -1,4 +1,5 @@
 export type NihongoTrackerMediaType = "manga" | "light-novel";
+export type NihongoTrackerLinkMode = "linked" | "manual";
 
 export interface NihongoTrackerStatus {
   connected:boolean;
@@ -7,8 +8,9 @@ export interface NihongoTrackerStatus {
 }
 
 export interface NihongoTrackerLink {
+  mode?:NihongoTrackerLinkMode;
   mediaType:NihongoTrackerMediaType;
-  mediaId:string;
+  mediaId?:string;
   mediaTitle?:string;
 }
 
@@ -17,6 +19,8 @@ export type NihongoTrackerVolumeSource = "manual" | "detected" | "position";
 export interface NihongoTrackerBookStatus {
   connected:boolean;
   linked:boolean;
+  linkMode?:NihongoTrackerLinkMode;
+  trackerTitle?:string;
   completed:boolean;
   alreadyLogged:boolean;
   hasPreviousLogs?:boolean;

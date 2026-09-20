@@ -17,13 +17,11 @@ import {SearchNihongoTrackerDto} from "./dto/search.dto";
 import {LogNihongoTrackerBookDto} from "./dto/log-book.dto";
 import {decryptNihongoTrackerKey, encryptNihongoTrackerKey} from "./crypto";
 import {NihongoTrackerIntegration, NihongoTrackerIntegrationDocument} from "./schemas/integration.schema";
-import {NihongoTrackerLink, NihongoTrackerLinkDocument} from "./schemas/link.schema";
+import {NihongoTrackerLink, NihongoTrackerLinkDocument, NihongoTrackerLinkMode} from "./schemas/link.schema";
 import {NihongoTrackerLog, NihongoTrackerLogDocument} from "./schemas/log.schema";
 import {NihongoTrackerBookOverride, NihongoTrackerBookOverrideDocument} from "./schemas/book-override.schema";
 import {resolveVolumeNumber, VolumeResolution} from "./volume-resolver";
-import {isImageBasedVariant} from "../common/library-variant";
-
-type MediaType = "manga" | "light-novel";
+import {isImageBasedVariant, nihongoTrackerMediaTypeForVariant} from "../common/library-variant";
 
 function isDuplicateKeyError(error:unknown):boolean {
     if (typeof error === "object" && error !== null) {
@@ -206,28 +204,46 @@ export class NihongoTrackerService {
 
     async link(user: Types.ObjectId, serieId: Types.ObjectId, dto: LinkNihongoTrackerDto) {
         const serie = await this.accessibleSerie(user, serieId);
-        const expectedType: MediaType = serie.variant === "novela" ? "light-novel" : "manga";
-        if (dto.mediaType !== expectedType) {
+        const expectedType = nihongoTrackerMediaTypeForVariant(serie.variant);
+        if (dto.mediaType && dto.mediaType !== expectedType) {
             throw new BadRequestException("El tipo de medio no coincide con la serie");
         }
 
+        const mode: NihongoTrackerLinkMode = dto.mode ?? "linked";
+        const mediaTitle = dto.mediaTitle === undefined ? serie.visibleName : dto.mediaTitle.trim();
+        if (!mediaTitle) throw new BadRequestException("El título de NihongoTracker no puede estar vacío");
+
+        const mediaId = dto.mediaId?.trim();
+        if (mode === "linked" && !mediaId) {
+            throw new BadRequestException("El vínculo necesita un mediaId");
+        }
+
         const integration = await this.integrationFor(user);
-        await this.requestExternal<unknown>(
-            await this.keyFor(integration),
-            `/media/${dto.mediaType}/${encodeURIComponent(dto.mediaId)}`
-        );
+        if (mode === "linked") {
+            await this.requestExternal<unknown>(
+                await this.keyFor(integration),
+                `/media/${expectedType}/${encodeURIComponent(mediaId as string)}`
+            );
+        }
 
         return this.linkModel.findOneAndUpdate(
             {user, serie:serieId},
             {
                 user,
                 serie:serieId,
-                mediaType:dto.mediaType,
-                mediaId:dto.mediaId,
-                mediaTitle:dto.mediaTitle || serie.visibleName
+                mode,
+                mediaType:expectedType,
+                mediaId:mode === "manual" ? "" : mediaId,
+                mediaTitle:mediaTitle
             },
             {upsert:true, new:true, setDefaultsOnInsert:true}
         ).select({_id:0, user:0, createdAt:0, updatedAt:0});
+    }
+
+    async unlink(user: Types.ObjectId, serieId: Types.ObjectId) {
+        await this.accessibleSerie(user, serieId);
+        await this.linkModel.deleteOne({user, serie:serieId});
+        return {unlinked:true};
     }
 
     private async bookAndResolution(user:Types.ObjectId, bookId:Types.ObjectId):Promise<{
@@ -286,6 +302,8 @@ export class NihongoTrackerService {
         return {
             connected:!!integration,
             linked:!!link,
+            linkMode:link?.mode ?? "linked",
+            trackerTitle:link?.mediaTitle || serie.visibleName,
             completed:!!progress,
             // Kept for clients that still consume the old flag. It is now
             // informational and must not be treated as a write lock.
@@ -306,7 +324,18 @@ export class NihongoTrackerService {
         const {book, serie, resolution} = await this.bookAndResolution(user, bookId);
 
         const link = await this.linkModel.findOne({user, serie:book.serie});
-        if (!link) throw new BadRequestException("Vincula primero la serie con NihongoTracker");
+        if (!link) throw new BadRequestException("Configura primero la serie en NihongoTracker");
+
+        const linkMode: NihongoTrackerLinkMode = link.mode ?? "linked";
+        const mediaId = link.mediaId?.trim();
+        if (linkMode === "linked" && !mediaId) {
+            throw new BadRequestException("El vínculo de NihongoTracker no tiene mediaId");
+        }
+
+        const mediaTitle = link.mediaTitle?.trim();
+        if (linkMode === "manual" && !mediaTitle) {
+            throw new BadRequestException("El título de NihongoTracker no puede estar vacío");
+        }
 
         const progress = await this.progressModel.findOne({user, book:bookId, status:"completed"}).sort({endDate:-1, lastUpdateDate:-1});
         if (!progress?._id) throw new BadRequestException("El volumen todavía no está marcado como terminado");
@@ -330,9 +359,9 @@ export class NihongoTrackerService {
         const volume = dto.volumeNumber ?? resolution.volumeNumber;
         const integration = await this.integrationFor(user);
         const payload = {
-            type:link.mediaType,
-            mediaId:link.mediaId,
-            description:serie.visibleName,
+            type:nihongoTrackerMediaTypeForVariant(serie.variant),
+            mediaId:linkMode === "manual" ? "" : mediaId,
+            description:linkMode === "manual" ? mediaTitle : serie.visibleName,
             volume,
             // En manga el progreso guarda los caracteres de la página actual;
             // al terminar el tomo, los metadatos del libro representan el total.

@@ -110,7 +110,7 @@ export function NihongoTrackerReaderButton({book, currentPage, atLastPage, saveP
             <DialogTitle>Registrar en NihongoTracker</DialogTitle>
           </DialogHeader>
           <DialogBody className="flex flex-col gap-3 text-sm">
-            <p className="font-medium text-fg">{status.serieName}</p>
+            <p className="font-medium text-fg">{status.trackerTitle || status.serieName}</p>
             <label className="flex items-center justify-between gap-4">
               <span className="text-fg-muted">Volumen</span>
               <Input

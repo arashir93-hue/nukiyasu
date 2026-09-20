@@ -1,6 +1,7 @@
 import {api} from "./api";
 import type {
   NihongoTrackerLink,
+  NihongoTrackerLinkMode,
   NihongoTrackerMedia,
   NihongoTrackerMediaType,
   NihongoTrackerSearchResponse,
@@ -34,12 +35,16 @@ export function getNihongoTrackerLink(serieId:string):Promise<NihongoTrackerLink
 
 export function linkNihongoTrackerSerie(
   serieId:string,
-  link:{mediaType:NihongoTrackerMediaType; mediaId:string; mediaTitle?:string}
+  link:{mode?:NihongoTrackerLinkMode; mediaType?:NihongoTrackerMediaType; mediaId?:string; mediaTitle?:string}
 ):Promise<NihongoTrackerLink | undefined> {
-  return api.put<{mediaType:NihongoTrackerMediaType; mediaId:string; mediaTitle?:string}, NihongoTrackerLink>(
+  return api.put<{mode?:NihongoTrackerLinkMode; mediaType?:NihongoTrackerMediaType; mediaId?:string; mediaTitle?:string}, NihongoTrackerLink>(
     `nihongo-tracker/series/${serieId}`,
     link
   );
+}
+
+export function unlinkNihongoTrackerSerie(serieId:string):Promise<{unlinked:boolean} | undefined> {
+  return api.delete<{unlinked:boolean}>(`nihongo-tracker/series/${serieId}`);
 }
 
 export function getNihongoTrackerBookStatus(bookId:string):Promise<NihongoTrackerBookStatus | undefined> {

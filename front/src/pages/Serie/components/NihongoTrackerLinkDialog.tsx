@@ -6,9 +6,10 @@ import {
   getNihongoTrackerLink,
   getNihongoTrackerStatus,
   linkNihongoTrackerSerie,
+  unlinkNihongoTrackerSerie,
   searchNihongoTracker
 } from "../../../api/nihongoTracker";
-import type {NihongoTrackerLink, NihongoTrackerMedia, NihongoTrackerMediaType, NihongoTrackerSearchResponse} from "../../../types/nihongoTracker";
+import type {NihongoTrackerLink, NihongoTrackerLinkMode, NihongoTrackerMedia, NihongoTrackerMediaType, NihongoTrackerSearchResponse} from "../../../types/nihongoTracker";
 import type {Serie} from "../../../types/serie";
 import {Button} from "../../../ui/Button";
 import {Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "../../../ui/Dialog";
@@ -72,6 +73,8 @@ export function NihongoTrackerLinkDialog({serie, open, onOpenChange}:NihongoTrac
   const [results, setResults] = useState<NihongoTrackerMedia[]>([]);
   const [currentLink, setCurrentLink] = useState<NihongoTrackerLink | null>(null);
   const [connected, setConnected] = useState<boolean | undefined>();
+  const [mode, setMode] = useState<NihongoTrackerLinkMode>("linked");
+  const [manualTitle, setManualTitle] = useState(serie.visibleName);
   const [loading, setLoading] = useState(false);
   const [linkingId, setLinkingId] = useState<string>();
   const queryClient = useQueryClient();
@@ -82,6 +85,8 @@ export function NihongoTrackerLinkDialog({serie, open, onOpenChange}:NihongoTrac
     setResults([]);
     setConnected(undefined);
     setCurrentLink(null);
+    setMode("linked");
+    setManualTitle(serie.visibleName);
     setLoading(true);
     void getNihongoTrackerStatus()
       .then(async(status)=>{
@@ -93,6 +98,8 @@ export function NihongoTrackerLinkDialog({serie, open, onOpenChange}:NihongoTrac
         try {
           const link = await getNihongoTrackerLink(serie._id);
           setCurrentLink(link ?? null);
+          setMode(link?.mode === "manual" ? "manual" : "linked");
+          setManualTitle(link?.mediaTitle || serie.visibleName);
         } catch {
           // La conexión sigue siendo válida aunque esta serie aún no tenga
           // vínculo o la consulta del vínculo falle.
@@ -122,13 +129,61 @@ export function NihongoTrackerLinkDialog({serie, open, onOpenChange}:NihongoTrac
     if (!id || linkingId) return;
     setLinkingId(id);
     try {
-      const link = await linkNihongoTrackerSerie(serie._id, {mediaType:type, mediaId:id, mediaTitle:mediaTitle(media)});
+      const link = await linkNihongoTrackerSerie(serie._id, {mode:"linked", mediaType:type, mediaId:id, mediaTitle:mediaTitle(media)});
       if (!link) throw new Error("Respuesta vacía");
       setCurrentLink(link);
+      setMode("linked");
       await queryClient.invalidateQueries({queryKey:["nihongo-tracker-status"]});
+      await queryClient.invalidateQueries({queryKey:["nihongo-tracker-book-status"]});
       toast.success("Serie vinculada con NihongoTracker");
     } catch {
       toast.error("No se pudo vincular la serie");
+    } finally {
+      setLinkingId(undefined);
+    }
+  }
+
+  async function saveManual():Promise<void> {
+    const title = manualTitle.trim();
+    if (!title || linkingId) {
+      if (!title) toast.error("Introduce un título válido");
+      return;
+    }
+
+    setLinkingId("manual");
+    try {
+      const link = await linkNihongoTrackerSerie(serie._id, {
+        mode:"manual",
+        mediaType:type,
+        mediaTitle:title
+      });
+      if (!link) throw new Error("Respuesta vacía");
+      setCurrentLink(link);
+      setMode("manual");
+      setManualTitle(link.mediaTitle || title);
+      await queryClient.invalidateQueries({queryKey:["nihongo-tracker-status"]});
+      await queryClient.invalidateQueries({queryKey:["nihongo-tracker-book-status"]});
+      toast.success("Registro manual configurado");
+    } catch {
+      toast.error("No se pudo guardar la configuración manual");
+    } finally {
+      setLinkingId(undefined);
+    }
+  }
+
+  async function unlink():Promise<void> {
+    if (linkingId) return;
+    setLinkingId("unlink");
+    try {
+      await unlinkNihongoTrackerSerie(serie._id);
+      setCurrentLink(null);
+      setMode("linked");
+      setManualTitle(serie.visibleName);
+      await queryClient.invalidateQueries({queryKey:["nihongo-tracker-status"]});
+      await queryClient.invalidateQueries({queryKey:["nihongo-tracker-book-status"]});
+      toast.success("Serie desvinculada de NihongoTracker");
+    } catch {
+      toast.error("No se pudo desvincular la serie");
     } finally {
       setLinkingId(undefined);
     }
@@ -154,38 +209,58 @@ export function NihongoTrackerLinkDialog({serie, open, onOpenChange}:NihongoTrac
             <>
               {currentLink ? (
                 <p className="rounded-lg border border-app-border bg-tint p-3 text-sm text-fg">
-                  Vinculada actualmente a <strong>{currentLink.mediaTitle || currentLink.mediaId}</strong>. Puedes elegir otro resultado para cambiarla.
+                  {currentLink.mode === "manual" ? "Configurada sin coincidencia como " : "Vinculada actualmente a "}
+                  <strong>{currentLink.mediaTitle || currentLink.mediaId || serie.visibleName}</strong>.
                 </p>
               ) : null}
-              <form
-                className="flex items-end gap-2"
-                onSubmit={(event)=>{
-                  event.preventDefault();
-                  void search();
-                }}
-              >
-                <Field label="Título" className="flex-1">
-                  <Input value={query} onChange={(event)=>setQuery(event.target.value)} />
-                </Field>
-                <Button type="submit" icon={<Search />} loading={loading}>Buscar</Button>
-              </form>
-              <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
-                {results.map((media, index)=>{
-                  const id = mediaId(media);
-                  return id ? (
-                    <button
-                      key={`${id}-${index}`}
-                      type="button"
-                      className="flex items-center justify-between rounded-md border border-app-border px-3 py-2 text-left text-sm text-fg hover:bg-tint"
-                      onClick={()=>void selectMedia(media)}
-                      disabled={!!linkingId}
-                    >
-                      <span>{mediaTitle(media)}</span>
-                      <span className="ml-3 shrink-0 text-xs text-fg-muted">{id}</span>
-                    </button>
-                  ) : null;
-                })}
+              <div className="flex flex-wrap gap-2">
+                <Button variant={mode === "linked" ? "primary" : "secondary"} onClick={()=>setMode("linked")}>Buscar obra existente</Button>
+                <Button variant={mode === "manual" ? "primary" : "secondary"} onClick={()=>setMode("manual")}>Registrar sin coincidencia</Button>
               </div>
+              {mode === "manual" ? (
+                <div className="flex flex-col gap-3">
+                  <Field label="Título en NihongoTracker" hint="Se usará para todos los volúmenes de esta serie.">
+                    <Input value={manualTitle} onChange={(event)=>setManualTitle(event.target.value)} />
+                  </Field>
+                  <div className="flex justify-end gap-2">
+                    {currentLink ? <Button variant="ghost" onClick={()=>void unlink()} loading={linkingId === "unlink"}>Desvincular</Button> : null}
+                    <Button onClick={()=>void saveManual()} loading={linkingId === "manual"}>Guardar</Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <form
+                    className="flex items-end gap-2"
+                    onSubmit={(event)=>{
+                      event.preventDefault();
+                      void search();
+                    }}
+                  >
+                    <Field label="Título" className="flex-1">
+                      <Input value={query} onChange={(event)=>setQuery(event.target.value)} />
+                    </Field>
+                    <Button type="submit" icon={<Search />} loading={loading}>Buscar</Button>
+                  </form>
+                  <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
+                    {results.map((media, index)=>{
+                      const id = mediaId(media);
+                      return id ? (
+                        <button
+                          key={`${id}-${index}`}
+                          type="button"
+                          className="flex items-center justify-between rounded-md border border-app-border px-3 py-2 text-left text-sm text-fg hover:bg-tint"
+                          onClick={()=>void selectMedia(media)}
+                          disabled={!!linkingId}
+                        >
+                          <span>{mediaTitle(media)}</span>
+                          <span className="ml-3 shrink-0 text-xs text-fg-muted">{id}</span>
+                        </button>
+                      ) : null;
+                    })}
+                  </div>
+                  {currentLink ? <div className="flex justify-end"><Button variant="ghost" onClick={()=>void unlink()} loading={linkingId === "unlink"}>Desvincular</Button></div> : null}
+                </>
+              )}
             </>
           ) : null}
         </DialogBody>

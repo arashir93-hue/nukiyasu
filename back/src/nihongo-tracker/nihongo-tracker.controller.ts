@@ -50,6 +50,11 @@ export class NihongoTrackerController {
         return this.nihongoTrackerService.link(this.userId(req), serieId, dto);
     }
 
+    @Delete("series/:serieId")
+    unlink(@Req() req:Request, @Param("serieId", ParseObjectIdPipe) serieId:Types.ObjectId) {
+        return this.nihongoTrackerService.unlink(this.userId(req), serieId);
+    }
+
     @Post("books/:bookId/log")
     logBook(@Req() req:Request, @Param("bookId", ParseObjectIdPipe) bookId:Types.ObjectId, @Body() dto:LogNihongoTrackerBookDto) {
         return this.nihongoTrackerService.logBook(this.userId(req), bookId, dto);

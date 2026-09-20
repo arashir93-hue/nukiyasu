@@ -5,6 +5,8 @@ import {Serie} from "../../series/schemas/series.schema";
 
 export type NihongoTrackerLinkDocument = NihongoTrackerLink & Document;
 
+export type NihongoTrackerLinkMode = "linked" | "manual";
+
 @Schema({timestamps:true})
 export class NihongoTrackerLink {
     _id?: Types.ObjectId;
@@ -15,11 +17,16 @@ export class NihongoTrackerLink {
     @Prop({type:SchemaTypes.ObjectId, ref:Serie.name, required:true})
     serie: Types.ObjectId;
 
+    /** Explicitly distinguishes an external media link from a free-title log. */
+    @Prop({type:String, enum:["linked", "manual"], default:"linked"})
+    mode: NihongoTrackerLinkMode;
+
     @Prop({type:String, enum:["manga", "light-novel"], required:true})
     mediaType: "manga" | "light-novel";
 
-    @Prop({type:String, required:true})
-    mediaId: string;
+    /** Empty for manual targets. Historical linked documents keep their id. */
+    @Prop({type:String, required:false})
+    mediaId?: string;
 
     @Prop({type:String, required:false})
     mediaTitle?: string;

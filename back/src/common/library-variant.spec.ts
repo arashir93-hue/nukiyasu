@@ -1,4 +1,4 @@
-import {isImageBasedVariant, libraryFolderForVariant} from "./library-variant";
+import {isImageBasedVariant, libraryFolderForVariant, nihongoTrackerMediaTypeForVariant} from "./library-variant";
 
 describe("library variants", () => {
     it.each([
@@ -12,5 +12,11 @@ describe("library variants", () => {
 
     it("mantiene doujinshi separado de manga aunque ambos sean de imágenes", () => {
         expect(libraryFolderForVariant("manga")).not.toBe(libraryFolderForVariant("doujinshi"));
+    });
+
+    it("mapea variantes locales al tipo externo de NihongoTracker", () => {
+        expect(nihongoTrackerMediaTypeForVariant("manga")).toBe("manga");
+        expect(nihongoTrackerMediaTypeForVariant("doujinshi")).toBe("manga");
+        expect(nihongoTrackerMediaTypeForVariant("novela")).toBe("light-novel");
     });
 });

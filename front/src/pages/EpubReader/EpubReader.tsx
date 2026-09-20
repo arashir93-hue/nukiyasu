@@ -23,6 +23,7 @@ import {notifyReadingActivity, useIdleTimerPause, useReaderTimerStore, useReadin
 import {useAuth} from "../../contexts/AuthContext";
 import {Loading} from "../Loading/Loading";
 import {Button} from "../../ui/Button";
+import {NihongoTrackerReaderButton} from "../Reader/components/NihongoTrackerReaderButton";
 
 const epubShortcuts:ShortcutItem[] = [
     {keys:["t"], description:"Activar o pausar el cronómetro"},
@@ -66,6 +67,7 @@ export default function EpubReader():React.ReactElement {
     const queryClient = useQueryClient();
     const [showToolBar, setShowToolbar] = useState(true);
     const [chars, setChars] = useState(0);
+    const [novelCompleted, setNovelCompleted] = useState(false);
     const [changedTab, setChangedTab] = useState(false);
     const [searchWord, setSearchWord] = useState("");
     const [showShortcuts, setShowShortcuts] = useState(false);
@@ -98,13 +100,20 @@ export default function EpubReader():React.ReactElement {
     const restoredBookId = useRef<string | undefined>(undefined);
 
     const saveCurrentProgress = React.useCallback(async(keepAlive = false):Promise<number> => {
-        return saveProgressGlobal(
+        const currentChars = await saveProgressGlobal(
             id,
             iframe.current ?? undefined,
             bookDataRef.current,
             keepAlive,
             readingSessionPromise.current
         );
+
+        const currentBook = bookDataRef.current;
+        if (currentBook && currentChars > 0 && currentChars >= (currentBook.characters || 0) * 0.9) {
+            setNovelCompleted(true);
+        }
+
+        return currentChars;
     }, [id]);
 
     // Guarda el progreso cuando la pestaña pasa a segundo plano o se cierra
@@ -161,6 +170,7 @@ export default function EpubReader():React.ReactElement {
         if (startedSessionForBook.current === bookData._id) return;
 
         startedSessionForBook.current = bookData._id;
+        setNovelCompleted(false);
         const startPromise = beginReadingProgress(bookData).catch(()=>undefined);
         readingSessionPromise.current = startPromise;
 
@@ -373,6 +383,14 @@ export default function EpubReader():React.ReactElement {
                         <StopWatchMenu characters={chars} oldProgress={activeBookProgress}
                             refreshProgress={refreshProgress}
                             bookData={bookData}
+                        />
+                        <NihongoTrackerReaderButton
+                            book={bookData}
+                            currentPage={bookData.pages}
+                            atLastPage={novelCompleted}
+                            saveProgress={async()=>{
+                                await saveCurrentProgress();
+                            }}
                         />
                         <Tooltip content="Atajos de teclado (?)">
                             <IconButton label="Atajos de teclado" onClick={()=>setShowShortcuts(true)} className="text-app-text">
