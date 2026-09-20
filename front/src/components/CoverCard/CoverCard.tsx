@@ -14,6 +14,7 @@ import {CoverImage} from "../CoverImage";
 import {useOpenBook} from "../../lib/useOpenBook";
 import {getFlameColor} from "../../helpers/series";
 import {CardMenu} from "./CardMenu";
+import {isImageBasedVariant} from "../../types/library";
 
 export type CoverCardProps =
   | {
@@ -199,7 +200,7 @@ function BookCoverCard({
           }}
           className="line-clamp-2 h-10 text-[13px] font-medium leading-tight text-fg transition-colors hover:text-primary hover:no-underline"
         >
-          {showVariant ? <span className="text-fg-muted">{book.variant === "manga" || book.mokured ? "[漫]" : "[小]"} </span> : null}
+          {showVariant ? <span className="text-fg-muted">{isImageBasedVariant(book.variant) || book.mokured ? "[漫]" : "[小]"} </span> : null}
           {book.visibleName}
         </Link>
         <div className="flex items-center justify-between gap-1">
@@ -279,7 +280,7 @@ function SerieCoverCard({
           to={`/app/series/${serie._id}`}
           className="line-clamp-2 h-10 text-[13px] font-medium leading-tight text-fg transition-colors hover:text-primary hover:no-underline"
         >
-          {showVariant ? <span className="text-fg-muted">{serie.variant === "manga" ? "[漫]" : "[小]"} </span> : null}
+          {showVariant ? <span className="text-fg-muted">{serie.variant === "novela" ? "[小]" : serie.variant === "doujinshi" ? "[同]" : "[漫]"} </span> : null}
           {serie.visibleName}
         </Link>
         <div className="flex items-center justify-between gap-1">

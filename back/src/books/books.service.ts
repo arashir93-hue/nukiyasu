@@ -9,6 +9,7 @@ import * as archiver from "archiver";
 import * as fs from "fs-extra";
 import * as path from "path";
 import {ContentAccessPolicy, ContentAccessService} from "../content-access/content-access.service";
+import {isImageBasedVariant, libraryFolderForVariant, LibraryVariant} from "../common/library-variant";
 
 @Injectable()
 export class BooksService {
@@ -18,13 +19,13 @@ export class BooksService {
     ) {}
   private readonly logger = new Logger(BooksService.name);
 
-  async filterBooks(user:Types.ObjectId, variant:"manga" | "novela" | "all", query:SearchQuery):Promise<UserBook[]> {
+  async filterBooks(user:Types.ObjectId, variant:LibraryVariant | "all", query:SearchQuery):Promise<UserBook[]> {
       return this.queryBooks(user, variant, query);
   }
 
   async filterAccessibleBooks(
       user:Types.ObjectId,
-      variant:"manga" | "novela" | "all",
+      variant:LibraryVariant | "all",
       query:SearchQuery,
       policy:ContentAccessPolicy
   ):Promise<UserBook[]> {
@@ -33,7 +34,7 @@ export class BooksService {
 
   private async queryBooks(
       user:Types.ObjectId,
-      variant:"manga" | "novela" | "all",
+      variant:LibraryVariant | "all",
       query:SearchQuery,
       policy?:ContentAccessPolicy
   ):Promise<UserBook[]> {
@@ -140,7 +141,7 @@ export class BooksService {
 
   async zipBooksFromSerie(serie:Types.ObjectId){
     const books = await this.bookModel.find({serie}).sort({sortName:1});
-    const mainFolderPath = path.join(process.cwd(), "..", "exterior", "mangas");
+    const mainFolderPath = path.join(process.cwd(), "..", "exterior", libraryFolderForVariant(books[0]?.variant ?? "manga"));
 
     const tasks = books.map((book) => async () => {
         if (!book.seriePath || !book.imagesFolder) return;
@@ -242,7 +243,7 @@ export class BooksService {
   async getPagePaths(book: Book): Promise<string[]> {
       if (book.format !== "images" || !book.seriePath || !book.imagesFolder) return [];
 
-      const folderPath = path.join(process.cwd(), "..", "exterior", "mangas", book.seriePath, book.imagesFolder);
+      const folderPath = path.join(process.cwd(), "..", "exterior", libraryFolderForVariant(book.variant), book.seriePath, book.imagesFolder);
 
       return listImageFiles(folderPath);
   }
@@ -273,7 +274,7 @@ export class BooksService {
       return this.bookModel.find({serie:new Types.ObjectId(serie)}).sort({sortName:1});
   }
 
-  async getSerieStats(userId:Types.ObjectId, serie:Types.ObjectId, variant:"manga" | "novela") {
+  async getSerieStats(userId:Types.ObjectId, serie:Types.ObjectId, variant:LibraryVariant) {
       const serieBooks = await this.filterBooks(userId, variant, {serie:serie._id, sort:"sortName"});
       const unreadBooks = serieBooks.filter(x=>x.status === "unread");
       const readingBooks = serieBooks.filter(x=>x.status === "reading");
@@ -286,7 +287,7 @@ export class BooksService {
       });
 
       if (readingBooks.length > 0) {
-          thumbnail = variant === "manga" ?  `${readingBooks[0].seriePath}/${readingBooks[0].imagesFolder}/${readingBooks[0].thumbnailPath}` : `${readingBooks[0].seriePath}/${readingBooks[0].thumbnailPath}`;
+          thumbnail = isImageBasedVariant(variant) ?  `${readingBooks[0].seriePath}/${readingBooks[0].imagesFolder}/${readingBooks[0].thumbnailPath}` : `${readingBooks[0].seriePath}/${readingBooks[0].thumbnailPath}`;
           currentBook = readingBooks[0]._id;
 
           if (readingBooks[0].mokured) {
@@ -295,7 +296,7 @@ export class BooksService {
       }
       else if (unreadBooks.length === 0) {
           if (serieBooks.length > 0) {
-              thumbnail = variant === "manga" ?  `${serieBooks[0].seriePath}/${serieBooks[0].imagesFolder}/${serieBooks[0].thumbnailPath}` : `${serieBooks[0].seriePath}/${serieBooks[0].thumbnailPath}`;   
+              thumbnail = isImageBasedVariant(variant) ?  `${serieBooks[0].seriePath}/${serieBooks[0].imagesFolder}/${serieBooks[0].thumbnailPath}` : `${serieBooks[0].seriePath}/${serieBooks[0].thumbnailPath}`;
               currentBook = serieBooks[0]._id;
 
               if (serieBooks[0].mokured) {
@@ -303,7 +304,7 @@ export class BooksService {
               }
           }
       } else {
-          thumbnail = variant === "manga" ?  `${unreadBooks[0].seriePath}/${unreadBooks[0].imagesFolder}/${unreadBooks[0].thumbnailPath}` : `${unreadBooks[0].seriePath}/${unreadBooks[0].thumbnailPath}`;  
+          thumbnail = isImageBasedVariant(variant) ?  `${unreadBooks[0].seriePath}/${unreadBooks[0].imagesFolder}/${unreadBooks[0].thumbnailPath}` : `${unreadBooks[0].seriePath}/${unreadBooks[0].thumbnailPath}`;
           currentBook = unreadBooks[0]._id;
 
           if (unreadBooks[0].mokured) {
@@ -359,7 +360,7 @@ export class BooksService {
       pages?: number;
       characters:number;
       thumbnailPath: string;
-      variant:"manga" | "novela";
+      variant:LibraryVariant;
       pageChars?:number[];
       format?:"mokuro" | "images";
   }): Promise<Book | null> {
@@ -384,15 +385,15 @@ export class BooksService {
       return this.bookModel.create(newBook);
   }
 
-  findNonMissing(variant:"manga" | "novela"): Promise<Book[]> {
+  findNonMissing(variant:LibraryVariant): Promise<Book[]> {
       return this.bookModel.find({missing: false, variant, mokured:{$ne:true}});
   }
 
-  findMissing(variant:"manga" | "novela"): Promise<Book[]> {
+  findMissing(variant:LibraryVariant): Promise<Book[]> {
       return this.bookModel.find({missing: true, variant});
   }
 
-  markAsMissing(path: string, variant:"manga" | "novela"): Promise<Book | null> {
+  markAsMissing(path: string, variant:LibraryVariant): Promise<Book | null> {
       this.logger.log("\x1b[34m" + path + " marcado como desaparecido.");
       return this.bookModel.findOneAndUpdate(
           {path, variant},

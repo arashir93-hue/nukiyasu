@@ -8,6 +8,7 @@ import {Spinner} from "../../../ui/Spinner";
 import type {UserProgress} from "../../../types/user";
 import {HeatmapCalendar} from "../components/HeatmapCalendar";
 import {LogTable, type LogData} from "../components/LogTable";
+import {bookThumbnail} from "../../../lib/media";
 
 function Calendar():React.ReactElement {
     const [selectedDay, setSelectedDay] = useState<Dayjs>(dayjs());
@@ -47,16 +48,10 @@ function Calendar():React.ReactElement {
             const rows:LogData[] = [];
 
             res.forEach((progress)=>{
-                let thumbnail = progress.variant === "manga" ? `/mangas/${progress.bookInfo.seriePath}/${progress.bookInfo.imagesFolder}/${progress.bookInfo.thumbnailPath}` : `/novelas/${progress.bookInfo.seriePath}/${progress.bookInfo.thumbnailPath}`;
-
-                if (progress.bookInfo.mokured) {
-                    thumbnail = `/novelas/${progress.bookInfo.seriePath}/${progress.bookInfo.imagesFolder}/${progress.bookInfo.thumbnailPath}`;
-                }
-
                 rows.push({
                     id:progress._id,
                     bookId:progress.bookInfo._id,
-                    image:`/api/static/${thumbnail}`,
+                    image:bookThumbnail(progress.bookInfo),
                     book:progress.bookInfo.visibleName,
                     serie:progress.serieInfo.visibleName,
                     tipo:progress.variant,

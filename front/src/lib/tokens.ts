@@ -14,6 +14,7 @@ export function cssVar(name: string, fallback = ""): string {
 export interface ChartTokens {
   primary: string;
   accent: string;
+  warning: string;
   fg: string;
   fgMuted: string;
   border: string;
@@ -30,6 +31,7 @@ export function chartTokens(isDark: boolean): ChartTokens {
   cachedTokens = {
     primary: cssVar("--primary-color", "#308054"),
     accent: cssVar("--accent-color", "#5bbfc2"),
+    warning: cssVar("--warning-color", "#d97706"),
     fg: cssVar("--fg-color", "#ebe8e3"),
     fgMuted: cssVar("--fg-muted", "#a09e9a"),
     border: cssVar("--app-border", "#ffffff1f"),

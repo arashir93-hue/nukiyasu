@@ -69,7 +69,7 @@ export function BookInfoDialog({book, open, onOpenChange}:BookInfoDialogProps):R
     ...(book.format === "images"
       ? []
       : [["Caracteres", String(book.characters ?? 0)] as [string, string]]),
-    ["Variante", book.variant === "manga" ? "Manga" : "Novela"],
+    ["Variante", book.variant === "manga" ? "Manga" : book.variant === "doujinshi" ? "Doujinshi" : "Novela"],
     ["Formato", book.format === "images" ? "Imágenes (sin mokuro)" : "Mokuro"],
     ["Mokuro", book.mokured ? "Sí" : "No"],
     ["Añadido", book.createdDate ? dayjs(book.createdDate).format("DD/MM/YYYY HH:mm") : "—"],

@@ -1,3 +1,5 @@
+import {LibraryVariant} from "./library";
+
 export type ProgressStatus = "unread" | "reading" | "completed";
 
 export type BookWithProgress = {
@@ -31,7 +33,7 @@ export interface Book {
     lastModifiedDate:Date;
     characters?:number;
     pageChars?:number[];
-    variant: "manga" | "novela";
+    variant: LibraryVariant;
     mokured?:boolean;
     /** "mokuro" (html + imágenes) o "images" (solo carpeta de imágenes). Ausente = mokuro. */
     format?: "mokuro" | "images";

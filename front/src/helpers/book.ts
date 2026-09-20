@@ -3,12 +3,13 @@ import {api} from "../api/api";
 import {Book, BookWithProgress} from "../types/book";
 import {openNovel} from "./ttu";
 import {confirmDialog} from "../stores/ConfirmStore";
+import {isImageBasedVariant, ImageVariant} from "../types/library";
 
 type MoveBook = {
     book:Book;
     navigate:NavigateFunction;
 } & ({
-    variant:"manga",
+    variant:ImageVariant,
 } | {
     variant:"novela",
     connector:React.RefObject<HTMLIFrameElement | null>,
@@ -29,15 +30,15 @@ export async function nextBook(props:MoveBook):Promise<void> {
         navigate(`/app/series/${book.serie}?finished=true`);
         return;
     }
-    if (variant === "manga" || book.mokured) {
+    if (isImageBasedVariant(variant) || book.mokured) {
         navigate(`/reader/${foundBook._id}`);
         return;
     }
 
     // NOVELA
-    const {connector} = props;
+    if (!("connector" in props)) return;
 
-    await openNovel(connector, foundBook, false, false);
+    await openNovel(props.connector, foundBook, false, false);
 }
 
 export async function prevBook(props:MoveBook):Promise<void> {
@@ -55,14 +56,14 @@ export async function prevBook(props:MoveBook):Promise<void> {
         navigate(`/app/series/${book.serie}`);
         return;
     }
-    if (variant === "manga" || book.mokured) {
+    if (isImageBasedVariant(variant) || book.mokured) {
         navigate(`/reader/${foundBook._id}`);
         return;
     }
 
     // NOVELA
-    const {connector} = props;
+    if (!("connector" in props)) return;
 
-    await openNovel(connector, foundBook, false, false);
+    await openNovel(props.connector, foundBook, false, false);
 }
 

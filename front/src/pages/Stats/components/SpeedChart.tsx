@@ -24,7 +24,7 @@ interface SpeedPoint {
 }
 
 interface SpeedChartProps {
-    data:{manga:SpeedPoint[], novelas:SpeedPoint[]};
+    data:{manga:SpeedPoint[], novelas:SpeedPoint[], doujinshi:SpeedPoint[]};
     labels:string[];
 }
 
@@ -61,8 +61,21 @@ function SpeedChart({data, labels}:SpeedChartProps):React.ReactElement {
                 pointHoverRadius: 7,
                 pointHoverBackgroundColor: isDark ? "#1E1E1E" : "#ffffff",
             },
+            {
+                label: "Doujinshi",
+                data:data.doujinshi.map((item)=>item.speed),
+                borderColor: tokens.warning,
+                backgroundColor: `${tokens.warning}26`,
+                fill: true,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 3,
+                pointBackgroundColor: isDark ? "#1E1E1E" : "#ffffff",
+                pointHoverRadius: 7,
+                pointHoverBackgroundColor: isDark ? "#1E1E1E" : "#ffffff",
+            },
         ],
-    }), [data, labels, tokens.primary, tokens.accent, isDark]);
+    }), [data, labels, tokens.primary, tokens.accent, tokens.warning, isDark]);
 
     const options = useMemo<ChartOptions<"line">>(()=>({
         maintainAspectRatio: false,

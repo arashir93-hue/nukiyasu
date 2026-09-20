@@ -8,11 +8,11 @@ export class Serie {
   _id: Types.ObjectId;
 
   // Con este parámetro se identificarán las series en el cronjob
-  @Prop({type: String, required: true, unique: true})
+  @Prop({type: String, required: true})
   path: string;
 
-  @Prop({type: String, required: true, enum: ["manga", "novela"]})
-  variant:"manga" | "novela";
+  @Prop({type: String, required: true, enum: ["manga", "novela", "doujinshi"]})
+  variant:"manga" | "novela" | "doujinshi";
 
   @Prop({type: String, required: true})
   visibleName: string;

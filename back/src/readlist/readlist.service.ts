@@ -26,7 +26,7 @@ export class ReadlistService {
 
     async getUserReadListSeries(
         user:Types.ObjectId,
-        variant:"manga" | "novela",
+        variant:"manga" | "novela" | "doujinshi",
         policy:ContentAccessPolicy
     ) {
         const result = await this.readListModel

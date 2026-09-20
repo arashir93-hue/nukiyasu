@@ -12,6 +12,8 @@ import {rollRandomSerie, saveRandomCriteria} from "../../lib/randomSerie";
 import {confirmDialog} from "../../stores/ConfirmStore";
 import {useSettingsStore} from "../../stores/SettingsStore";
 import type {Alphabet, SeriesFilter} from "../../types/serie";
+import type {LibraryVariant} from "../../types/library";
+import {libraryRouteForVariant} from "../../types/library";
 import {Button} from "../../ui/Button";
 import {EmptyState} from "../../ui/EmptyState";
 import {ErrorState} from "../../ui/ErrorState";
@@ -25,7 +27,7 @@ import {LibraryFiltersPopover} from "./components/LibraryFiltersPopover";
 import {activeFilterCount, sortOptions} from "./components/libraryFilterUtils";
 
 interface LibraryProps {
-    variant: "manga" | "novela";
+    variant: LibraryVariant;
 }
 
 const statusLabels: Record<string, string> = {
@@ -143,13 +145,14 @@ function Library({variant}:LibraryProps):React.ReactElement {
                         aria-label="Tipo de biblioteca"
                         value={variant}
                         onChange={(value)=>{
-                            const path = value === "manga" ? "/app/library/manga" : "/app/library/novels";
+                            const path = `/app/library/${libraryRouteForVariant(value as LibraryVariant)}`;
                             const query = queryParams.toString();
                             navigate(query ? `${path}?${query}` : path);
                         }}
                         options={[
                             {value:"manga", icon:<Images />, label:<span className="hidden sm:inline">Mangas</span>},
                             {value:"novela", icon:<BookOpen />, label:<span className="hidden sm:inline">Novelas</span>},
+                            ...(userData?.showMatureContent === true ? [{value:"doujinshi" as const, icon:<Images />, label:<span className="hidden sm:inline">Doujinshi</span>}] : []),
                         ]}
                     />
 

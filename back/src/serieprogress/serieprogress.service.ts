@@ -6,6 +6,7 @@ import {CreateOrModifySerieProgress} from "./interfaces/serieprogress";
 import {Book} from "../books/schemas/book.schema";
 import {FullSerie} from "../series/interfaces/serieWithProgress";
 import {ContentAccessPolicy, ContentAccessService} from "../content-access/content-access.service";
+import {isImageBasedVariant} from "../common/library-variant";
 
 @Injectable()
 export class SerieprogressService {
@@ -14,7 +15,7 @@ export class SerieprogressService {
         private readonly contentAccessService:ContentAccessService
     ) {}
 
-    async createOrModifySerieProgress(user:Types.ObjectId, serie:Types.ObjectId, books:Types.ObjectId[], variant:"manga" | "novela") {
+    async createOrModifySerieProgress(user:Types.ObjectId, serie:Types.ObjectId, books:Types.ObjectId[], variant:"manga" | "novela" | "doujinshi") {
         const foundProgress = await this.serieProgressModel.findOne({
             user:user,
             serie:serie
@@ -35,7 +36,7 @@ export class SerieprogressService {
         return this.serieProgressModel.create(createProgress);
     }
 
-    async createOrIncreaseBooks(createSerieprogressDto: CreateOrModifySerieProgress, variant:"manga" | "novela") {
+    async createOrIncreaseBooks(createSerieprogressDto: CreateOrModifySerieProgress, variant:"manga" | "novela" | "doujinshi") {
         const foundProgress = await this.serieProgressModel.findOne({
             user:createSerieprogressDto.user,
             serie:createSerieprogressDto.serie
@@ -70,7 +71,7 @@ export class SerieprogressService {
 
     async getUserPausedSeries(
         user:Types.ObjectId,
-        variant:"manga" | "novela",
+            variant:"manga" | "novela" | "doujinshi",
         policy:ContentAccessPolicy
     ) {
         const result = await this.serieProgressModel.aggregate()
@@ -100,7 +101,7 @@ export class SerieprogressService {
             paused:boolean
         } = {
             unreadBooks:serieData.bookCount,
-            thumbnailPath:serieData.variant === "manga" ? `${serieBooks[0].seriePath}/${serieBooks[0].imagesFolder}/${serieBooks[0].thumbnailPath}` : `${serieBooks[0].seriePath}/${serieBooks[0].thumbnailPath}`,
+            thumbnailPath:isImageBasedVariant(serieData.variant) ? `${serieBooks[0].seriePath}/${serieBooks[0].imagesFolder}/${serieBooks[0].thumbnailPath}` : `${serieBooks[0].seriePath}/${serieBooks[0].thumbnailPath}`,
             currentBook:serieBooks[0],
             type:"serie",
             paused:false
@@ -135,7 +136,7 @@ export class SerieprogressService {
         result.unreadBooks = unreadBooks.length;
         const currentBook = unreadBooks[0];
         result.currentBook = currentBook;
-        result.thumbnailPath = serieData.variant === "manga" ? `${currentBook.seriePath}/${currentBook.imagesFolder}/${currentBook.thumbnailPath}` : `${currentBook.seriePath}/${currentBook.thumbnailPath}`;
+        result.thumbnailPath = isImageBasedVariant(serieData.variant) ? `${currentBook.seriePath}/${currentBook.imagesFolder}/${currentBook.thumbnailPath}` : `${currentBook.seriePath}/${currentBook.thumbnailPath}`;
 
         if (currentBook.mokured) {
             result.thumbnailPath = `${currentBook.seriePath}/${currentBook.imagesFolder}/${currentBook.thumbnailPath}`;

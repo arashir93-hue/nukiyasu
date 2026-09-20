@@ -28,6 +28,7 @@ import {Reviews} from "./components/Reviews";
 import {NihongoTrackerLinkButton, NihongoTrackerLinkDialog} from "./components/NihongoTrackerLinkDialog";
 import {RerollFab} from "./components/RerollFab";
 import SpeedGraph from "./components/SpeedGraph";
+import {libraryRouteForVariant} from "../../types/library";
 
 function Serie():React.ReactElement {
     const {id} = useParams();
@@ -255,7 +256,7 @@ function Serie():React.ReactElement {
                             {serieData.genres.map((genre)=>(
                                 <Link
                                     key={genre}
-                                    to={`/app/library/${serieData.variant === "manga" ? "manga" : "novels"}?genre=${encodeURIComponent(genre)}`}
+                                    to={`/app/library/${libraryRouteForVariant(serieData.variant)}?genre=${encodeURIComponent(genre)}`}
                                     className="rounded-full border border-app-border px-3 py-1 text-xs font-medium text-fg-muted transition-colors hover:border-primary/50 hover:text-primary hover:no-underline"
                                 >
                                     {genre}
@@ -269,7 +270,7 @@ function Serie():React.ReactElement {
                             {serieData.authors.map((author)=>(
                                 <Link
                                     key={author}
-                                    to={`/app/library/${serieData.variant === "manga" ? "manga" : "novels"}?author=${encodeURIComponent(author)}`}
+                                    to={`/app/library/${libraryRouteForVariant(serieData.variant)}?author=${encodeURIComponent(author)}`}
                                     className="rounded-full border border-app-border px-3 py-1 text-xs font-medium text-fg-muted transition-colors hover:border-primary/50 hover:text-primary hover:no-underline"
                                 >
                                     {author}

@@ -2,6 +2,7 @@ import {api} from "../api/api";
 import {Book, BookProgress} from "../types/book";
 import {invalidateProgress} from "../lib/invalidate";
 import {deleteBookBookmark} from "./ttu";
+import {isImageBasedVariant} from "../types/library";
 
 export async function createProgress(bookData:Book, page?:number, time?:number, characters?:number, doublePages?:boolean,
     ttuId?:number, keepAlive = false):Promise<void> {
@@ -15,7 +16,7 @@ export async function createProgress(bookData:Book, page?:number, time?:number, 
         return;
     }
 
-    if (((bookData.variant === "manga" || bookData.mokured) && (page && page <= 1)) || (bookData.variant === "novela" && characters === 0)) {
+    if (((isImageBasedVariant(bookData.variant) || bookData.mokured) && (page && page <= 1)) || (bookData.variant === "novela" && characters === 0)) {
         return;
     }
 
@@ -34,7 +35,7 @@ export async function createProgress(bookData:Book, page?:number, time?:number, 
         characters:characters
     };
 
-    if ((bookData.variant === "manga" || bookData.mokured) && currentPage) {
+    if ((isImageBasedVariant(bookData.variant) || bookData.mokured) && currentPage) {
         if (bookData.pages <= currentPage) {
         // Libro terminado
             newProgress.status = "completed";
@@ -56,7 +57,7 @@ export async function createProgress(bookData:Book, page?:number, time?:number, 
         }
     }
 
-    if ((bookData.variant === "manga" || bookData.mokured) && !page) {
+    if ((isImageBasedVariant(bookData.variant) || bookData.mokured) && !page) {
         newProgress.status = "reading";
     }
 

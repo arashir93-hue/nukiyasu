@@ -5,9 +5,10 @@ import {ComponentScroller} from "../../../components/ComponentScroller/Component
 import {SectionError, ScrollerSkeleton} from "../../../components/Skeletons/Skeletons";
 import {SerieWithProgress} from "../../../types/serie";
 import {keys} from "../../../lib/queryKeys";
+import type {LibraryVariant} from "../../../types/library";
 
 interface ReadLaterScrollerProps {
-    variant:"manga" | "novela";
+    variant:LibraryVariant;
 }
 
 function ReadLaterScroller({variant}:ReadLaterScrollerProps):React.ReactElement {

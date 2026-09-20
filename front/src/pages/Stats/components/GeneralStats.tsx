@@ -10,6 +10,8 @@ interface GameStats {
     totalNovelaBooks:number;
     totalMangaSeries:number;
     totalNovelaSeries:number;
+    totalDoujinshiBooks:number;
+    totalDoujinshiSeries:number;
     totalPagesRead:number;
     totalCharacters:number;
     totalTimeRead:number;
@@ -84,8 +86,8 @@ function GeneralStats():React.ReactElement {
             <div className="flex flex-wrap gap-4">
                 <StatCard value={generalStats.totalCharacters.toLocaleString()} label="Caracteres leídos en total" />
                 <StatCard value={formatTime(generalStats.totalTimeRead)} label={`${formatTimeText(generalStats.totalTimeRead)} en total`} />
-                <StatCard value={(generalStats.totalMangaBooks + generalStats.totalNovelaBooks).toLocaleString()} label="Libros leídos" />
-                <StatCard value={(generalStats.totalMangaSeries + generalStats.totalNovelaSeries).toLocaleString()} label="Series leídas" />
+                <StatCard value={(generalStats.totalMangaBooks + generalStats.totalNovelaBooks + generalStats.totalDoujinshiBooks).toLocaleString()} label="Libros leídos" />
+                <StatCard value={(generalStats.totalMangaSeries + generalStats.totalNovelaSeries + generalStats.totalDoujinshiSeries).toLocaleString()} label="Series leídas" />
             </div>
 
             {details ? (
@@ -96,6 +98,13 @@ function GeneralStats():React.ReactElement {
                             <StatCard value={generalStats.totalMangaBooks.toLocaleString()} label="Mangas leídos" />
                             <StatCard value={generalStats.totalMangaSeries.toLocaleString()} label="Series de manga leídas" />
                             <StatCard value={generalStats.totalPagesRead.toLocaleString()} label="Páginas de manga leídas" />
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-3">
+                        <h3 className="text-sm font-semibold text-fg-muted">Doujinshi</h3>
+                        <div className="flex flex-wrap gap-4">
+                            <StatCard value={generalStats.totalDoujinshiBooks.toLocaleString()} label="Doujinshi leídos" />
+                            <StatCard value={generalStats.totalDoujinshiSeries.toLocaleString()} label="Series de doujinshi leídas" />
                         </div>
                     </div>
                     <div className="flex flex-col gap-3">

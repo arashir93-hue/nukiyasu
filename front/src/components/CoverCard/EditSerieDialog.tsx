@@ -24,7 +24,7 @@ interface EditSerieDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-async function getAnilistData(title:string, variant:"manga" | "novela", apply:{
+async function getAnilistData(title:string, variant:"manga" | "novela" | "doujinshi", apply:{
   setName: (value: string) => void;
   setSortName: (value: string) => void;
   setSummary: (value: string) => void;
@@ -62,7 +62,7 @@ async function getAnilistData(title:string, variant:"manga" | "novela", apply:{
 
   const response = await request<AnilistSerie>("https://graphql.anilist.co", query, {
     query:title,
-    format:variant === "manga" ? "MANGA" : "NOVEL"
+    format:variant === "novela" ? "NOVEL" : "MANGA"
   });
 
   const data = response.Media;

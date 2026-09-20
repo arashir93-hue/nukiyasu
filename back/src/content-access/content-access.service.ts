@@ -3,6 +3,7 @@ import {InjectModel} from "@nestjs/mongoose";
 import {FilterQuery, Model, PipelineStage, Types} from "mongoose";
 import {Serie, SerieDocument} from "../series/schemas/series.schema";
 import {UsersService} from "../users/users.service";
+import {LibraryVariant} from "../common/library-variant";
 
 export interface ContentAccessPolicy {
     showMatureContent:boolean;
@@ -44,7 +45,7 @@ export class ContentAccessService {
     }
 
     async assertStaticFileAccessible(
-        variant:"manga" | "novela",
+        variant:LibraryVariant,
         seriePath:string,
         policy:ContentAccessPolicy
     ):Promise<void> {

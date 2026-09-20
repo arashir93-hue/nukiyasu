@@ -8,10 +8,12 @@ describe("ContentAccessService", () => {
     const normalId = new Types.ObjectId();
     const matureId = new Types.ObjectId();
     const legacyId = new Types.ObjectId();
+    const doujinshiId = new Types.ObjectId();
     const records = [
         {_id:normalId, path:"Normal", variant:"manga", isMature:false},
         {_id:matureId, path:"Madura", variant:"manga", isMature:true},
-        {_id:legacyId, path:"Antigua", variant:"novela"}
+        {_id:legacyId, path:"Antigua", variant:"novela"},
+        {_id:doujinshiId, path:"Doujin", variant:"doujinshi", isMature:true}
     ];
     let findById:jest.Mock;
     let service:ContentAccessService;
@@ -23,7 +25,7 @@ describe("ContentAccessService", () => {
             exists:jest.fn(async(query: {
                 _id?:Types.ObjectId;
                 path?:string;
-                variant?:"manga" | "novela";
+                variant?:"manga" | "novela" | "doujinshi";
                 isMature?:{$ne:boolean};
             }) => {
                 const record = query._id
@@ -60,6 +62,7 @@ describe("ContentAccessService", () => {
         await expect(service.assertStaticFileAccessible("manga", "Normal", policy)).resolves.toBeUndefined();
         await expect(service.assertStaticFileAccessible("novela", "Antigua", policy)).resolves.toBeUndefined();
         await expect(service.assertStaticFileAccessible("manga", "Madura", policy)).rejects.toBeInstanceOf(NotFoundException);
+        await expect(service.assertStaticFileAccessible("doujinshi", "Doujin", policy)).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it("permite series normales y maduras cuando la preferencia está activa", async() => {

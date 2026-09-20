@@ -17,6 +17,7 @@ import * as path from "path";
 import * as fs from "fs-extra";
 import EPub from "epub2";
 import {ContentAccessService} from "../content-access/content-access.service";
+import {isImageBasedVariant, libraryFolderForVariant, LibraryVariant} from "../common/library-variant";
 
 @Controller("books")
 @ApiTags("Libros")
@@ -42,7 +43,7 @@ export class BooksController {
 
     @Get(":variant")
     @ApiOkResponse({status:HttpStatus.OK})
-    async filterBooks(@Req() req:Request, @Query() query:SearchQuery, @Param("variant") variant:"manga" | "novela" | "all") {
+    async filterBooks(@Req() req:Request, @Query() query:SearchQuery, @Param("variant") variant:LibraryVariant | "all") {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId: Types.ObjectId};
@@ -98,8 +99,8 @@ export class BooksController {
 
         const mainFolderPath = join(process.cwd(), "..", "exterior");
 
-        if (foundBook.mokured || foundBook.variant === "manga") {
-            const characters = await getCharacterCount(join(mainFolderPath, foundBook.mokured ? "novelas" : "mangas", foundBook.seriePath, foundBook.path + ".html"), borders);
+        if (foundBook.mokured || isImageBasedVariant(foundBook.variant)) {
+            const characters = await getCharacterCount(join(mainFolderPath, foundBook.mokured ? "novelas" : libraryFolderForVariant(foundBook.variant), foundBook.seriePath, foundBook.path + ".html"), borders);
 
             return this.booksService.editBook(book, {characters:characters.total, pageChars:characters.pages});
         }
@@ -266,7 +267,7 @@ export class BooksController {
 
         if (!foundBook.imagesFolder) throw new BadRequestException();
 
-        const imagesFolderPath = resolveInside(exteriorRoot, "mangas", foundBook.seriePath, foundBook.imagesFolder);
+        const imagesFolderPath = resolveInside(exteriorRoot, libraryFolderForVariant(foundBook.variant), foundBook.seriePath, foundBook.imagesFolder);
 
         // Tomo sin mokuro: solo hay imágenes que descargar
         if (foundBook.format === "images") {
@@ -283,7 +284,7 @@ export class BooksController {
             return;
         }
 
-        const htmlPath = resolveInside(exteriorRoot, "mangas", foundBook.seriePath, `${foundBook.path}.html`);
+        const htmlPath = resolveInside(exteriorRoot, libraryFolderForVariant(foundBook.variant), foundBook.seriePath, `${foundBook.path}.html`);
 
         if (!fs.existsSync(imagesFolderPath) || !fs.existsSync(htmlPath)) throw new NotFoundException();
 

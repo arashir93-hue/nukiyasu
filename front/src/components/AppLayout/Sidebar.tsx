@@ -104,7 +104,7 @@ export function Sidebar({collapsed, onToggleCollapsed, onOpenSettings, onOpenAcc
 
 function SidebarSection({section, collapsed}:{section:NavSection; collapsed:boolean}):React.ReactElement | null {
   const {userData} = useAuth();
-  const items = section.items.filter((item)=>!item.adminOnly || userData?.admin);
+  const items = section.items.filter((item)=>(!item.adminOnly || userData?.admin) && (!item.matureOnly || userData?.showMatureContent === true));
 
   if (items.length === 0) return null;
 

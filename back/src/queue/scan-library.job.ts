@@ -18,4 +18,9 @@ export class ScanWorker  {
     // Llamar a tu función pesada aquí
         await this.appService.rescanRanobeLibrary();
     }
+
+    @Process("scandoujinshi")
+    async handleDoujinshi() {
+        await this.appService.rescanDoujinshiLibrary();
+    }
 }

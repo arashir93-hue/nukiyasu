@@ -21,6 +21,7 @@ import {NihongoTrackerLink, NihongoTrackerLinkDocument} from "./schemas/link.sch
 import {NihongoTrackerLog, NihongoTrackerLogDocument} from "./schemas/log.schema";
 import {NihongoTrackerBookOverride, NihongoTrackerBookOverrideDocument} from "./schemas/book-override.schema";
 import {resolveVolumeNumber, VolumeResolution} from "./volume-resolver";
+import {isImageBasedVariant} from "../common/library-variant";
 
 type MediaType = "manga" | "light-novel";
 
@@ -295,7 +296,7 @@ export class NihongoTrackerService {
             volumeNumber:resolution.volumeNumber,
             volumeSource:resolution.source,
             serieName:serie.visibleName,
-            pages:book.variant === "manga" || book.mokured ? book.pages : undefined,
+            pages:isImageBasedVariant(book.variant) || book.mokured ? book.pages : undefined,
             timeSeconds:progress?.time || 0,
             characters:book.characters || progress?.characters || 0
         };
@@ -335,7 +336,7 @@ export class NihongoTrackerService {
             volume,
             // En manga el progreso guarda los caracteres de la página actual;
             // al terminar el tomo, los metadatos del libro representan el total.
-            pages:book.variant === "manga" || book.mokured ? book.pages : undefined,
+            pages:isImageBasedVariant(book.variant) || book.mokured ? book.pages : undefined,
             chars:book.characters || progress.characters || 0,
             time:Math.max(0, Math.round((progress.time || 0) / 60)),
             date:(progress.endDate || progress.lastUpdateDate || new Date()).toISOString()

@@ -3,6 +3,7 @@ import React, {useState} from "react";
 import {formatTime} from "../../../helpers/helpers";
 import {createProgress} from "../../../helpers/progress";
 import {useReaderTimerStore} from "../../../stores/ReaderStore";
+import {isImageBasedVariant} from "../../../types/library";
 import {confirmDialog} from "../../../stores/ConfirmStore";
 import type {Book, BookProgress} from "../../../types/book";
 import {Button} from "../../../ui/Button";
@@ -69,7 +70,7 @@ export function StopWatchMenu({characters, bookData, oldProgress, currentPage, r
 
         if (bookData.variant === "novela") {
             text = `.log lectura ${currentChars} ${bookData.visibleName}`;
-        } else if (bookData.variant === "manga" && !!currentPage) {
+        } else if (isImageBasedVariant(bookData.variant) && !!currentPage) {
             const readPages = currentPage - (oldProgress?.currentPage || 0);
             text = `.log manga ${readPages} ${bookData.visibleName}`;
         }
@@ -80,7 +81,7 @@ export function StopWatchMenu({characters, bookData, oldProgress, currentPage, r
             text += `;${Math.floor(currentTime / 60)}`;
         }
 
-        if (currentChars > 0 && bookData.variant === "manga") {
+        if (currentChars > 0 && isImageBasedVariant(bookData.variant)) {
             text += `&${currentChars}`;
         }
 

@@ -1,5 +1,6 @@
 import {Book} from "./book";
 import {Serie} from "./serie";
+import {LibraryVariant} from "./library";
 
 export interface LoggedUser {
     _id:string;
@@ -47,5 +48,5 @@ export interface UserProgress {
     bookInfo:Book;
     serieInfo:Serie;
     characters?:number;
-    variant:"manga" | "novela"
+    variant:LibraryVariant
 }

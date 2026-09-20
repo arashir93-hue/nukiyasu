@@ -53,6 +53,27 @@ describe("Static library mature visibility", () => {
         expect(response.sendFile).not.toHaveBeenCalled();
     });
 
+    it("reconoce la raíz estática doujinshi y delega su control mature", async() => {
+        const contentAccess = {
+            forUser:jest.fn().mockResolvedValue(policy),
+            assertStaticFileAccessible:jest.fn().mockResolvedValue(undefined)
+        };
+        const controller = createController(contentAccess);
+        const response = createResponse();
+
+        await controller.serveFiles(
+            {user:{userId}, path:"/api/static/doujinshi/Serie/vol01/001.jpg"} as unknown as Request,
+            response
+        );
+
+        expect(contentAccess.assertStaticFileAccessible).toHaveBeenCalledWith("doujinshi", "Serie", policy);
+        expect(response.sendFile).toHaveBeenCalledWith(
+            "/doujinshi/Serie/vol01/001.jpg",
+            {root:"./../exterior"},
+            expect.any(Function)
+        );
+    });
+
     it.each([
         {showMatureContent:false, seriesMatch:{isMature:{$ne:true}}},
         {showMatureContent:true, seriesMatch:{}}

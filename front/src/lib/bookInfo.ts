@@ -1,6 +1,7 @@
 import {formatTime} from "../helpers/helpers";
 import type {BookWithProgress} from "../types/book";
 import type {SiteConfig} from "../types/settings";
+import {isImageBasedVariant} from "../types/library";
 
 type BookView = SiteConfig["bookView"];
 
@@ -10,7 +11,7 @@ export function getBookProgressPercent(book: BookWithProgress, read: boolean): n
   if (book.status === "completed") return 100;
   if (!book.lastProgress) return 0;
 
-  if (book.variant === "manga" || book.mokured) {
+  if (isImageBasedVariant(book.variant) || book.mokured) {
     return Math.min(100, (book.lastProgress.currentPage * 100) / book.pages);
   }
 

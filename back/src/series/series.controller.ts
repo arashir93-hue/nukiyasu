@@ -17,6 +17,7 @@ import {mangaZipFilter, novelZipFilter, resolveInside, streamZipToResponse} from
 import * as path from "path";
 import * as fs from "fs-extra";
 import {ContentAccessService} from "../content-access/content-access.service";
+import {libraryFolderForVariant, LibraryVariant} from "../common/library-variant";
 
 @Controller("series")
 @UseGuards(JwtAuthGuard)
@@ -64,7 +65,7 @@ export class SeriesController {
 
     @Get(":variant")
     @ApiOkResponse({status:HttpStatus.OK})
-    async filterSeries(@Req() req:Request, @Query() query:SeriesSearch, @Param("variant") variant:"manga" | "novela" | "all") {
+    async filterSeries(@Req() req:Request, @Query() query:SeriesSearch, @Param("variant") variant:LibraryVariant | "all") {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
@@ -127,7 +128,7 @@ export class SeriesController {
     }
 
     @Get(":variant/random")
-    async getRandomSerie(@Req() req:Request, @Query() query:SeriesSearch, @Param("variant") variant:"manga" | "novela") {
+    async getRandomSerie(@Req() req:Request, @Query() query:SeriesSearch, @Param("variant") variant:LibraryVariant) {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
@@ -209,7 +210,7 @@ export class SeriesController {
 
     @Get(":variant/alphabet")
     @ApiOkResponse({status:HttpStatus.OK})
-    async getAlphabetGroups(@Req() req:Request, @Query() query:SeriesSearch, @Param("variant") variant:"manga" | "novela") {
+    async getAlphabetGroups(@Req() req:Request, @Query() query:SeriesSearch, @Param("variant") variant:LibraryVariant) {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
@@ -240,7 +241,7 @@ export class SeriesController {
     }
 
     @Get(":variant/readlist")
-    async getReadlistSeries(@Req() req:Request, @Param("variant") variant:"manga" | "novela") {
+    async getReadlistSeries(@Req() req:Request, @Param("variant") variant:LibraryVariant) {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
@@ -276,7 +277,7 @@ export class SeriesController {
     }
 
     @Get(":variant/paused")
-    async getPausedSeries(@Req() req:Request, @Param("variant") variant:"manga" | "novela") {
+    async getPausedSeries(@Req() req:Request, @Param("variant") variant:LibraryVariant) {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
@@ -367,7 +368,7 @@ export class SeriesController {
 
         const serieFolderPath = resolveInside(
             exteriorRoot,
-            isNovela ? "novelas" : "mangas",
+            libraryFolderForVariant(foundSerie.variant),
             foundSerie.path
         );
 

@@ -41,7 +41,7 @@ export class ReadlistController {
 
     @Get(":variant")
     @ApiOkResponse({status:HttpStatus.OK})
-    async getReadList(@Req() req: Request, @Param("variant") variant: "manga" | "novela") {
+    async getReadList(@Req() req: Request, @Param("variant") variant: "manga" | "novela" | "doujinshi") {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId: Types.ObjectId};

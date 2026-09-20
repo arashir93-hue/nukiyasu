@@ -23,7 +23,7 @@ interface HoursPoint {
 }
 
 interface TotalReadChartProps {
-    data:{manga:HoursPoint[], novelas:HoursPoint[]};
+    data:{manga:HoursPoint[], novelas:HoursPoint[], doujinshi:HoursPoint[]};
     labels:string[];
 }
 
@@ -48,8 +48,15 @@ function TotalReadChart({data, labels}:TotalReadChartProps):React.ReactElement {
                 borderRadius: 4,
                 stack: "horas",
             },
+            {
+                label: "Doujinshi",
+                data:data.doujinshi.map((item)=>item.totalHours),
+                backgroundColor: tokens.warning,
+                borderRadius: 4,
+                stack: "horas",
+            },
         ],
-    }), [data, labels, tokens.primary, tokens.accent]);
+    }), [data, labels, tokens.primary, tokens.accent, tokens.warning]);
 
     const options = useMemo<ChartOptions<"bar">>(()=>({
         maintainAspectRatio: false,

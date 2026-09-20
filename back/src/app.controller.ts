@@ -39,14 +39,15 @@ export class AppController {
 
     @Get("rescan/:variant")
     @ApiOkResponse({status:HttpStatus.OK})
-    async rescanLibrary(@Req() req:Request, @Param("variant") variant:"manga" | "novela") {
+    async rescanLibrary(@Req() req:Request, @Param("variant") variant:"manga" | "novela" | "doujinshi") {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId:Types.ObjectId};
 
         await this.usersService.isAdmin(userId);
 
-        const job = await this.rescanQueue.add(variant === "manga" ? "scanmangas" : "scanranobe");
+        const jobName = variant === "manga" ? "scanmangas" : variant === "doujinshi" ? "scandoujinshi" : "scanranobe";
+        const job = await this.rescanQueue.add(jobName);
 
         console.log(`created job ${ job.id}`);
 

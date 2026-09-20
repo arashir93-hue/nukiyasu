@@ -1,8 +1,9 @@
 import {api} from "../api/api";
 import type {SerieWithProgress} from "../types/serie";
 import {buildSeriesQuery, type LibraryFilters} from "./useLibraryFilters";
+import type {LibraryVariant} from "../types/library";
 
-export type RandomVariant = "manga" | "novela";
+export type RandomVariant = LibraryVariant;
 
 /** Subconjunto de filtros que definen la tirada del dado (se recuerda entre sesiones). */
 export type RandomCriteria = Pick<LibraryFilters, "letter" | "genre" | "author" | "status" | "readProgress" | "readlist" | "min" | "max">;

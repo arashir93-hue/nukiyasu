@@ -176,6 +176,15 @@ export class ReadprogressService {
                         ]
                     }
                 },
+                totalDoujinshiBooks: {
+                    $sum: {
+                        $cond: [
+                            {$and: [{$eq: ["$status", "completed"]}, {$eq: ["$variant", "doujinshi"]}]},
+                            1,
+                            0
+                        ]
+                    }
+                },
                 mangaSeries: {
                     $addToSet: {
                         $cond: [
@@ -189,6 +198,15 @@ export class ReadprogressService {
                     $addToSet: {
                         $cond: [
                             {$and:[{$eq: ["$variant", "novela"]}, {$eq: ["$status", "completed"]}]},
+                            "$serie",
+                            null
+                        ]
+                    }
+                },
+                doujinshiSeries: {
+                    $addToSet: {
+                        $cond: [
+                            {$and:[{$eq: ["$variant", "doujinshi"]}, {$eq: ["$status", "completed"]}]},
                             "$serie",
                             null
                         ]
@@ -209,8 +227,10 @@ export class ReadprogressService {
                     _id: 0,
                     totalMangaBooks: 1,
                     totalNovelaBooks: 1,
+                    totalDoujinshiBooks: 1,
                     totalMangaSeries: "$mangaSeries",
                     totalNovelaSeries: "$novelaSeries",
+                    totalDoujinshiSeries: "$doujinshiSeries",
                     totalPagesRead: 1,
                     totalCharacters:1,
                     totalTimeRead: {
@@ -220,9 +240,12 @@ export class ReadprogressService {
             );
 
         if (res.length > 0) {
-            const [result] = res as {totalMangaBooks:number, totalNovelaBooks:number, totalMangaSeries:Types.ObjectId[], totalNovelaSeries:Types.ObjectId[], totalPagesRead:number, totalCharacters:number, totalTimeRead:number}[];
+            const [result] = res as {totalMangaBooks:number, totalNovelaBooks:number, totalDoujinshiBooks:number, totalMangaSeries:Types.ObjectId[], totalNovelaSeries:Types.ObjectId[], totalDoujinshiSeries:Types.ObjectId[], totalPagesRead:number, totalCharacters:number, totalTimeRead:number}[];
 
-            return {...result, totalMangaSeries:result.totalMangaSeries.filter(x=>!!x).length, totalNovelaSeries:result.totalNovelaSeries.filter(x=>!!x).length};
+            const mangaSeries = result.totalMangaSeries ?? [];
+            const novelaSeries = result.totalNovelaSeries ?? [];
+            const doujinshiSeries = result.totalDoujinshiSeries ?? [];
+            return {...result, totalMangaSeries:mangaSeries.filter(x=>!!x).length, totalNovelaSeries:novelaSeries.filter(x=>!!x).length, totalDoujinshiSeries:doujinshiSeries.filter(x=>!!x).length};
         }
         return {};
     }
@@ -308,8 +331,39 @@ export class ReadprogressService {
                 }
             )).filter(x=>x._id.year !== null);
 
-        if (mangaRes.length > 0 || novelaRes.length > 0) {
-            return {manga:mangaRes, novela:novelaRes};
+        const doujinshiResult = this.readProgressModel.aggregate()
+            .match({user:new Types.ObjectId(user), time:{$gt:0}, variant:"doujinshi"});
+
+        doujinshiResult.append(...this.contentAccessService.seriesAccessStages(policy));
+
+        const doujinshiRes = (await doujinshiResult.group({
+                _id: {
+                    year: {$year: "$endDate"},
+                    month: {$month: "$endDate"}
+                },
+                totalCharacters: {$sum: "$characters"},
+                totalTime: {$sum: "$time"}
+            })
+            .addFields({
+                meanReadSpeed: {
+                    $cond: [
+                        {$gt: ["$totalTime", 0]},
+                        {$multiply:[{$divide: ["$totalCharacters", "$totalTime"]}, 3600]},
+                        0
+                    ]
+                },
+                totalHours: {
+                    $cond: [
+                        {$gt: ["$totalTime", 0]},
+                        {$divide: ["$totalTime", 3600]},
+                        0
+                    ]
+                }
+            })
+            .sort({"_id.year":1, "_id.month":1})).filter(x=>x._id.year !== null);
+
+        if (mangaRes.length > 0 || novelaRes.length > 0 || doujinshiRes.length > 0) {
+            return {manga:mangaRes, novela:novelaRes, doujinshi:doujinshiRes};
         }
         return {};
     }

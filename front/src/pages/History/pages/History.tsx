@@ -7,6 +7,7 @@ import type {UserProgress} from "../../../types/user";
 import type {SortDirection, TableSort} from "../../../ui/Table";
 import {Snackbar} from "../../../ui/Snackbar";
 import {LogTable, type LogData} from "../components/LogTable";
+import {bookThumbnail} from "../../../lib/media";
 
 const PAGE_SIZE = 25;
 
@@ -29,16 +30,10 @@ function History():React.ReactElement {
             const rows:LogData[] = [];
 
             res.data.forEach((progress)=>{
-                let thumbnail = progress.variant === "manga" ? `/mangas/${progress.bookInfo.seriePath}/${progress.bookInfo.imagesFolder}/${progress.bookInfo.thumbnailPath}` : `/novelas/${progress.bookInfo.seriePath}/${progress.bookInfo.thumbnailPath}`;
-
-                if (progress.bookInfo.mokured) {
-                    thumbnail = `/novelas/${progress.bookInfo.seriePath}/${progress.bookInfo.imagesFolder}/${progress.bookInfo.thumbnailPath}`;
-                }
-
                 rows.push({
                     id:progress._id,
                     bookId:progress.bookInfo._id,
-                    image:`/api/static/${thumbnail}`,
+                    image:bookThumbnail(progress.bookInfo),
                     book:progress.bookInfo.visibleName,
                     serie:progress.serieInfo.visibleName,
                     tipo:progress.variant,

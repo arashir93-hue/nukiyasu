@@ -6,9 +6,11 @@ import {api} from "../../../api/api";
 import {ComponentScroller} from "../../../components/ComponentScroller/ComponentScroller";
 import {SectionError, ScrollerSkeleton} from "../../../components/Skeletons/Skeletons";
 import {keys} from "../../../lib/queryKeys";
+import type {LibraryVariant} from "../../../types/library";
+import {libraryRouteForVariant} from "../../../types/library";
 
 interface NewBooksScrollerProps {
-    variant:"manga" | "novela";
+    variant:LibraryVariant;
 }
 
 function NewBooksScroller({variant}:NewBooksScrollerProps):React.ReactElement {
@@ -19,7 +21,7 @@ function NewBooksScroller({variant}:NewBooksScrollerProps):React.ReactElement {
         }
     });
 
-    const title = variant === "manga" ? "Mangas nuevos" : "Novelas nuevas";
+    const title = variant === "manga" ? "Mangas nuevos" : variant === "doujinshi" ? "Doujinshi nuevos" : "Novelas nuevas";
 
     if (isLoading) return <ScrollerSkeleton title={title}/>;
 
@@ -42,7 +44,7 @@ function NewBooksScroller({variant}:NewBooksScrollerProps):React.ReactElement {
 
     return (
         <ComponentScroller type="books" title={title} components={recentBooks} noVariantIndicator
-            moreLink={`/app/library/${variant === "manga" ? "manga" : "novels"}?sortBy=!_id`}
+            moreLink={`/app/library/${libraryRouteForVariant(variant)}?sortBy=!_id`}
         />
     );
 }

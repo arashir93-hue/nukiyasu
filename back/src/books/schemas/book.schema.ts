@@ -8,7 +8,7 @@ export type BookDocument = Book & Document;
 export class Book {
   _id?: Types.ObjectId;
 
-  @Prop({type: String, required: true, unique: true})
+  @Prop({type: String, required: true})
   path: string;
 
   @Prop({type: SchemaTypes.ObjectId, ref:Serie.name, require: true})
@@ -50,8 +50,8 @@ export class Book {
   @Prop({type:Array, default:[]})
   pageChars:number[];
 
-  @Prop({type:String, enum:["manga", "novela"], required:true})
-  variant:"manga" | "novela";
+  @Prop({type:String, enum:["manga", "novela", "doujinshi"], required:true})
+  variant:"manga" | "novela" | "doujinshi";
 
   @Prop({type:Boolean, default:false})
   mokured:boolean;

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-duplicate-enum-values */
 import {BookWithProgress} from "./book";
+import {LibraryVariant} from "./library";
 
 export interface Serie {
     _id: string;
@@ -19,7 +20,7 @@ export interface Serie {
     currentBook:string;
     valoration:number;
     alternativeNames: string[];
-    variant: "manga" | "novela";
+    variant: LibraryVariant;
     /** Las series antiguas sin este campo se consideran no maduras. */
     isMature?:boolean;
 }

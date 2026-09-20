@@ -5,9 +5,11 @@ import {ComponentScroller} from "../../../components/ComponentScroller/Component
 import {SectionError, ScrollerSkeleton} from "../../../components/Skeletons/Skeletons";
 import {SeriesFilter} from "../../../types/serie";
 import {keys} from "../../../lib/queryKeys";
+import type {LibraryVariant} from "../../../types/library";
+import {libraryRouteForVariant} from "../../../types/library";
 
 interface RecentSeriesScrollerProps {
-    variant:"manga" | "novela";
+    variant:LibraryVariant;
 }
 
 function RecentSeriesScroller({variant}:RecentSeriesScrollerProps):React.ReactElement {
@@ -22,7 +24,7 @@ function RecentSeriesScroller({variant}:RecentSeriesScrollerProps):React.ReactEl
         }
     });
 
-    const title = `Series de ${variant === "manga" ? "manga" : "novelas"} con volúmenes nuevos`;
+    const title = `Series de ${variant === "manga" ? "manga" : variant === "doujinshi" ? "doujinshi" : "novelas"} con volúmenes nuevos`;
 
     if (isLoading) return <ScrollerSkeleton title={title}/>;
 
@@ -36,7 +38,7 @@ function RecentSeriesScroller({variant}:RecentSeriesScrollerProps):React.ReactEl
 
     return (
         <ComponentScroller type="series" title={title} components={recentSeries} noVariantIndicator
-            moreLink={`/app/library/${variant === "manga" ? "manga" : "novels"}?sortBy=!lastModifiedDate`}
+            moreLink={`/app/library/${libraryRouteForVariant(variant)}?sortBy=!lastModifiedDate`}
         />
     );
 }

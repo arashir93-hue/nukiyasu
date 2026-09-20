@@ -74,7 +74,7 @@ export function LogTable({data, loading, refetch, onCopied, sort, onSortChange, 
       text += `;${Math.floor(row.time / 60)}`;
     }
 
-    if (row.characters > 0 && row.tipo === "manga") {
+    if (row.characters > 0 && row.tipo !== "novela") {
       text += `&${row.characters}`;
     }
 
@@ -129,7 +129,7 @@ export function LogTable({data, loading, refetch, onCopied, sort, onSortChange, 
       key:"tipo",
       header:"Tipo",
       width:"6rem",
-      render:(row)=><span className="text-fg-muted">{row.tipo === "manga" ? "Manga" : "Novela"}</span>,
+      render:(row)=><span className="text-fg-muted">{row.tipo === "doujinshi" ? "Doujinshi" : row.tipo === "manga" ? "Manga" : "Novela"}</span>,
     },
     {
       key:"status",

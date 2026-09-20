@@ -11,6 +11,7 @@ import {WebsocketsGateway} from "./websockets/websockets.gateway";
 import {InjectQueue} from "@nestjs/bull";
 import {Queue} from "bull";
 import EPub from "epub2";
+import {isImageBasedVariant, libraryFolderForVariant, LibraryVariant} from "./common/library-variant";
 
 
 @Injectable()
@@ -31,9 +32,19 @@ export class AppService {
   async addScheduleToQueue() {
       const job = await this.rescanQueue.add("scanmangas");
       const job2 = await this.rescanQueue.add("scanranobe");
+      const job3 = await this.rescanQueue.add("scandoujinshi");
 
       console.log(`created job ${ job.id}`);
       console.log(`created job ${ job2.id}`);
+      console.log(`created job ${ job3.id}`);
+  }
+
+  async rescanMangaLibrary() {
+      return this.rescanImageLibrary("manga", "mangas");
+  }
+
+  async rescanDoujinshiLibrary() {
+      return this.rescanImageLibrary("doujinshi", "doujinshi");
   }
 
   /**
@@ -52,9 +63,9 @@ export class AppService {
    * La otra opción que tendrá es restaurar el elemento con el
    * mismo nombre para que se le quite la propiedad "missing"
    */
-  async rescanMangaLibrary() {
+  private async rescanImageLibrary(variant:"manga" | "doujinshi", folderName:string) {
       try {
-          this.logger.log("\x1b[34mEscaneando biblioteca de manga...");
+          this.logger.log(`\x1b[34mEscaneando biblioteca de ${variant === "doujinshi" ? "doujinshi" : "manga"}...`);
           const existingFolders: string[] = [];
           const existingBooks: {
               seriePath: string;
@@ -65,8 +76,15 @@ export class AppService {
               seriePath: string;
               folderName: string;
           }[] = [];
-          const mainFolderPath = join(process.cwd(), "..", "exterior", "mangas");
+          const mainFolderPath = join(process.cwd(), "..", "exterior", folderName);
           let areChanges = false;
+
+          if (!fs.existsSync(mainFolderPath)) {
+              this.logger.warn(`No existe la raíz de biblioteca ${mainFolderPath}; se omite el escaneo.`);
+              return;
+          }
+
+          await this.seriesService.ensureVariantMaturity(variant);
 
           this.cleanupLeakedZips(join(process.cwd(), "..", "exterior"));
 
@@ -118,7 +136,7 @@ export class AppService {
 
           // INICIO PROCESO DE SERIES
           // Busca todas las series no marcadas como desaparecidas de la base de datos
-          const savedFolders = (await this.seriesService.findNonMissing("manga")).map(
+          const savedFolders = (await this.seriesService.findNonMissing(variant)).map(
               (item) => item.path
           );
 
@@ -135,7 +153,7 @@ export class AppService {
           // Añade las series nuevas a la base de datos
           if (foldersToAddInDb.length > 0) {
               // Promise to wait for the series to be created
-              this.logger.log("\x1b[34mEncontradas series de manga nuevas");
+              this.logger.log(`\x1b[34mEncontradas series de ${variant === "doujinshi" ? "doujinshi" : "manga"} nuevas`);
               areChanges = true;
               await Promise.all(
                   foldersToAddInDb.map(async(elem) => {
@@ -144,7 +162,8 @@ export class AppService {
                           visibleName: elem,
                           sortName: elem,
                           alternativeNames:[elem],
-                          variant:"manga" as const
+                          variant,
+                          isMature:variant === "doujinshi"
                       };
                       await this.seriesService.updateOrCreate(newSeries);
                   })
@@ -153,17 +172,17 @@ export class AppService {
 
           // Marca las series no encontradas como desaparecidas
           if (foldersToMarkAsDeleted.length > 0) {
-              this.logger.log("\x1b[34mEncontradas series de manga desaparecidas");
+              this.logger.log(`\x1b[34mEncontradas series de ${variant === "doujinshi" ? "doujinshi" : "manga"} desaparecidas`);
               areChanges = true;
               foldersToMarkAsDeleted.forEach(async(elem) => {
-                  await this.seriesService.markAsMissing(elem, "manga");
+                  await this.seriesService.markAsMissing(elem, variant);
               });
           }
           // FIN PROCESO DE SERIES
 
           // INICIO PROCESO DE LIBROS
           // Busca todos los libros no marcados como desaparecidos de la base de datos
-          const savedBooks = await this.booksService.findNonMissing("manga");
+          const savedBooks = await this.booksService.findNonMissing(variant);
 
           const savedBookNames = new Set(savedBooks.map((book) => book.path));
           const existingHtmlBookNames = new Set(existingBooks.map((book) => book.bookName));
@@ -220,7 +239,7 @@ export class AppService {
                       return;
                   }
 
-                  const foundSerie = await this.seriesService.getIdFromPath(elem.seriePath, "manga");
+                  const foundSerie = await this.seriesService.getIdFromPath(elem.seriePath, variant);
                   await this.seriesService.increaseBookCount(foundSerie._id);
                   const charData = await getCharacterCount(elem.bookPath);
 
@@ -235,13 +254,13 @@ export class AppService {
                       pages: imagesFolder.totalImages,
                       characters: charData.total,
                       pageChars:charData.pages,
-                      variant:"manga" as "manga" | "novela",
+                      variant,
                       format:"mokuro" as "mokuro" | "images"
                   };
                   await this.booksService.updateOrCreate(newBook);
               }));
 
-              this.logFailedBooks(addResults, "manga");
+              this.logFailedBooks(addResults, variant);
           }
 
           // Carpetas de imágenes sin html que las referencie: candidatas a tomo.
@@ -265,7 +284,7 @@ export class AppService {
           // Un tomo de mokuro marcado como desaparecido no debe resucitar como
           // tomo de imágenes solo porque su carpeta siga en disco
           const missingBookFormats = new Map(
-              (await this.booksService.findMissing("manga")).map((book) => [book.path, book.format])
+              (await this.booksService.findMissing(variant)).map((book) => [book.path, book.format])
           );
 
           // Tomos de imágenes nuevos (sin colisión con un html del mismo nombre)
@@ -289,7 +308,7 @@ export class AppService {
               areChanges = true;
 
               const addResults = await Promise.allSettled(imageBooksToAdd.map(async(folder) => {
-                  const foundSerie = await this.seriesService.getIdFromPath(folder.seriePath, "manga");
+                  const foundSerie = await this.seriesService.getIdFromPath(folder.seriePath, variant);
                   await this.seriesService.increaseBookCount(foundSerie._id);
 
                   const newBook = {
@@ -303,29 +322,29 @@ export class AppService {
                       pages: folder.images.length,
                       characters: 0,
                       pageChars: [],
-                      variant: "manga" as const,
+                      variant,
                       format: "images" as const
                   };
 
                   await this.booksService.updateOrCreate(newBook);
               }));
 
-              this.logFailedBooks(addResults, "manga");
+              this.logFailedBooks(addResults, variant);
           }
 
           // Genera las miniaturas de portada que falten (incluidos libros ya existentes)
-          await this.ensureLibraryThumbnails("manga");
+          await this.ensureLibraryThumbnails(variant);
 
           // Marca los libros no encontrados como desaparecidos
           if (booksToMarkAsDeleted.length > 0) {
               this.logger.log("\x1b[34mEncontrados libros desaparecidos");
               areChanges = true;
               booksToMarkAsDeleted.forEach(async(elem) => {
-                  await this.booksService.markAsMissing(elem.path, "manga");
+                  await this.booksService.markAsMissing(elem.path, variant);
               });
           }
           // FIN PROCESO DE LIBROS
-          this.logger.log("\x1b[34mProceso de búsqueda de mangas finalizado");
+          this.logger.log(`\x1b[34mProceso de búsqueda de ${variant === "doujinshi" ? "doujinshi" : "mangas"} finalizado`);
           if (areChanges) {
               // Avisar al frontend si hay cambios
               this.websocketsGateway.sendNotificationToClient({action:"LIBRARY_UPDATE"});
@@ -545,9 +564,9 @@ export class AppService {
   private coverRelativePath(book: Book): string | null {
       if (!book.thumbnailPath) return null;
 
-      const parts = [book.variant === "manga" ? "mangas" : "novelas", book.seriePath];
+      const parts = [libraryFolderForVariant(book.variant), book.seriePath];
 
-      if (book.variant === "manga" || book.mokured) {
+      if (isImageBasedVariant(book.variant) || book.mokured) {
           if (!book.imagesFolder) return null;
           parts.push(book.imagesFolder);
       }
@@ -562,7 +581,7 @@ export class AppService {
    * estén desactualizadas) para todos los libros de la biblioteca. Se ejecuta
    * en cada rescan y es idempotente.
    */
-  private async ensureLibraryThumbnails(variant: "manga" | "novela") {
+  private async ensureLibraryThumbnails(variant:LibraryVariant) {
       const books = await this.booksService.findNonMissing(variant);
       const exteriorRoot = join(process.cwd(), "..", "exterior");
 
@@ -585,7 +604,7 @@ export class AppService {
   }
 
   /** Loggea los libros nuevos que fallaron durante un escaneo. */
-  private logFailedBooks(results: PromiseSettledResult<unknown>[], variant: "manga" | "novela") {
+  private logFailedBooks(results: PromiseSettledResult<unknown>[], variant:LibraryVariant) {
       const failed = results.filter((result) => result.status === "rejected");
 
       if (failed.length === 0) return;

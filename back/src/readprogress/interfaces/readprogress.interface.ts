@@ -23,7 +23,7 @@ export class CreateReadProgress extends UpdateReadProgress {
 
   serie:Types.ObjectId;
 
-  variant:"manga" | "novela";
+  variant:"manga" | "novela" | "doujinshi";
 }
 
 export class ReadProgressWithBook extends ReadProgress {

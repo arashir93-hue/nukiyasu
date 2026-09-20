@@ -5,6 +5,7 @@ import {openNovel} from "../helpers/ttu";
 import {confirmDialog} from "../stores/ConfirmStore";
 import {useSettingsStore} from "../stores/SettingsStore";
 import type {BookWithProgress} from "../types/book";
+import {isImageBasedVariant} from "../types/library";
 import {mokuroHtmlUrl, mokuroStorageKey} from "./media";
 
 interface OpenBookOptions {
@@ -28,7 +29,7 @@ export function useOpenBook(): (book: BookWithProgress, options?: OpenBookOption
   return useCallback(async (book: BookWithProgress, options: OpenBookOptions = {}): Promise<void> => {
     const {mouse = false, incognito = false, confirmReread = true} = options;
 
-    if (book.variant === "manga" || book.mokured) {
+    if (isImageBasedVariant(book.variant) || book.mokured) {
       // Los tomos de imágenes no tienen html que abrir directamente
       if (siteSettings.openHTML && book.format !== "images") {
         const htmlUrl = mokuroHtmlUrl(book);

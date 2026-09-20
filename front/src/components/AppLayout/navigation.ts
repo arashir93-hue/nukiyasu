@@ -18,6 +18,7 @@ export interface NavItem {
   /** Coincidencia exacta de ruta (para el índice de /app). */
   end?: boolean;
   adminOnly?: boolean;
+  matureOnly?: boolean;
 }
 
 export interface NavSection {
@@ -31,6 +32,7 @@ export const primaryNav: NavSection = {
     {label: "Inicio", to: "/app", icon: House, end: true},
     {label: "Mangas", to: "/app/library/manga", icon: Images},
     {label: "Novelas", to: "/app/library/novels", icon: BookOpen},
+    {label: "Doujinshi", to: "/app/library/doujinshi", icon: Images, matureOnly:true},
   ],
 };
 

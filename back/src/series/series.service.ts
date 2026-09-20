@@ -7,6 +7,7 @@ import {UsersService} from "../users/users.service";
 import {SerieWithReviews} from "./interfaces/serieWithProgress";
 import {ParsedReview} from "../reviews/interfaces/review";
 import {ContentAccessPolicy} from "../content-access/content-access.service";
+import {LibraryVariant} from "../common/library-variant";
 
 @Injectable()
 export class SeriesService {
@@ -64,7 +65,8 @@ export class SeriesService {
       path: string;
       visibleName: string;
       sortName: string;
-      variant: "manga" | "novela";
+      variant: LibraryVariant;
+      isMature?:boolean;
   }): Promise<Serie | null> {
       const found = await this.seriesModel.findOne({path: newSerie.path, variant:newSerie.variant});
 
@@ -79,26 +81,39 @@ export class SeriesService {
           );
           return this.seriesModel.findOneAndUpdate(
               {path: newSerie.path, variant:newSerie.variant},
-              {missing: false}
+              {missing: false, ...(newSerie.variant === "doujinshi" ? {isMature:true} : {})}
           );
       }
 
       // Si no existe, crearla
       this.logger.log("\x1b[34m" + newSerie.path + " añadida a la biblioteca");
-      return this.seriesModel.create(newSerie);
+      return this.seriesModel.create({
+          ...newSerie,
+          ...(newSerie.variant === "doujinshi" ? {isMature:true} : {})
+      });
   }
 
   async editSerie(id:Types.ObjectId, updateSerie:UpdateSerie) {
-      return this.seriesModel.findByIdAndUpdate(id, updateSerie);
+      const found = await this.seriesModel.findById(id, {variant:1});
+      if (found?.variant === "doujinshi") updateSerie = {...updateSerie, isMature:true};
+      return this.seriesModel.findByIdAndUpdate(id, updateSerie, {new:true});
   }
 
   async increaseBookCount(id:Types.ObjectId) {
       return this.seriesModel.findByIdAndUpdate(id, {$inc:{bookCount:1}, $set:{lastModifiedDate:new Date()}});
   }
 
+  async ensureVariantMaturity(variant:LibraryVariant):Promise<void> {
+      if (variant !== "doujinshi") return;
+      await this.seriesModel.updateMany(
+          {variant, isMature:{$ne:true}},
+          {$set:{isMature:true}}
+      );
+  }
+
   async filterSeries(
       user:Types.ObjectId,
-      variant:"manga" | "novela" | "all",
+      variant:LibraryVariant | "all",
       query:SeriesSearch,
       policy:ContentAccessPolicy
   ) {
@@ -234,7 +249,7 @@ export class SeriesService {
       return pipe[0] || {genres:[], authors:[]};
   }
 
-  getAlphabetCount(variant:"manga" | "novela", policy:ContentAccessPolicy, query?:SeriesSearch) {
+  getAlphabetCount(variant:LibraryVariant, policy:ContentAccessPolicy, query?:SeriesSearch) {
       const pipe = this.seriesModel.aggregate()
           .match({variant})
           .match(policy.seriesMatch);
@@ -297,20 +312,20 @@ export class SeriesService {
       return pipe;
   }
 
-  async getIdFromPath(path:string, variant:"manga" | "novela"):Promise<Types.ObjectId> {
+  async getIdFromPath(path:string, variant:LibraryVariant):Promise<Types.ObjectId> {
       const foundSerie = await this.seriesModel.findOne({path, variant}, {_id:1});
       return foundSerie?._id;
   }
 
-  findNonMissing(variant:"manga" | "novela"): Promise<Serie[]> {
+  findNonMissing(variant:LibraryVariant): Promise<Serie[]> {
       return this.seriesModel.find({missing: false, variant});
   }
 
-  findMissing(variant:"manga" | "novela"): Promise<Serie[]> {
+  findMissing(variant:LibraryVariant): Promise<Serie[]> {
       return this.seriesModel.find({missing: true, variant});
   }
 
-  markAsMissing(path: string, variant:"manga" | "novela"): Promise<Serie | null> {
+  markAsMissing(path: string, variant:LibraryVariant): Promise<Serie | null> {
       this.logger.log("\x1b[34m" + path + " marcada como desaparecida.");
       return this.seriesModel.findOneAndUpdate(
           {path, variant},

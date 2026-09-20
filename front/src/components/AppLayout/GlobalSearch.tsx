@@ -58,6 +58,8 @@ export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.React
       if (!res || cancelled) return;
 
       res.data.sort((a, b)=>{
+        if (a.variant === "doujinshi" && b.variant !== "doujinshi") return 1;
+        if (b.variant === "doujinshi" && a.variant !== "doujinshi") return -1;
         if (a.variant === "manga" && b.variant === "novela") return -1;
         if (a.variant === "novela" && b.variant === "manga") return 1;
         return 0;
@@ -72,6 +74,8 @@ export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.React
       if (!res || cancelled) return;
 
       res.sort((a, b)=>{
+        if (a.variant === "doujinshi" && b.variant !== "doujinshi") return 1;
+        if (b.variant === "doujinshi" && a.variant !== "doujinshi") return -1;
         if (a.variant === "manga" && b.variant === "novela") return -1;
         if (a.variant === "novela" && b.variant === "manga") return 1;
         return 0;
@@ -95,6 +99,8 @@ export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.React
       novelaSeries: series.filter((item)=>item.variant === "novela"),
       mangaBooks: books.filter((item)=>item.variant === "manga"),
       novelaBooks: books.filter((item)=>item.variant === "novela"),
+      doujinshiSeries: series.filter((item)=>item.variant === "doujinshi"),
+      doujinshiBooks: books.filter((item)=>item.variant === "doujinshi"),
     };
   }, [series, books]);
 
@@ -160,7 +166,7 @@ export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.React
           </span>
         ) : (
           <span className="shrink-0 text-xs text-fg-muted">
-            {result.data.variant === "manga" ? `${result.data.pages} págs` : `${result.data.characters ?? 0} caract.`}
+            {result.data.variant === "novela" ? `${result.data.characters ?? 0} caract.` : `${result.data.pages} págs`}
           </span>
         )}
       </Command.Item>
@@ -216,6 +222,16 @@ export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.React
         {groups.novelaBooks.length > 0 ? (
           <Command.Group heading="Novelas" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-muted/80">
             {groups.novelaBooks.map((data)=>renderItem({type:"book", data}))}
+          </Command.Group>
+        ) : null}
+        {groups.doujinshiSeries.length > 0 ? (
+          <Command.Group heading="Series de doujinshi" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-muted/80">
+            {groups.doujinshiSeries.map((data)=>renderItem({type:"serie", data}))}
+          </Command.Group>
+        ) : null}
+        {groups.doujinshiBooks.length > 0 ? (
+          <Command.Group heading="Doujinshi" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-muted/80">
+            {groups.doujinshiBooks.map((data)=>renderItem({type:"book", data}))}
           </Command.Group>
         ) : null}
       </Command.List>

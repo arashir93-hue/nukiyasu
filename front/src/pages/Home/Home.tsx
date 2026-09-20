@@ -3,6 +3,7 @@ import {LazySection} from "../../components/LazySection/LazySection";
 import {ScrollerSkeleton} from "../../components/Skeletons/Skeletons";
 import {useTitle} from "../../lib/useTitle";
 import {useSettingsStore} from "../../stores/SettingsStore";
+import {useAuth} from "../../contexts/AuthContext";
 
 const NewBooksScroller = lazy(() => import("./components/NewBooksScroller"));
 const ProgressScroller = lazy(() => import("./components/ProgressScroller"));
@@ -18,11 +19,13 @@ function Section({title, children}:{title:string; children:React.ReactNode}):Rea
 
 function Home():React.ReactElement {
     const {siteSettings} = useSettingsStore();
+    const {userData} = useAuth();
 
     useTitle("Inicio");
 
     const showManga = ["both", "manga"].includes(siteSettings.mainView);
     const showNovels = ["both", "novels"].includes(siteSettings.mainView);
+    const showDoujinshi = userData?.showMatureContent === true;
 
     return (
         <div className="min-h-full bg-white dark:bg-app-bg">
@@ -46,6 +49,9 @@ function Home():React.ReactElement {
                         </Section>
                     </LazySection>
                 )}
+                {showDoujinshi && siteSettings.showBoardReadLater && (
+                    <LazySection><Section title={'"Leer más tarde" doujinshi'}><ReadLaterScroller variant="doujinshi"/></Section></LazySection>
+                )}
                 {showManga && siteSettings.showBoardPaused && (
                     <LazySection>
                         <Section title="Pausadas (manga)">
@@ -59,6 +65,9 @@ function Home():React.ReactElement {
                             <PausedScroller variant="novela"/>
                         </Section>
                     </LazySection>
+                )}
+                {showDoujinshi && siteSettings.showBoardPaused && (
+                    <LazySection><Section title="Pausadas (doujinshi)"><PausedScroller variant="doujinshi"/></Section></LazySection>
                 )}
                 {showManga && siteSettings.showBoardNewBooks && (
                     <LazySection>
@@ -74,6 +83,9 @@ function Home():React.ReactElement {
                         </Section>
                     </LazySection>
                 )}
+                {showDoujinshi && siteSettings.showBoardNewBooks && (
+                    <LazySection><Section title="Doujinshi nuevos"><NewBooksScroller variant="doujinshi"/></Section></LazySection>
+                )}
                 {showManga && siteSettings.showBoardNewSeries && (
                     <LazySection>
                         <Section title="Series de manga nuevas">
@@ -88,6 +100,9 @@ function Home():React.ReactElement {
                         </Section>
                     </LazySection>
                 )}
+                {showDoujinshi && siteSettings.showBoardNewSeries && (
+                    <LazySection><Section title="Series de doujinshi nuevas"><NewSeriesScroller variant="doujinshi"/></Section></LazySection>
+                )}
                 {showManga && siteSettings.showBoardRecentSeries && (
                     <LazySection>
                         <Section title="Series de manga con volúmenes nuevos">
@@ -101,6 +116,9 @@ function Home():React.ReactElement {
                             <RecentSeriesScroller variant="novela"/>
                         </Section>
                     </LazySection>
+                )}
+                {showDoujinshi && siteSettings.showBoardRecentSeries && (
+                    <LazySection><Section title="Series de doujinshi con volúmenes nuevos"><RecentSeriesScroller variant="doujinshi"/></Section></LazySection>
                 )}
             </div>
         </div>
