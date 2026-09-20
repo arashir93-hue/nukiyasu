@@ -64,10 +64,21 @@ export function NihongoTrackerLinkDialog({serie, open, onOpenChange}:NihongoTrac
     setConnected(undefined);
     setCurrentLink(null);
     setLoading(true);
-    void Promise.all([getNihongoTrackerStatus(), getNihongoTrackerLink(serie._id)])
-      .then(([status, link])=>{
-        setConnected(status?.connected === true);
-        setCurrentLink(link ?? null);
+    void getNihongoTrackerStatus()
+      .then(async(status)=>{
+        const isConnected = status?.connected === true;
+        setConnected(isConnected);
+
+        if (!isConnected) return;
+
+        try {
+          const link = await getNihongoTrackerLink(serie._id);
+          setCurrentLink(link ?? null);
+        } catch {
+          // La conexión sigue siendo válida aunque esta serie aún no tenga
+          // vínculo o la consulta del vínculo falle.
+          setCurrentLink(null);
+        }
       })
       .catch(()=>setConnected(false))
       .finally(()=>setLoading(false));
