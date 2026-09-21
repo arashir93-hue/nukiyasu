@@ -71,14 +71,14 @@ data class ProgressRecord(
     val logLine: String
         get() {
             var text = when (resolvedVariant) {
-                Variant.Manga -> ".log manga ${currentPage ?: 1} $bookName"
+                Variant.Manga, Variant.Doujinshi -> ".log manga ${currentPage ?: 1} $bookName"
                 Variant.Novela -> ".log lectura ${characters ?: 0} $bookName"
             }
             val minutes = time
             if (minutes != null && minutes > 59) {
                 text += ";${minutes / 60}"
             }
-            if (resolvedVariant == Variant.Manga) {
+            if (resolvedVariant.isImageBased) {
                 val chars = characters
                 if (chars != null && chars > 0) {
                     text += "&$chars"

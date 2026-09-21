@@ -39,13 +39,17 @@ import es.manabe.yomiyasu.core.models.LibraryVariant
 import es.manabe.yomiyasu.core.models.MainView
 import es.manabe.yomiyasu.core.models.Serie
 import es.manabe.yomiyasu.core.networking.ApiException
+import es.manabe.yomiyasu.core.session.SessionStore
 import es.manabe.yomiyasu.core.services.LibraryApi
 import es.manabe.yomiyasu.core.services.SocketService
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -53,6 +57,7 @@ import javax.inject.Inject
 class ReadlistViewModel @Inject constructor(
     private val library: LibraryApi,
     private val socket: SocketService,
+    private val session: SessionStore,
 ) : ViewModel() {
 
     private val _manga = MutableStateFlow<List<Serie>>(emptyList())
@@ -60,6 +65,13 @@ class ReadlistViewModel @Inject constructor(
 
     private val _novela = MutableStateFlow<List<Serie>>(emptyList())
     val novela: StateFlow<List<Serie>> = _novela.asStateFlow()
+
+    private val _doujinshi = MutableStateFlow<List<Serie>>(emptyList())
+    val doujinshi: StateFlow<List<Serie>> = _doujinshi.asStateFlow()
+
+    val showMatureContent: StateFlow<Boolean> = session.state
+        .map { current -> (current as? SessionStore.State.LoggedIn)?.user?.showMatureContent ?: false }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -73,8 +85,14 @@ class ReadlistViewModel @Inject constructor(
                 if (it != null) {
                     _manga.value = emptyList()
                     _novela.value = emptyList()
+                    _doujinshi.value = emptyList()
                     load()
                 }
+            }
+        }
+        viewModelScope.launch {
+            showMatureContent.collect { visible ->
+                if (!visible) _doujinshi.value = emptyList()
             }
         }
     }
@@ -88,8 +106,16 @@ class ReadlistViewModel @Inject constructor(
                 coroutineScope {
                     val mangaAsync = async { library.readlist(LibraryVariant.Manga) }
                     val novelaAsync = async { library.readlist(LibraryVariant.Novela) }
+                    val doujinshiAsync = async {
+                        if (showMatureContent.value) {
+                            library.readlist(LibraryVariant.Doujinshi)
+                        } else {
+                            emptyList()
+                        }
+                    }
                     _manga.value = mangaAsync.await()
                     _novela.value = novelaAsync.await()
+                    _doujinshi.value = doujinshiAsync.await()
                 }
             } catch (error: ApiException) {
                 _error.value = error.userMessage
@@ -110,6 +136,8 @@ fun ReadlistRoute(
 ) {
     val manga by viewModel.manga.collectAsStateWithLifecycle()
     val novela by viewModel.novela.collectAsStateWithLifecycle()
+    val doujinshi by viewModel.doujinshi.collectAsStateWithLifecycle()
+    val showMatureContent by viewModel.showMatureContent.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
 
@@ -120,6 +148,7 @@ fun ReadlistRoute(
 
     val visibleManga = if (mainView == MainView.Novels) emptyList() else manga
     val visibleNovela = if (mainView == MainView.Manga) emptyList() else novela
+    val visibleDoujinshi = if (showMatureContent && mainView != MainView.Novels) doujinshi else emptyList()
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Lista de lectura") }) },
@@ -133,12 +162,12 @@ fun ReadlistRoute(
                 .padding(padding),
         ) {
             when {
-                isLoading && manga.isEmpty() && novela.isEmpty() -> LoadingBox()
-                error != null && manga.isEmpty() && novela.isEmpty() -> ErrorBox(
+                isLoading && manga.isEmpty() && novela.isEmpty() && doujinshi.isEmpty() -> LoadingBox()
+                error != null && manga.isEmpty() && novela.isEmpty() && doujinshi.isEmpty() -> ErrorBox(
                     message = error ?: "No se pudo cargar",
                     onRetry = { viewModel.load() },
                 )
-                visibleManga.isEmpty() && visibleNovela.isEmpty() -> EmptyBox(
+                visibleManga.isEmpty() && visibleNovela.isEmpty() && visibleDoujinshi.isEmpty() -> EmptyBox(
                     "Tu lista está vacía\nAñade series desde su ficha para leerlas más tarde.",
                 )
                 else -> LazyVerticalGrid(
@@ -164,6 +193,15 @@ fun ReadlistRoute(
                             SectionTitle("Novelas")
                         }
                         items(visibleNovela, key = { it.id }) { serie ->
+                            SerieGridItem(serie, actions, onOpenSerie, onOpenBook)
+                        }
+                    }
+
+                    if (visibleDoujinshi.isNotEmpty()) {
+                        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                            SectionTitle("Doujinshi")
+                        }
+                        items(visibleDoujinshi, key = { it.id }) { serie ->
                             SerieGridItem(serie, actions, onOpenSerie, onOpenBook)
                         }
                     }

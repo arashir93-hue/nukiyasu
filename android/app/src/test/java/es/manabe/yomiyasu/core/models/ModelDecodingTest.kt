@@ -78,6 +78,30 @@ class ModelDecodingTest {
     }
 
     @Test
+    fun `doujinshi variant decodes and uses image based mapping`() {
+        val serie = json.decodeFromString(
+            Serie.serializer(),
+            """{"_id":"s1","visibleName":"Doujin","variant":"doujinshi"}""",
+        )
+        val book = json.decodeFromString(
+            Book.serializer(),
+            """{"_id":"b1","visibleName":"Vol 1","variant":"doujinshi","format":"images"}""",
+        )
+
+        assertEquals(Variant.Doujinshi, serie.variant)
+        assertEquals(Variant.Doujinshi, book.variant)
+        assertEquals("mangas", Variant.Manga.staticFolder)
+        assertEquals("novelas", Variant.Novela.staticFolder)
+        assertEquals("doujinshi", Variant.Doujinshi.staticFolder)
+        assertTrue(Variant.Doujinshi.isImageBased)
+
+        assertEquals(
+            LibraryVariant.Doujinshi,
+            json.decodeFromString(LibraryVariant.serializer(), "\"doujinshi\""),
+        )
+    }
+
+    @Test
     fun `serie decodes readlist object without id as false`() {
         val serie = json.decodeFromString(
             Serie.serializer(),
@@ -242,8 +266,14 @@ class ModelDecodingTest {
             """{"_id":"p2","characters":1500,"time":120,"variant":"novela",
                "bookInfo":{"_id":"b2","visibleName":"Novela 1"}}""",
         )
+        val doujinshi = json.decodeFromString(
+            ProgressRecord.serializer(),
+            """{"_id":"p3","currentPage":7,"characters":90,"variant":"doujinshi",
+               "bookInfo":{"_id":"b3","visibleName":"Doujin 1"}}""",
+        )
 
         assertEquals(".log manga 42 Tomo 1;60&300", record.logLine)
         assertEquals(".log lectura 1500 Novela 1;2", novel.logLine)
+        assertEquals(".log manga 7 Doujin 1&90", doujinshi.logLine)
     }
 }

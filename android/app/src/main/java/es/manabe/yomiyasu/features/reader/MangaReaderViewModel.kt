@@ -108,7 +108,7 @@ class MangaReaderViewModel @Inject constructor(
                     val (htmlData, imagesDir) = if (record != null) {
                         downloads.localHtmlFile(bookId).readBytes() to downloads.localImagesDirectory(bookId)
                     } else {
-                        val folder = if (book.variant?.name.equals("Novela", ignoreCase = true)) "novelas" else "mangas"
+                        val folder = book.variant?.staticFolder ?: "mangas"
                         val path = "$folder/${book.seriePath.orEmpty()}/${book.path.orEmpty()}.html"
                         api.sendBytes(Endpoint.get("api/static/$path")) to null
                     }

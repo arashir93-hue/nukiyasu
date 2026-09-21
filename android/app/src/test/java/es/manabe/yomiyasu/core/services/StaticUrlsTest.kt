@@ -1,6 +1,8 @@
 package es.manabe.yomiyasu.core.services
 
 import es.manabe.yomiyasu.core.models.Book
+import es.manabe.yomiyasu.core.models.Serie
+import es.manabe.yomiyasu.core.models.Variant
 import es.manabe.yomiyasu.core.networking.ApiClient
 import es.manabe.yomiyasu.core.networking.YomiyasuJson
 import es.manabe.yomiyasu.core.readers.ImageFolderPages
@@ -44,6 +46,33 @@ class StaticUrlsTest {
         assertEquals(
             "https://example.test/api/static/mangas/Serie/Vol%202/001.jpg",
             urls.bookImage(mokuroBook, "Vol 2/001.jpg")?.toString(),
+        )
+    }
+
+    @Test
+    fun `doujinshi page url uses the doujinshi static folder`() {
+        val doujinshiBook = book(
+            """{"_id":"b3","visibleName":"Doujin 1","variant":"doujinshi","seriePath":"Serie",
+               "imagesFolder":"Doujin 1","format":"images"}""",
+        )
+
+        assertEquals(
+            "https://example.test/api/static/doujinshi/Serie/Doujin%201/001.jpg",
+            urls.bookImage(doujinshiBook, "Doujin 1/001.jpg")?.toString(),
+        )
+    }
+
+    @Test
+    fun `doujinshi serie cover uses the doujinshi static folder`() {
+        val serie = Serie(
+            id = "s1",
+            variant = Variant.Doujinshi,
+            thumbnailPath = "Serie/cover.jpg",
+        )
+
+        assertEquals(
+            "https://example.test/api/static/doujinshi/Serie/cover.jpg",
+            urls.serieCover(serie)?.toString(),
         )
     }
 }

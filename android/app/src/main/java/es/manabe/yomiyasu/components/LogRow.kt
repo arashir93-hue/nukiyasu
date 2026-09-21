@@ -63,7 +63,7 @@ fun LogRow(
             }
 
             when (record.resolvedVariant) {
-                Variant.Manga -> LogDetailText("pág. ${record.currentPage ?: 1}")
+                Variant.Manga, Variant.Doujinshi -> LogDetailText("pág. ${record.currentPage ?: 1}")
 
                 Variant.Novela -> record.characters?.takeIf { it > 0 }?.let { characters ->
                     LogDetailText("${formatNumber(characters)} car.")

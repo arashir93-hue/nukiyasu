@@ -16,25 +16,33 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonObject
 
 @Serializable
-enum class Variant {
+enum class Variant(val rawValue: String) {
     @SerialName("manga")
-    Manga,
+    Manga("manga"),
 
     @SerialName("novela")
-    Novela,
+    Novela("novela"),
+
+    @SerialName("doujinshi")
+    Doujinshi("doujinshi"),
     ;
 
     val title: String
         get() = when (this) {
             Manga -> "Manga"
             Novela -> "Novela"
+            Doujinshi -> "Doujinshi"
         }
 
     val staticFolder: String
         get() = when (this) {
             Manga -> "mangas"
             Novela -> "novelas"
+            Doujinshi -> "doujinshi"
         }
+
+    /** Doujinshi uses the same page/image reader as manga. */
+    val isImageBased: Boolean get() = this != Novela
 }
 
 @Serializable
@@ -45,6 +53,9 @@ enum class LibraryVariant(val rawValue: String) {
     @SerialName("novela")
     Novela("novela"),
 
+    @SerialName("doujinshi")
+    Doujinshi("doujinshi"),
+
     @SerialName("all")
     All("all"),
     ;
@@ -53,6 +64,7 @@ enum class LibraryVariant(val rawValue: String) {
         get() = when (this) {
             Manga -> "Mangas"
             Novela -> "Novelas"
+            Doujinshi -> "Doujinshi"
             All -> "Todo"
         }
 }

@@ -234,9 +234,10 @@ class DownloadManager @Inject constructor(
     private suspend fun downloadManga(book: Book) {
         val seriePath = book.seriePath ?: throw IllegalStateException("Libro sin ruta")
         val bookPath = book.path ?: throw IllegalStateException("Libro sin ruta")
+        val folder = book.variant?.staticFolder ?: "mangas"
 
         val htmlBytes = api.sendBytes(
-            Endpoint.get("api/static/mangas/$seriePath/$bookPath.html"),
+            Endpoint.get("api/static/$folder/$seriePath/$bookPath.html"),
         )
         val html = htmlBytes.decodeToString()
 
@@ -253,7 +254,7 @@ class DownloadManager @Inject constructor(
             val decodedPath = runCatching { URLDecoder.decode(page.imagePath, "UTF-8") }
                 .getOrDefault(page.imagePath)
 
-            val data = api.sendBytes(Endpoint.get("api/static/mangas/$seriePath/$decodedPath"))
+            val data = api.sendBytes(Endpoint.get("api/static/$folder/$seriePath/$decodedPath"))
 
             val destination = File(localImagesDirectory(book.id), decodedPath)
             destination.parentFile?.mkdirs()
@@ -276,7 +277,7 @@ class DownloadManager @Inject constructor(
             DownloadRecord(
                 bookId = book.id,
                 visibleName = book.visibleName,
-                variant = book.variant?.name?.lowercase() ?: "manga",
+                variant = book.variant?.rawValue ?: "manga",
                 downloadedAt = System.currentTimeMillis(),
                 byteCount = bytes,
                 pageCount = pageCount,
@@ -290,6 +291,7 @@ class DownloadManager @Inject constructor(
      */
     private suspend fun downloadImageFolder(book: Book) {
         val seriePath = book.seriePath ?: throw IllegalStateException("Libro sin ruta")
+        val folder = book.variant?.staticFolder ?: "mangas"
 
         val detail = api.send(Endpoint.get("api/books/book/${book.id}"), Book.serializer())
         val pagePaths = detail.pagePaths.orEmpty()
@@ -301,7 +303,7 @@ class DownloadManager @Inject constructor(
         var bytes = 0L
 
         pagePaths.forEachIndexed { index, fileName ->
-            val data = api.sendBytes(Endpoint.get("api/static/mangas/$seriePath/$fileName"))
+            val data = api.sendBytes(Endpoint.get("api/static/$folder/$seriePath/$fileName"))
 
             // Misma estructura que en las descargas de mokuro: la imagen se
             // guarda bajo la carpeta del tomo, que es lo que espera el lector
@@ -329,7 +331,7 @@ class DownloadManager @Inject constructor(
             DownloadRecord(
                 bookId = book.id,
                 visibleName = book.visibleName,
-                variant = book.variant?.name?.lowercase() ?: "manga",
+                variant = book.variant?.rawValue ?: "manga",
                 downloadedAt = System.currentTimeMillis(),
                 byteCount = bytes,
                 pageCount = pagePaths.size,
@@ -340,9 +342,10 @@ class DownloadManager @Inject constructor(
     private suspend fun downloadNovel(book: Book) {
         val seriePath = book.seriePath ?: throw IllegalStateException("Libro sin ruta")
         val bookPath = book.path ?: throw IllegalStateException("Libro sin ruta")
+        val folder = book.variant?.staticFolder ?: "novelas"
 
         val data = api.sendBytes(
-            Endpoint.get("api/static/novelas/$seriePath/$bookPath.epub"),
+            Endpoint.get("api/static/$folder/$seriePath/$bookPath.epub"),
         )
 
         val directory = bookDirectory(book.id)
@@ -353,7 +356,7 @@ class DownloadManager @Inject constructor(
             DownloadRecord(
                 bookId = book.id,
                 visibleName = book.visibleName,
-                variant = book.variant?.name?.lowercase() ?: "novela",
+                variant = book.variant?.rawValue ?: "novela",
                 downloadedAt = System.currentTimeMillis(),
                 byteCount = data.size.toLong(),
                 pageCount = 0,

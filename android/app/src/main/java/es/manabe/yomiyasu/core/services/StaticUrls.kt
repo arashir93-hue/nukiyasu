@@ -28,7 +28,7 @@ class StaticUrls @Inject constructor(
 
     fun serieCover(serie: Serie): HttpUrl? {
         val thumbnailPath = serie.thumbnailPath ?: return null
-        val folder = if (serie.variant == Variant.Novela) "novelas" else "mangas"
+        val folder = serie.variant?.staticFolder ?: "mangas"
         return url("$folder/$thumbnailPath")
     }
 
@@ -40,14 +40,15 @@ class StaticUrls @Inject constructor(
             Variant.Novela -> {
                 val imagesFolder = book.imagesFolder
                 if (book.isMokured && imagesFolder != null) {
-                    url("novelas/$seriePath/$imagesFolder/$thumbnailPath")
+                    url("${book.variant.staticFolder}/$seriePath/$imagesFolder/$thumbnailPath")
                 } else {
-                    url("novelas/$seriePath/$thumbnailPath")
+                    url("${book.variant.staticFolder}/$seriePath/$thumbnailPath")
                 }
             }
             else -> {
                 val imagesFolder = book.imagesFolder ?: return null
-                url("mangas/$seriePath/$imagesFolder/$thumbnailPath")
+                val folder = book.variant?.staticFolder ?: "mangas"
+                url("$folder/$seriePath/$imagesFolder/$thumbnailPath")
             }
         }
     }

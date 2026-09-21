@@ -64,6 +64,7 @@ import es.manabe.yomiyasu.core.models.MainView
 import es.manabe.yomiyasu.core.models.Serie
 import es.manabe.yomiyasu.core.models.SeriesQuery
 import es.manabe.yomiyasu.core.networking.ApiException
+import es.manabe.yomiyasu.core.session.SessionStore
 import es.manabe.yomiyasu.core.services.LibraryApi
 import es.manabe.yomiyasu.core.services.SocketService
 import es.manabe.yomiyasu.core.settings.RandomCriteria
@@ -71,8 +72,12 @@ import es.manabe.yomiyasu.core.settings.RandomCriteriaStore
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -81,6 +86,7 @@ class LibraryViewModel @Inject constructor(
     private val library: LibraryApi,
     private val socket: SocketService,
     private val randomCriteria: RandomCriteriaStore,
+    private val session: SessionStore,
 ) : ViewModel() {
 
     var variant by mutableStateOf(LibraryVariant.All)
@@ -110,6 +116,11 @@ class LibraryViewModel @Inject constructor(
     val genresList: List<String> get() = genres
     val authorsList: List<String> get() = authors
 
+    val showMatureContent: StateFlow<Boolean> = session.state
+        .map { current -> (current as? SessionStore.State.LoggedIn)?.user?.showMatureContent ?: false }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     init {
         viewModelScope.launch {
             socket.libraryUpdatedAt.collect {
@@ -117,6 +128,15 @@ class LibraryViewModel @Inject constructor(
                     _series.value = emptyList()
                     _alphabet.value = emptyList()
                     load(reset = true)
+                }
+            }
+        }
+        viewModelScope.launch {
+            showMatureContent.collect { visible ->
+                if (!visible && variant == LibraryVariant.Doujinshi) {
+                    variant = LibraryVariant.All
+                    query = query.copy(variant = variant, page = 1)
+                    if (didLoad) load(reset = true)
                 }
             }
         }
@@ -215,6 +235,7 @@ fun LibraryRoute(
     val alphabet by viewModel.alphabet.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    val showMatureContent by viewModel.showMatureContent.collectAsStateWithLifecycle()
 
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberLibraryActions(snackbar)
@@ -246,6 +267,9 @@ fun LibraryRoute(
     }
 
     val gridState = rememberLazyGridState()
+    val visibleVariants = remember(showMatureContent) {
+        LibraryVariant.entries.filter { it != LibraryVariant.Doujinshi || showMatureContent }
+    }
 
     LaunchedEffect(gridState) {
         snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
@@ -294,11 +318,11 @@ fun LibraryRoute(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 4.dp),
             ) {
-                LibraryVariant.entries.forEachIndexed { index, variant ->
+                visibleVariants.forEachIndexed { index, variant ->
                     SegmentedButton(
                         selected = viewModel.variant == variant,
                         onClick = { viewModel.selectVariant(variant) },
-                        shape = SegmentedButtonDefaults.itemShape(index, LibraryVariant.entries.size),
+                        shape = SegmentedButtonDefaults.itemShape(index, visibleVariants.size),
                     ) {
                         Text(variant.title)
                     }

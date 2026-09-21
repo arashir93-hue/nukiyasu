@@ -93,7 +93,7 @@ class NovelReaderViewModel @Inject constructor(
                 val epubFile = if (downloads.isDownloaded(bookId)) {
                     downloads.localEpubFile(bookId)
                 } else {
-                    val folder = if (book.variant?.name.equals("Manga", ignoreCase = true)) "mangas" else "novelas"
+                    val folder = book.variant?.staticFolder ?: "novelas"
                     val path = "$folder/${book.seriePath.orEmpty()}/${book.path.orEmpty()}.epub"
                     val bytes = api.sendBytes(Endpoint.get("api/static/$path"))
                     val target = File(context.cacheDir, "yomiyasu-novel-$bookId.epub")
