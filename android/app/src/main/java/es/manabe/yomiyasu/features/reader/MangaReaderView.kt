@@ -83,6 +83,7 @@ import es.manabe.yomiyasu.core.services.DownloadState
 import es.manabe.yomiyasu.core.settings.DictionaryLookupMode
 import es.manabe.yomiyasu.core.settings.ReaderSettingsData
 import es.manabe.yomiyasu.core.settings.ZoomMode
+import es.manabe.yomiyasu.features.nihongotracker.NihongoTrackerReaderButton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.max
@@ -171,6 +172,7 @@ fun MangaReaderView(
 
     val currentPageNumber: Int = spreads.getOrNull(pagerState.currentPage)?.firstPage?.plus(1) ?: 1
     val totalPages = mokuro?.pages?.size ?: 0
+    val atLastPage = totalPages > 0 && spreads.getOrNull(pagerState.currentPage)?.pages?.contains(totalPages - 1) == true
 
     // Página (0-based) de referencia para conservar la posición de lectura al
     // cambiar «doble página» o «portada»: sin esto el pager mantiene el índice
@@ -314,6 +316,15 @@ fun MangaReaderView(
                             onDownload = { book?.let { downloads.enqueue(it) } },
                             onOpenText = { showingPageText = true },
                             onOpenSettings = { showingSettings = true },
+                            nihongoTrackerContent = {
+                                NihongoTrackerReaderButton(
+                                    book = book!!,
+                                    completed = atLastPage,
+                                    saveProgress = {
+                                        viewModel.saveProgressNow(book!!, currentPageNumber, timerSeconds)
+                                    },
+                                )
+                            },
                         )
 
                         Spacer(modifier = Modifier.weight(1f))
@@ -581,6 +592,7 @@ private fun ReaderTopBar(
     onDownload: () -> Unit,
     onOpenText: () -> Unit,
     onOpenSettings: () -> Unit,
+    nihongoTrackerContent: @Composable () -> Unit,
 ) {
     Surface(color = Color.Black.copy(alpha = 0.75f)) {
         Row(
@@ -632,6 +644,8 @@ private fun ReaderTopBar(
                     Icon(Icons.Filled.TextFields, contentDescription = "Texto", tint = Color.White)
                 }
             }
+
+            nihongoTrackerContent()
 
             IconButton(onClick = onOpenSettings) {
                 Icon(Icons.Filled.Settings, contentDescription = "Ajustes", tint = Color.White)

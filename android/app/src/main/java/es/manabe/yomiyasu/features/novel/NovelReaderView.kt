@@ -63,6 +63,7 @@ import es.manabe.yomiyasu.core.settings.NovelFont
 import es.manabe.yomiyasu.core.settings.NovelTheme
 import es.manabe.yomiyasu.core.settings.NovelWritingMode
 import es.manabe.yomiyasu.core.settings.ReaderSettingsData
+import es.manabe.yomiyasu.features.nihongotracker.NihongoTrackerReaderButton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
@@ -152,6 +153,7 @@ fun NovelReaderView(
     }
 
     val totalCharacters = book?.characters ?: progressMap?.totalCharacters ?: 0
+    val atLastPage = totalCharacters > 0 && currentCharacters.toDouble() >= totalCharacters.toDouble() * 0.9
 
     LaunchedEffect(loadState.book?.id) {
         if (loadState.book == null) return@LaunchedEffect
@@ -223,6 +225,15 @@ fun NovelReaderView(
                             onDownload = { book?.let { downloads.enqueue(it) } },
                             onOpenToc = { showingToc = true },
                             onOpenSettings = { showingSettings = true },
+                            nihongoTrackerContent = {
+                                NihongoTrackerReaderButton(
+                                    book = book!!,
+                                    completed = atLastPage,
+                                    saveProgress = {
+                                        viewModel.saveProgressNow(book!!, currentCharacters, timerSeconds, totalCharacters)
+                                    },
+                                )
+                            },
                         )
 
                         Spacer(modifier = Modifier.weight(1f))
@@ -430,6 +441,7 @@ private fun ReaderBar(
     onDownload: () -> Unit,
     onOpenToc: () -> Unit,
     onOpenSettings: () -> Unit,
+    nihongoTrackerContent: @Composable () -> Unit,
 ) {
     Surface(color = Color.Black.copy(alpha = 0.75f)) {
         Row(
@@ -475,6 +487,8 @@ private fun ReaderBar(
             IconButton(onClick = onOpenToc) {
                 Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Índice", tint = Color.White)
             }
+
+            nihongoTrackerContent()
 
             IconButton(onClick = onOpenSettings) {
                 Icon(Icons.Filled.Settings, contentDescription = "Ajustes", tint = Color.White)

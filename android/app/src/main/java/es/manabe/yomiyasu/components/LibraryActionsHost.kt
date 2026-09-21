@@ -11,6 +11,7 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import es.manabe.yomiyasu.core.services.DownloadManager
 import es.manabe.yomiyasu.core.services.LibraryActions
+import es.manabe.yomiyasu.core.services.NihongoTrackerApi
 import es.manabe.yomiyasu.core.services.StaticUrls
 
 @EntryPoint
@@ -19,6 +20,7 @@ interface LibraryEntryPoint {
     fun libraryActions(): LibraryActions
     fun staticUrls(): StaticUrls
     fun downloadManager(): DownloadManager
+    fun nihongoTrackerApi(): NihongoTrackerApi
 }
 
 class LibraryActionsHost(

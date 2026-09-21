@@ -68,6 +68,7 @@ import es.manabe.yomiyasu.components.rememberLibraryActions
 import es.manabe.yomiyasu.core.models.Book
 import es.manabe.yomiyasu.core.models.BooksQuery
 import es.manabe.yomiyasu.core.models.LibraryVariant
+import es.manabe.yomiyasu.core.models.NihongoTrackerLink
 import es.manabe.yomiyasu.core.models.ProgressStatus
 import es.manabe.yomiyasu.core.models.Serie
 import es.manabe.yomiyasu.core.models.SeriesQuery
@@ -90,6 +91,7 @@ class SerieViewModel @Inject constructor(
     private val library: LibraryApi,
     private val socket: SocketService,
     private val randomCriteria: RandomCriteriaStore,
+    private val nihongoTracker: es.manabe.yomiyasu.core.services.NihongoTrackerApi,
     settings: AppSettings,
 ) : ViewModel() {
 
@@ -98,6 +100,9 @@ class SerieViewModel @Inject constructor(
 
     private val _books = MutableStateFlow<List<Book>>(emptyList())
     val books: StateFlow<List<Book>> = _books.asStateFlow()
+
+    private val _nihongoTrackerLink = MutableStateFlow<NihongoTrackerLink?>(null)
+    val nihongoTrackerLink: StateFlow<NihongoTrackerLink?> = _nihongoTrackerLink.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -155,6 +160,9 @@ class SerieViewModel @Inject constructor(
             try {
                 val detail = library.serieDetail(id)
                 _serie.value = detail
+                _nihongoTrackerLink.value = runCatching {
+                    nihongoTracker.linkForSerie(id)
+                }.getOrNull()
 
                 val variant = detail.variant?.let { variant ->
                     LibraryVariant.entries.firstOrNull { it.rawValue == variant.name.lowercase() }
@@ -249,6 +257,7 @@ fun SerieRoute(
     val error by viewModel.error.collectAsStateWithLifecycle()
     val settings by viewModel.settingsData.collectAsStateWithLifecycle()
     val actionError by viewModel.actionError.collectAsStateWithLifecycle()
+    val nihongoTrackerLink by viewModel.nihongoTrackerLink.collectAsStateWithLifecycle()
 
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberLibraryActions(snackbar)
@@ -415,7 +424,7 @@ fun SerieRoute(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                item { SerieHeader(serie!!) }
+                item { SerieHeader(serie!!, nihongoTrackerLink) }
 
                 val summary = serie?.plainSummary.orEmpty()
                 if (summary.isNotEmpty()) {
@@ -531,7 +540,7 @@ fun SerieRoute(
 }
 
 @Composable
-private fun SerieHeader(serie: Serie) {
+private fun SerieHeader(serie: Serie, nihongoTrackerLink: NihongoTrackerLink?) {
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         RemoteImage(
             url = rememberStaticUrlsSafe(serie),
@@ -551,6 +560,15 @@ private fun SerieHeader(serie: Serie) {
                     text = serie.displayAuthors.joinToString(", "),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            nihongoTrackerLink?.let { link ->
+                Text(
+                    text = "NihongoTracker: ${link.mediaTitle ?: link.mediaId ?: "vinculada"}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 2,
                 )
             }
 

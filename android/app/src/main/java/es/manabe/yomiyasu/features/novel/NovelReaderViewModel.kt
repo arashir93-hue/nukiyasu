@@ -136,6 +136,11 @@ class NovelReaderViewModel @Inject constructor(
     }
 
     fun saveProgress(book: Book, characters: Int, timeSeconds: Int, totalCharacters: Int) {
+        scope.launch { runCatching { saveProgressNow(book, characters, timeSeconds, totalCharacters) } }
+    }
+
+    /** Persists the current progress before a dependent action, such as NT logging. */
+    suspend fun saveProgressNow(book: Book, characters: Int, timeSeconds: Int, totalCharacters: Int) {
         if (ServerConfig.e2eNoSave) return
         if (characters <= 0 && timeSeconds <= 0) return
 
@@ -144,22 +149,18 @@ class NovelReaderViewModel @Inject constructor(
 
         if (!network.isOnline.value) return
 
-        scope.launch {
-            val total = if ((book.characters ?: 0) > 0) book.characters ?: 0 else totalCharacters
-            val isCompleted = total > 0 && characters.toDouble() >= total.toDouble() * 0.9
+        val total = if ((book.characters ?: 0) > 0) book.characters ?: 0 else totalCharacters
+        val isCompleted = total > 0 && characters.toDouble() >= total.toDouble() * 0.9
 
-            runCatching {
-                progress.save(
-                    ReadProgressRequest(
-                        book = book.id,
-                        time = timeSeconds,
-                        currentPage = 1,
-                        characters = characters,
-                        status = if (isCompleted) "completed" else "reading",
-                    ),
-                )
-            }
-        }
+        progress.save(
+            ReadProgressRequest(
+                book = book.id,
+                time = timeSeconds,
+                currentPage = 1,
+                characters = characters,
+                status = if (isCompleted) "completed" else "reading",
+            ),
+        )
     }
 
     fun neighboringBook(

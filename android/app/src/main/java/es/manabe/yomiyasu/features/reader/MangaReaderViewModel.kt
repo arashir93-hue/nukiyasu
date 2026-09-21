@@ -175,6 +175,11 @@ class MangaReaderViewModel @Inject constructor(
     }
 
     fun saveProgress(book: Book, page: Int, timeSeconds: Int) {
+        scope.launch { runCatching { saveProgressNow(book, page, timeSeconds) } }
+    }
+
+    /** Persists the current progress before a dependent action, such as NT logging. */
+    suspend fun saveProgressNow(book: Book, page: Int, timeSeconds: Int) {
         if (ServerConfig.e2eNoSave) return
 
         mirror.setMangaPage(book.id, page)
@@ -182,23 +187,19 @@ class MangaReaderViewModel @Inject constructor(
 
         if (!network.isOnline.value) return
 
-        scope.launch {
-            val characters = book.pageChars?.getOrNull(page - 1) ?: 0
-            val totalPages = book.pages ?: 0
-            val status = if (totalPages > 0 && page >= totalPages) "completed" else "reading"
+        val characters = book.pageChars?.getOrNull(page - 1) ?: 0
+        val totalPages = book.pages ?: 0
+        val status = if (totalPages > 0 && page >= totalPages) "completed" else "reading"
 
-            runCatching {
-                progress.save(
-                    ReadProgressRequest(
-                        book = book.id,
-                        time = timeSeconds,
-                        currentPage = page,
-                        characters = characters,
-                        status = status,
-                    ),
-                )
-            }
-        }
+        progress.save(
+            ReadProgressRequest(
+                book = book.id,
+                time = timeSeconds,
+                currentPage = page,
+                characters = characters,
+                status = status,
+            ),
+        )
     }
 
     fun neighboringBook(
