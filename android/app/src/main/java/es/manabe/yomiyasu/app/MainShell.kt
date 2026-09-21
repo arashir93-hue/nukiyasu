@@ -1,8 +1,14 @@
 package es.manabe.yomiyasu.app
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Favorite
@@ -16,13 +22,19 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -40,6 +52,9 @@ private data class TabItem(
     val icon: ImageVector,
 )
 
+internal fun shouldShowPermanentNavigationRail(expanded: Boolean, immersive: Boolean): Boolean =
+    expanded && !immersive
+
 @Composable
 fun MainShell(
     mainView: MainView,
@@ -51,6 +66,7 @@ fun MainShell(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val immersive = currentRoute?.startsWith("book/") == true
+    var readerNavigationOpen by remember { mutableStateOf(false) }
 
     val expanded = LocalConfiguration.current.screenWidthDp >= 600
 
@@ -76,9 +92,11 @@ fun MainShell(
         add(TabItem(Routes.More, "Más", Icons.Filled.MoreHoriz))
     }
 
+    if (!immersive) readerNavigationOpen = false
+
     if (expanded) {
-        androidx.compose.foundation.layout.Row(modifier = Modifier.fillMaxSize()) {
-            if (!immersive) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            if (shouldShowPermanentNavigationRail(expanded = expanded, immersive = immersive)) {
                 NavigationRail {
                     tabs.forEach { tab ->
                         NavigationRailItem(
@@ -98,7 +116,19 @@ fun MainShell(
                     isSocketConnected = isSocketConnected,
                     onMarkLibraryUpdated = onMarkLibraryUpdated,
                     onLogout = onLogout,
+                    onOpenReaderNavigation = { readerNavigationOpen = true },
                 )
+
+                if (immersive && readerNavigationOpen) {
+                    ReaderNavigationOverlay(
+                        tabs = tabs,
+                        onNavigate = { route ->
+                            readerNavigationOpen = false
+                            navController.navigateTopLevel(route)
+                        },
+                        onDismiss = { readerNavigationOpen = false },
+                    )
+                }
             }
         }
     } else {
@@ -126,7 +156,60 @@ fun MainShell(
                     isSocketConnected = isSocketConnected,
                     onMarkLibraryUpdated = onMarkLibraryUpdated,
                     onLogout = onLogout,
+                    onOpenReaderNavigation = { readerNavigationOpen = true },
                 )
+                if (immersive && readerNavigationOpen) {
+                    ReaderNavigationOverlay(
+                        tabs = tabs,
+                        onNavigate = { route ->
+                            readerNavigationOpen = false
+                            navController.navigateTopLevel(route)
+                        },
+                        onDismiss = { readerNavigationOpen = false },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReaderNavigationOverlay(
+    tabs: List<TabItem>,
+    onNavigate: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .zIndex(10f),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(onClick = onDismiss),
+        )
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(12.dp)
+                .width(240.dp),
+            shadowElevation = 8.dp,
+        ) {
+            Column(
+                modifier = Modifier.padding(vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                tabs.forEach { tab ->
+                    androidx.compose.material3.TextButton(
+                        onClick = { onNavigate(tab.route) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    {
+                        Icon(tab.icon, contentDescription = null)
+                        Text(tab.label, modifier = Modifier.padding(start = 12.dp))
+                    }
+                }
             }
         }
     }
@@ -148,6 +231,7 @@ private fun ShellNavHost(
     isSocketConnected: Boolean,
     onMarkLibraryUpdated: () -> Unit,
     onLogout: () -> Unit,
+    onOpenReaderNavigation: () -> Unit,
 ) {
     NavHost(navController = navController, startDestination = startRoute) {
         composable(Routes.Home) {
@@ -244,6 +328,7 @@ private fun ShellNavHost(
             es.manabe.yomiyasu.features.reader.BookReaderRoute(
                 bookId = bookId,
                 onBack = { navController.popBackStack() },
+                onOpenNavigation = onOpenReaderNavigation,
             )
         }
     }

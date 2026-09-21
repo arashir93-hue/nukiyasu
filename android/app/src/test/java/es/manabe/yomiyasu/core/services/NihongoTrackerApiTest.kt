@@ -73,4 +73,58 @@ class NihongoTrackerApiTest {
 
         assertEquals(null, tracker.linkForSerie("s-unlinked"))
     }
+
+    @Test
+    fun `stores manual link through Nukiyasu backend without exposing api key`() = runTest {
+        server.enqueue(
+            MockResponse(
+                code = 200,
+                body = """{"mode":"manual","mediaType":"manga","mediaId":"","mediaTitle":"Serie sin match"}""",
+            ),
+        )
+
+        val link = tracker.setManualSeriesLink("s-unmatched", "Serie sin match")
+
+        assertEquals("manual", link.mode)
+        assertEquals("Serie sin match", link.mediaTitle)
+        val request = server.takeRequest()
+        assertEquals("PUT", request.method)
+        assertEquals("/api/nihongo-tracker/series/s-unmatched", request.url.encodedPath)
+        assertTrue(request.body!!.utf8().contains("\"mode\":\"manual\""))
+        assertTrue(request.body!!.utf8().contains("\"mediaTitle\":\"Serie sin match\""))
+        assertFalse(request.body!!.utf8().contains("apiKey"))
+    }
+
+    @Test
+    fun `searches real media titles and links or unlinks through backend`() = runTest {
+        server.enqueue(
+            MockResponse(
+                code = 200,
+                body = """[{"_id":"doc-1","contentId":"146181","title":{"contentTitleNative":"黒猫と魔女の教室","contentTitleRomaji":"Kuroneko to Majo no Kyoushitsu","contentTitleEnglish":"The Classroom of a Black Cat and a Witch"}}]""",
+            ),
+        )
+
+        val results = tracker.searchMedia("Kuroneko", "manga")
+        assertEquals("146181", results.single().resolvedId)
+        assertEquals("黒猫と魔女の教室", results.single().resolvedTitle)
+        val searchRequest = server.takeRequest()
+        assertEquals("GET", searchRequest.method)
+        assertEquals("/api/nihongo-tracker/media/search", searchRequest.url.encodedPath)
+        assertFalse(searchRequest.url.toString().contains("apiKey"))
+
+        server.enqueue(MockResponse(code = 200, body = """{"mode":"linked","mediaType":"manga","mediaId":"146181","mediaTitle":"Kuroneko"}"""))
+        val linked = tracker.linkSeries("s1", "manga", "146181", "Kuroneko")
+        assertEquals("linked", linked.mode)
+        assertEquals("146181", linked.mediaId)
+        val linkRequest = server.takeRequest()
+        assertEquals("PUT", linkRequest.method)
+        assertEquals("/api/nihongo-tracker/series/s1", linkRequest.url.encodedPath)
+        assertFalse(linkRequest.body!!.utf8().contains("apiKey"))
+
+        server.enqueue(MockResponse(code = 200, body = """{"unlinked":true}"""))
+        tracker.unlinkSeries("s1")
+        val unlinkRequest = server.takeRequest()
+        assertEquals("DELETE", unlinkRequest.method)
+        assertEquals("/api/nihongo-tracker/series/s1", unlinkRequest.url.encodedPath)
+    }
 }

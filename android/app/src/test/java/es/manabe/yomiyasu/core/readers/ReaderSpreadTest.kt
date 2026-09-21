@@ -59,6 +59,39 @@ class ReaderSpreadTest {
     }
 
     @Test
+    fun `logical page maps to the same page in portrait and landscape`() {
+        val logicalPage = 17
+        val portrait = SpreadLayout.spreads(pageCount = 40, doublePage = false, hasCover = true)
+        val landscape = SpreadLayout.spreads(pageCount = 40, doublePage = true, hasCover = true)
+
+        assertEquals(logicalPage, portrait[SpreadLayout.spreadIndex(logicalPage, false, true)].firstPage)
+
+        val landscapeIndex = SpreadLayout.spreadIndex(logicalPage, true, true)
+        assertEquals(logicalPage, landscape[landscapeIndex].pages.first())
+        assertTrue(logicalPage in landscape[landscapeIndex].pages)
+    }
+
+    @Test
+    fun `logical page mapping keeps first and last pages within bounds`() {
+        val spreads = SpreadLayout.spreads(pageCount = 5, doublePage = true, hasCover = true)
+
+        assertEquals(0, SpreadLayout.spreadIndex(0, true, true))
+        assertEquals(spreads.lastIndex, SpreadLayout.spreadIndex(4, true, true))
+    }
+
+    @Test
+    fun `logical page remains stable through repeated portrait landscape conversions`() {
+        val logicalPage = 17
+        val landscape = SpreadLayout.spreads(pageCount = 40, doublePage = true, hasCover = true)
+
+        repeat(4) {
+            val landscapeSpread = landscape[SpreadLayout.spreadIndex(logicalPage, true, true)]
+            assertTrue(logicalPage in landscapeSpread.pages)
+            assertEquals(logicalPage, SpreadLayout.spreadIndex(logicalPage, false, true))
+        }
+    }
+
+    @Test
     fun `empty book has no spreads`() {
         assertTrue(SpreadLayout.spreads(pageCount = 0, doublePage = true, hasCover = true).isEmpty())
     }

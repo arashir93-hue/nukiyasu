@@ -170,6 +170,23 @@ class TategakiLayoutTest {
     }
 
     @Test
+    fun `vertical layout preserves Japanese punctuation latin and numbers in logical order`() {
+        val text = "日本語、。！？「ABC123」"
+        val textBox = makeBox(
+            rect = MokuroRect(0f, 0f, 180f, 800f),
+            vertical = true,
+            fontSize = 32f,
+            paragraphs = listOf(text),
+        )
+
+        val glyphs = TategakiLayout.layout(textBox, fontSizeOverride = 0f, scale = 1f)
+
+        assertEquals(text.toList().map { it.toString() }, glyphs.map { it.text })
+        assertEquals(0, glyphs.first().characterIndex)
+        assertEquals(text.length - 1, glyphs.last().characterIndex)
+    }
+
+    @Test
     fun `scaled page uses page coordinates`() {
         val scale = 390f / 1080f
         val textBox = makeBox(

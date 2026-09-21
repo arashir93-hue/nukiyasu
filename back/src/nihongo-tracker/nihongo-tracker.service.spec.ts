@@ -203,6 +203,39 @@ describe("NihongoTrackerService", () => {
         expect(fetchMock).toHaveBeenCalledTimes(3);
     });
 
+    it("permite registrar relecturas manuales sin un media vinculado", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", pages:200, characters:12000, sortName:"serie v05", visibleName:"serie v05"};
+        const serie = {_id:serieId, visibleName:"Serie sin match", variant:"manga"};
+        const firstProgressId = new Types.ObjectId();
+        const secondProgressId = new Types.ObjectId();
+
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        serieModel.findOne.mockResolvedValue(serie);
+        overrideModel.findOne.mockResolvedValue(null);
+        linkModel.findOne.mockResolvedValue({mode:"manual", mediaType:"manga", mediaId:"", mediaTitle:"Serie sin match"});
+        progressModel.findOne
+            .mockReturnValueOnce({sort:jest.fn().mockResolvedValue({_id:firstProgressId, time:70 * 60})})
+            .mockReturnValueOnce({sort:jest.fn().mockResolvedValue({_id:secondProgressId, time:85 * 60})});
+        logModel.findOne.mockResolvedValue(null);
+        logModel.create
+            .mockResolvedValueOnce({_id:new Types.ObjectId()})
+            .mockResolvedValueOnce({_id:new Types.ObjectId()});
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock
+            .mockResolvedValueOnce(new Response(JSON.stringify({id:"external-manual-1"}), {status:201}))
+            .mockResolvedValueOnce(new Response(JSON.stringify({id:"external-manual-2"}), {status:201}));
+
+        await expect(service.logBook(user, bookId, {requestId:"550e8400-e29b-41d4-a716-446655440006"})).resolves.toEqual(expect.objectContaining({status:"logged"}));
+        await expect(service.logBook(user, bookId, {requestId:"550e8400-e29b-41d4-a716-446655440007"})).resolves.toEqual(expect.objectContaining({status:"logged"}));
+
+        const firstPayload = JSON.parse(String(fetchMock.mock.calls[0][1]?.body));
+        const secondPayload = JSON.parse(String(fetchMock.mock.calls[1][1]?.body));
+        expect(firstPayload).toEqual(expect.objectContaining({mediaId:"", description:"Serie sin match", time:70}));
+        expect(secondPayload).toEqual(expect.objectContaining({mediaId:"", description:"Serie sin match", time:85}));
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it("reutiliza el registro local para una misma idempotency key", async() => {
         const book = {_id:bookId, serie:serieId, variant:"manga", pages:200, sortName:"oshi v05", visibleName:"oshi v05"};
         bookModel.findById.mockResolvedValue(book);
@@ -223,6 +256,47 @@ describe("NihongoTrackerService", () => {
         await service.logBook(user, bookId, {requestId});
         await expect(service.logBook(user, bookId, {requestId})).resolves.toEqual({status:"already_logged", externalLogId:"external-1"});
         expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("linked: registra una lectura, hace retry idempotente y permite una relectura explícita", async() => {
+        const book = {_id:bookId, serie:serieId, variant:"manga", pages:200, characters:12000, sortName:"serie v05", visibleName:"serie v05"};
+        const serie = {_id:serieId, visibleName:"Serie linked", variant:"manga"};
+        const firstProgressId = new Types.ObjectId();
+        const secondProgressId = new Types.ObjectId();
+        const firstLog = {externalLogId:"external-linked-1"};
+
+        bookModel.findById.mockResolvedValue(book);
+        bookModel.find.mockReturnValue({sort:jest.fn().mockResolvedValue([book])});
+        serieModel.findOne.mockResolvedValue(serie);
+        overrideModel.findOne.mockResolvedValue(null);
+        linkModel.findOne.mockResolvedValue({mode:"linked", mediaType:"manga", mediaId:"146181", mediaTitle:"Serie linked"});
+        progressModel.findOne
+            .mockReturnValueOnce({sort:jest.fn().mockResolvedValue({_id:firstProgressId, time:70 * 60})})
+            .mockReturnValueOnce({sort:jest.fn().mockResolvedValue({_id:firstProgressId, time:70 * 60})})
+            .mockReturnValueOnce({sort:jest.fn().mockResolvedValue({_id:secondProgressId, time:85 * 60})});
+        logModel.findOne
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(firstLog)
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(null);
+        logModel.create
+            .mockResolvedValueOnce({_id:new Types.ObjectId()})
+            .mockResolvedValueOnce({_id:new Types.ObjectId()});
+        integrationModel.findOne.mockResolvedValue({encryptedApiKey:encryptNihongoTrackerKey(configService, "test-key")});
+        fetchMock
+            .mockResolvedValueOnce(new Response(JSON.stringify({id:"external-linked-1"}), {status:201}))
+            .mockResolvedValueOnce(new Response(JSON.stringify({id:"external-linked-2"}), {status:201}));
+
+        const requestId = "550e8400-e29b-41d4-a716-446655440008";
+        await expect(service.logBook(user, bookId, {requestId})).resolves.toEqual(expect.objectContaining({status:"logged"}));
+        await expect(service.logBook(user, bookId, {requestId})).resolves.toEqual({status:"already_logged", externalLogId:"external-linked-1"});
+        await expect(service.logBook(user, bookId, {requestId:"550e8400-e29b-41d4-a716-446655440009"})).resolves.toEqual(expect.objectContaining({status:"logged"}));
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(logModel.create).toHaveBeenCalledTimes(2);
+        expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual(expect.objectContaining({mediaId:"146181", description:"Serie linked", time:70}));
+        expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(expect.objectContaining({mediaId:"146181", description:"Serie linked", time:85}));
     });
 
     it("no llama dos veces al externo si Mongo rechaza una reserva concurrente", async() => {

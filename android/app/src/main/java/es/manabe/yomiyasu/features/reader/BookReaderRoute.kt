@@ -71,6 +71,7 @@ class BookReaderViewModel @Inject constructor(
 fun BookReaderRoute(
     bookId: String,
     onBack: () -> Unit,
+    onOpenNavigation: () -> Unit = {},
     viewModel: BookReaderViewModel = hiltViewModel(),
 ) {
     val book by viewModel.book.collectAsStateWithLifecycle()
@@ -96,11 +97,13 @@ fun BookReaderRoute(
                 es.manabe.yomiyasu.features.novel.NovelReaderView(
                     initialBookId = bookId,
                     onBack = onBack,
+                    onOpenNavigation = onOpenNavigation,
                 )
             } else {
                 MangaReaderView(
                     initialBookId = bookId,
                     onBack = onBack,
+                    onOpenNavigation = onOpenNavigation,
                 )
             }
         }

@@ -37,6 +37,7 @@ fun NihongoTrackerReaderButton(
     book: Book,
     completed: Boolean,
     saveProgress: suspend () -> Unit,
+    startReread: suspend () -> Unit = {},
 ) {
     if (!completed) return
 
@@ -58,7 +59,58 @@ fun NihongoTrackerReaderButton(
     }
 
     val current = status ?: return
-    if (!current.connected || !current.linked) return
+    if (!current.connected || (!current.linked && current.serieName.isBlank())) return
+    val manual = !current.linked
+    val hasPreviousLogs = current.hasPreviousLogs || current.logCount > 0 || current.alreadyLogged
+
+    fun register(explicitReread: Boolean) {
+        if (saving) return
+        saving = true
+        scope.launch {
+            try {
+                if (explicitReread) startReread()
+                saveProgress()
+                val refreshed = api.bookStatus(book.id)
+                if (!refreshed.completed) {
+                    android.widget.Toast.makeText(
+                        context,
+                        "No se pudo guardar el progreso terminado",
+                        android.widget.Toast.LENGTH_SHORT,
+                    ).show()
+                    return@launch
+                }
+
+                if (!refreshed.linked) {
+                    val serieId = book.serie
+                    if (serieId.isNullOrBlank() || refreshed.serieName.isBlank()) {
+                        throw IllegalStateException("No se pudo determinar la serie para el registro manual")
+                    }
+                    api.setManualSeriesLink(serieId, refreshed.serieName)
+                }
+
+                val response = api.logBook(book.id)
+                status = api.bookStatus(book.id)
+                android.widget.Toast.makeText(
+                    context,
+                    if (response.status == "already_logged") {
+                        "Esta lectura ya estaba registrada"
+                    } else {
+                        "Volumen registrado en NihongoTracker"
+                    },
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
+                dialogOpen = false
+            } catch (_: Exception) {
+                android.widget.Toast.makeText(
+                    context,
+                    "No se pudo registrar el volumen en NihongoTracker",
+                    android.widget.Toast.LENGTH_SHORT,
+                ).show()
+            } finally {
+                saving = false
+            }
+        }
+    }
 
     IconButton(onClick = { dialogOpen = true }, enabled = !saving) {
         Icon(
@@ -75,63 +127,31 @@ fun NihongoTrackerReaderButton(
         title = { Text("Registrar en NihongoTracker") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(current.trackerTitle ?: current.serieName)
+                if (manual) {
+                    Text("Sin vínculo: se registrará manualmente como «${current.serieName}».")
+                } else {
+                    Text("Vinculado a «${current.trackerTitle ?: current.serieName}».")
+                }
                 Text("Volumen detectado: ${formatVolume(current.volumeNumber)}")
                 if (current.volumeSource == "position") {
                     Text("El volumen se ha inferido por su posición.")
                 }
-                if (current.hasPreviousLogs || current.logCount > 0 || current.alreadyLogged) {
-                    Text("Este volumen ya tiene registros; se guardará como otra lectura.")
+                if (hasPreviousLogs) {
+                    Text("Este volumen ya tiene registros. «Registrar» reintenta la misma operación; «Releer y registrar» crea una nueva lectura.")
                 }
             }
         },
         confirmButton = {
-            TextButton(
-                onClick = {
-                    if (saving) return@TextButton
-                    saving = true
-                    scope.launch {
-                        try {
-                            saveProgress()
-                            val refreshed = api.bookStatus(book.id)
-                            if (!refreshed.completed) {
-                                android.widget.Toast.makeText(
-                                    context,
-                                    "No se pudo guardar el progreso terminado",
-                                    android.widget.Toast.LENGTH_SHORT,
-                                ).show()
-                                return@launch
-                            }
-
-                            val response = api.logBook(book.id)
-                            status = api.bookStatus(book.id)
-                            android.widget.Toast.makeText(
-                                context,
-                                if (response.status == "already_logged") {
-                                    "Esta lectura ya estaba registrada"
-                                } else {
-                                    "Volumen registrado en NihongoTracker"
-                                },
-                                android.widget.Toast.LENGTH_SHORT,
-                            ).show()
-                            dialogOpen = false
-                        } catch (_: Exception) {
-                            android.widget.Toast.makeText(
-                                context,
-                                "No se pudo registrar el volumen en NihongoTracker",
-                                android.widget.Toast.LENGTH_SHORT,
-                            ).show()
-                        } finally {
-                            saving = false
-                        }
+            androidx.compose.foundation.layout.Row {
+                if (hasPreviousLogs) {
+                    TextButton(onClick = { register(true) }, enabled = !saving) {
+                        Text("Releer y registrar")
                     }
-                },
-                enabled = !saving,
-            ) {
-                if (saving) {
-                    CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
                 }
-                Text("Registrar")
+                TextButton(onClick = { register(false) }, enabled = !saving) {
+                    if (saving) CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                    Text("Registrar")
+                }
             }
         },
         dismissButton = {

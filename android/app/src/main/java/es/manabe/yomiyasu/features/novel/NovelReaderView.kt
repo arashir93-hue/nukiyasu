@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -80,6 +81,7 @@ import kotlin.math.roundToInt
 fun NovelReaderView(
     initialBookId: String,
     onBack: () -> Unit,
+    onOpenNavigation: () -> Unit = {},
     viewModel: NovelReaderViewModel = hiltViewModel(),
 ) {
     val loadState by viewModel.state.collectAsStateWithLifecycle()
@@ -222,6 +224,7 @@ fun NovelReaderView(
                                 }
                                 onBack()
                             },
+                            onOpenNavigation = onOpenNavigation,
                             onDownload = { book?.let { downloads.enqueue(it) } },
                             onOpenToc = { showingToc = true },
                             onOpenSettings = { showingSettings = true },
@@ -231,6 +234,9 @@ fun NovelReaderView(
                                     completed = atLastPage,
                                     saveProgress = {
                                         viewModel.saveProgressNow(book!!, currentCharacters, timerSeconds, totalCharacters)
+                                    },
+                                    startReread = {
+                                        viewModel.startReread(book!!)
                                     },
                                 )
                             },
@@ -438,6 +444,7 @@ private fun ReaderBar(
     downloadState: DownloadState,
     isOnline: Boolean,
     onBack: () -> Unit,
+    onOpenNavigation: () -> Unit,
     onDownload: () -> Unit,
     onOpenToc: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -467,6 +474,10 @@ private fun ReaderBar(
 
             if (!isOnline) {
                 Icon(Icons.Filled.WifiOff, contentDescription = "Sin conexión", tint = Color(0xFFFF9800))
+            }
+
+            IconButton(onClick = onOpenNavigation) {
+                Icon(Icons.Filled.Menu, contentDescription = "Navegación", tint = Color.White)
             }
 
             when {

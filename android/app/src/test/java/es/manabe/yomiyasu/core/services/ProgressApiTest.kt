@@ -141,6 +141,26 @@ class ProgressApiTest {
     }
 
     @Test
+    fun `save preserves completion timestamp for a new reread session`() = runTest {
+        server.enqueue(MockResponse(code = 201, body = """{}"""))
+
+        api.save(
+            ReadProgressRequest(
+                book = "b1",
+                time = 120,
+                currentPage = 200,
+                characters = 300,
+                status = "completed",
+                endDate = "2026-09-21T12:00:00.000Z",
+            ),
+        )
+
+        val body = server.takeRequest().body!!.utf8()
+        assertTrue(body.contains("\"status\":\"completed\""))
+        assertTrue(body.contains("\"endDate\":\"2026-09-21T12:00:00.000Z\""))
+    }
+
+    @Test
     fun `speed hits serie endpoint`() = runTest {
         server.enqueue(MockResponse(code = 200, body = """[{"_id":"p1","meanReadSpeed":430.0}]"""))
 

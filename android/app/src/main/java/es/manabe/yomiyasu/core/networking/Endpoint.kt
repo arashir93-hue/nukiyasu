@@ -40,6 +40,12 @@ class Endpoint(
             headers: Map<String, String> = emptyMap(),
         ) = Endpoint(HttpMethod.POST, path, body = body, headers = headers)
 
+        fun put(
+            path: String,
+            body: JsonBody,
+            headers: Map<String, String> = emptyMap(),
+        ) = Endpoint(HttpMethod.PUT, path, body = body, headers = headers)
+
         fun patch(
             path: String,
             body: JsonBody,

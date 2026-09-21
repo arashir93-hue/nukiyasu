@@ -80,6 +80,7 @@ import es.manabe.yomiyasu.core.services.SocketService
 import es.manabe.yomiyasu.core.settings.AppSettings
 import es.manabe.yomiyasu.core.settings.AppSettingsData
 import es.manabe.yomiyasu.core.settings.RandomCriteriaStore
+import es.manabe.yomiyasu.features.nihongotracker.NihongoTrackerMatchDialog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -115,6 +116,10 @@ class SerieViewModel @Inject constructor(
 
     fun clearActionError() {
         _actionError.value = null
+    }
+
+    fun setNihongoTrackerLink(link: NihongoTrackerLink?) {
+        _nihongoTrackerLink.value = link
     }
 
     fun reroll(randomVariant: LibraryVariant, onResult: (String?) -> Unit) {
@@ -268,6 +273,7 @@ fun SerieRoute(
     var summaryExpanded by remember { mutableStateOf(false) }
     var markReadDialog by remember { mutableStateOf(false) }
     var reviewFormOpen by remember { mutableStateOf(false) }
+    var nihongoTrackerDialogOpen by remember { mutableStateOf(false) }
     var activeSerieId by remember { mutableStateOf(serieId) }
     var rerollActive by remember { mutableStateOf(randomVariant != null) }
 
@@ -424,7 +430,13 @@ fun SerieRoute(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                item { SerieHeader(serie!!, nihongoTrackerLink) }
+                item {
+                    SerieHeader(
+                        serie = serie!!,
+                        nihongoTrackerLink = nihongoTrackerLink,
+                        onOpenNihongoTracker = { nihongoTrackerDialogOpen = true },
+                    )
+                }
 
                 val summary = serie?.plainSummary.orEmpty()
                 if (summary.isNotEmpty()) {
@@ -537,10 +549,26 @@ fun SerieRoute(
             onSubmitted = { viewModel.load(serieId) },
         )
     }
+
+    if (nihongoTrackerDialogOpen && serie != null) {
+        NihongoTrackerMatchDialog(
+            serie = serie!!,
+            initialLink = nihongoTrackerLink,
+            open = true,
+            onOpenChange = { nihongoTrackerDialogOpen = it },
+            onLinkChanged = { link ->
+                viewModel.setNihongoTrackerLink(link)
+            },
+        )
+    }
 }
 
 @Composable
-private fun SerieHeader(serie: Serie, nihongoTrackerLink: NihongoTrackerLink?) {
+private fun SerieHeader(
+    serie: Serie,
+    nihongoTrackerLink: NihongoTrackerLink?,
+    onOpenNihongoTracker: () -> Unit,
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         RemoteImage(
             url = rememberStaticUrlsSafe(serie),
@@ -565,11 +593,19 @@ private fun SerieHeader(serie: Serie, nihongoTrackerLink: NihongoTrackerLink?) {
 
             nihongoTrackerLink?.let { link ->
                 Text(
-                    text = "NihongoTracker: ${link.mediaTitle ?: link.mediaId ?: "vinculada"}",
+                    text = if (link.mode == "manual") {
+                        "NihongoTracker (manual): ${link.mediaTitle ?: serie.visibleName}"
+                    } else {
+                        "NihongoTracker: ${link.mediaTitle ?: link.mediaId ?: "vinculada"}"
+                    },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
                     maxLines = 2,
                 )
+            }
+
+            TextButton(onClick = onOpenNihongoTracker) {
+                Text(if (nihongoTrackerLink == null) "Vincular NihongoTracker" else "Gestionar NihongoTracker")
             }
 
             Row(

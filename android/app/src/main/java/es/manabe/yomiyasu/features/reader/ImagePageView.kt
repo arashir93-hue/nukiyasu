@@ -1,15 +1,10 @@
 package es.manabe.yomiyasu.features.reader
 
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
 import es.manabe.yomiyasu.core.mokuro.MokuroPage
@@ -24,7 +19,6 @@ fun ImagePageView(
     page: MokuroPage,
     imageModel: Any?,
     fitMode: ZoomMode,
-    onPageTap: (Offset) -> Unit,
     modifier: Modifier = Modifier,
     /** Proporción (ancho/alto) real de la imagen una vez decodificada. */
     onIntrinsicSize: ((Float) -> Unit)? = null,
@@ -35,14 +29,8 @@ fun ImagePageView(
         else -> ContentScale.Fit
     }
 
-    // El gesto se registra una sola vez: rememberUpdatedState evita que el
-    // handler quede con el zoom/estado del primer composition.
-    val currentOnPageTap by rememberUpdatedState(onPageTap)
-
     Box(
-        modifier = modifier.pointerInput(page.id) {
-            detectTapGestures { position -> currentOnPageTap(position) }
-        },
+        modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
         AsyncImage(

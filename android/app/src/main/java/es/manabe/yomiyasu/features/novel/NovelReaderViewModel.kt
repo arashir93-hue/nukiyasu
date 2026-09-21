@@ -3,6 +3,7 @@ package es.manabe.yomiyasu.features.novel
 import es.manabe.yomiyasu.app.ServerConfig
 import es.manabe.yomiyasu.core.di.ApplicationScope
 import es.manabe.yomiyasu.core.models.Book
+import es.manabe.yomiyasu.core.models.ProgressStatus
 import es.manabe.yomiyasu.core.networking.ApiClient
 import es.manabe.yomiyasu.core.networking.ApiException
 import es.manabe.yomiyasu.core.networking.Endpoint
@@ -29,6 +30,7 @@ import kotlinx.coroutines.withContext
 import androidx.lifecycle.viewModelScope
 import org.readium.r2.shared.publication.Locator
 import org.readium.r2.shared.publication.Publication
+import java.time.Instant
 import java.io.File
 import javax.inject.Inject
 
@@ -106,7 +108,25 @@ class NovelReaderViewModel @Inject constructor(
 
                 val map = withContext(Dispatchers.Default) { buildProgressMap(publication) }
 
-                val progressRecord = runCatching { progress.progressForBook(bookId) }.getOrNull()
+                val storedProgress = runCatching { progress.progressForBook(bookId) }.getOrNull()
+                val progressRecord = if (storedProgress?.status == ProgressStatus.Completed && network.isOnline.value) {
+                    runCatching {
+                        mirror.setNovelCharacters(book.id, 0)
+                        mirror.setNovelTime(book.id, 0)
+                        progress.save(
+                            ReadProgressRequest(
+                                book = book.id,
+                                time = 0,
+                                currentPage = 1,
+                                characters = 0,
+                                status = "reading",
+                            ),
+                        )
+                        null
+                    }.getOrElse { storedProgress }
+                } else {
+                    storedProgress
+                }
                 val startCharacters = progressRecord?.characters
                     ?: mirror.novelCharacters(bookId)
                 val startTime = progressRecord?.time ?: mirror.novelTime(bookId)
@@ -159,6 +179,25 @@ class NovelReaderViewModel @Inject constructor(
                 currentPage = 1,
                 characters = characters,
                 status = if (isCompleted) "completed" else "reading",
+                endDate = if (isCompleted) Instant.now().toString() else null,
+            ),
+        )
+    }
+
+    /** Starts a distinct reading session before an intentional reread log. */
+    suspend fun startReread(book: Book) {
+        if (ServerConfig.e2eNoSave) return
+        if (!network.isOnline.value) throw IllegalStateException("Sin conexión para iniciar la relectura")
+
+        mirror.setNovelCharacters(book.id, 0)
+        mirror.setNovelTime(book.id, 0)
+        progress.save(
+            ReadProgressRequest(
+                book = book.id,
+                time = 0,
+                currentPage = 1,
+                characters = 0,
+                status = "reading",
             ),
         )
     }
