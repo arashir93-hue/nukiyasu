@@ -21,7 +21,7 @@ val debugServerUrl = providers.gradleProperty("yomiyasu.serverUrl").getOrElse(""
 
 // Permite que la CI fije versión sin tocar el fichero (-Pyomiyasu.versionCode / -Pyomiyasu.versionName)
 val appVersionCode = providers.gradleProperty("yomiyasu.versionCode").getOrElse("5").toInt()
-val appVersionName = providers.gradleProperty("yomiyasu.versionName").getOrElse("0.4.0")
+val appVersionName = providers.gradleProperty("yomiyasu.versionName").getOrElse("8.0.0")
 
 android {
     namespace = "es.manabe.yomiyasu"
