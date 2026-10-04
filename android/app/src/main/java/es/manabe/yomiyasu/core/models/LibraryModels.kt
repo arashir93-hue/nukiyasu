@@ -25,6 +25,9 @@ enum class Variant(val rawValue: String) {
 
     @SerialName("doujinshi")
     Doujinshi("doujinshi"),
+
+    @SerialName("artbook")
+    Artbook("artbook"),
     ;
 
     val title: String
@@ -32,6 +35,7 @@ enum class Variant(val rawValue: String) {
             Manga -> "Manga"
             Novela -> "Novela"
             Doujinshi -> "Doujinshi"
+            Artbook -> "Artbook"
         }
 
     val staticFolder: String
@@ -39,9 +43,10 @@ enum class Variant(val rawValue: String) {
             Manga -> "mangas"
             Novela -> "novelas"
             Doujinshi -> "doujinshi"
+            Artbook -> "artbooks"
         }
 
-    /** Doujinshi uses the same page/image reader as manga. */
+    /** Manga, doujinshi and artbooks use the same page/image reader. */
     val isImageBased: Boolean get() = this != Novela
 }
 
@@ -56,6 +61,9 @@ enum class LibraryVariant(val rawValue: String) {
     @SerialName("doujinshi")
     Doujinshi("doujinshi"),
 
+    @SerialName("artbook")
+    Artbook("artbook"),
+
     @SerialName("all")
     All("all"),
     ;
@@ -65,6 +73,7 @@ enum class LibraryVariant(val rawValue: String) {
             Manga -> "Mangas"
             Novela -> "Novelas"
             Doujinshi -> "Doujinshi"
+            Artbook -> "Artbooks"
             All -> "Todo"
         }
 }

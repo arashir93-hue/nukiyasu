@@ -75,4 +75,34 @@ class StaticUrlsTest {
             urls.serieCover(serie)?.toString(),
         )
     }
+
+    @Test
+    fun `artbook page and cover urls use the artbooks static folder`() {
+        val artbook = book(
+            """{"_id":"b4","visibleName":"Artbook 1","variant":"artbook","seriePath":"Serie","path":"Artbook 1",
+               "imagesFolder":"Artbook 1","format":"mokuro","thumbnailPath":"cover.jpg"}""",
+        )
+        val serie = Serie(
+            id = "s4",
+            variant = Variant.Artbook,
+            thumbnailPath = "Serie/cover.jpg",
+        )
+
+        assertEquals(
+            "https://example.test/api/static/artbooks/Serie/Artbook%201/001.jpg",
+            urls.bookImage(artbook, "Artbook 1/001.jpg")?.toString(),
+        )
+        assertEquals(
+            "https://example.test/api/static/artbooks/Serie/Artbook%201.html",
+            urls.bookHtml(artbook)?.toString(),
+        )
+        assertEquals(
+            "https://example.test/api/static/artbooks/Serie/Artbook%201/cover.jpg",
+            urls.bookCover(artbook)?.toString(),
+        )
+        assertEquals(
+            "https://example.test/api/static/artbooks/Serie/cover.jpg",
+            urls.serieCover(serie)?.toString(),
+        )
+    }
 }

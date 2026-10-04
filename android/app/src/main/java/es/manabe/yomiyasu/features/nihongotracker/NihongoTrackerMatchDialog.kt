@@ -28,6 +28,7 @@ import es.manabe.yomiyasu.components.LibraryEntryPoint
 import es.manabe.yomiyasu.core.models.NihongoTrackerLink
 import es.manabe.yomiyasu.core.models.NihongoTrackerMedia
 import es.manabe.yomiyasu.core.models.Serie
+import es.manabe.yomiyasu.core.models.Variant
 import kotlinx.coroutines.launch
 
 /**
@@ -42,7 +43,7 @@ fun NihongoTrackerMatchDialog(
     onOpenChange: (Boolean) -> Unit,
     onLinkChanged: (NihongoTrackerLink?) -> Unit,
 ) {
-    if (!open) return
+    if (!open || serie.variant == Variant.Artbook) return
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()

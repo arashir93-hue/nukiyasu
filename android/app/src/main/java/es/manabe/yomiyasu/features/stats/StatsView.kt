@@ -251,6 +251,16 @@ private fun StatCards(stats: UserStats) {
             icon = Icons.AutoMirrored.Filled.MenuBook,
         ),
         StatItem(
+            title = "Doujinshi leídos",
+            value = formatNumber(stats.totalDoujinshiBooks),
+            icon = Icons.Filled.CollectionsBookmark,
+        ),
+        StatItem(
+            title = "Artbooks leídos",
+            value = formatNumber(stats.totalArtbookBooks),
+            icon = Icons.Filled.CollectionsBookmark,
+        ),
+        StatItem(
             title = "Series de manga",
             value = formatNumber(stats.totalMangaSeries),
             icon = Icons.AutoMirrored.Filled.LibraryBooks,
@@ -261,8 +271,28 @@ private fun StatCards(stats: UserStats) {
             icon = Icons.Filled.CollectionsBookmark,
         ),
         StatItem(
+            title = "Series de doujinshi",
+            value = formatNumber(stats.totalDoujinshiSeries),
+            icon = Icons.Filled.CollectionsBookmark,
+        ),
+        StatItem(
+            title = "Series de artbook",
+            value = formatNumber(stats.totalArtbookSeries),
+            icon = Icons.Filled.CollectionsBookmark,
+        ),
+        StatItem(
             title = "Páginas leídas",
             value = formatNumber(stats.totalPagesRead),
+            icon = Icons.Filled.Description,
+        ),
+        StatItem(
+            title = "Páginas de manga",
+            value = formatNumber(stats.totalMangaPagesRead),
+            icon = Icons.Filled.Description,
+        ),
+        StatItem(
+            title = "Páginas de artbook",
+            value = formatNumber(stats.totalArtbookPagesRead),
             icon = Icons.Filled.Description,
         ),
         StatItem(
@@ -341,10 +371,20 @@ private fun ChartSection(
     onVariantChange: (Variant) -> Unit,
     onChartModeChange: (StatsChartMode) -> Unit,
 ) {
-    val variantOptions = listOf(Variant.Manga to "Manga", Variant.Novela to "Novelas")
+    val variantOptions = listOf(
+        Variant.Manga to "Manga",
+        Variant.Novela to "Novelas",
+        Variant.Doujinshi to "Doujinshi",
+        Variant.Artbook to "Artbooks",
+    )
 
     val entries = remember(graphs, variant) {
-        val source = if (variant == Variant.Manga) graphs?.manga else graphs?.novela
+        val source = when (variant) {
+            Variant.Manga -> graphs?.manga
+            Variant.Novela -> graphs?.novela
+            Variant.Doujinshi -> graphs?.doujinshi
+            Variant.Artbook -> graphs?.artbook
+        }
         source.orEmpty().sortedWith(compareBy({ it.monthId.year }, { it.monthId.month }))
     }
 
@@ -354,11 +394,8 @@ private fun ChartSection(
             style = MaterialTheme.typography.titleMedium,
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.weight(1f)) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 variantOptions.forEachIndexed { index, (option, label) ->
                     SegmentedButton(
                         selected = variant == option,
@@ -373,7 +410,7 @@ private fun ChartSection(
                 }
             }
 
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.weight(1f)) {
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 StatsChartMode.entries.forEachIndexed { index, mode ->
                     SegmentedButton(
                         selected = chartMode == mode,

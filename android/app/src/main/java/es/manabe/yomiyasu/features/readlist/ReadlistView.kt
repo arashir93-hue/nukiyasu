@@ -69,6 +69,9 @@ class ReadlistViewModel @Inject constructor(
     private val _doujinshi = MutableStateFlow<List<Serie>>(emptyList())
     val doujinshi: StateFlow<List<Serie>> = _doujinshi.asStateFlow()
 
+    private val _artbook = MutableStateFlow<List<Serie>>(emptyList())
+    val artbook: StateFlow<List<Serie>> = _artbook.asStateFlow()
+
     val showMatureContent: StateFlow<Boolean> = session.state
         .map { current -> (current as? SessionStore.State.LoggedIn)?.user?.showMatureContent ?: false }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
@@ -86,6 +89,7 @@ class ReadlistViewModel @Inject constructor(
                     _manga.value = emptyList()
                     _novela.value = emptyList()
                     _doujinshi.value = emptyList()
+                    _artbook.value = emptyList()
                     load()
                 }
             }
@@ -113,9 +117,11 @@ class ReadlistViewModel @Inject constructor(
                             emptyList()
                         }
                     }
+                    val artbookAsync = async { library.readlist(LibraryVariant.Artbook) }
                     _manga.value = mangaAsync.await()
                     _novela.value = novelaAsync.await()
                     _doujinshi.value = doujinshiAsync.await()
+                    _artbook.value = artbookAsync.await()
                 }
             } catch (error: ApiException) {
                 _error.value = error.userMessage
@@ -137,6 +143,7 @@ fun ReadlistRoute(
     val manga by viewModel.manga.collectAsStateWithLifecycle()
     val novela by viewModel.novela.collectAsStateWithLifecycle()
     val doujinshi by viewModel.doujinshi.collectAsStateWithLifecycle()
+    val artbook by viewModel.artbook.collectAsStateWithLifecycle()
     val showMatureContent by viewModel.showMatureContent.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -149,6 +156,7 @@ fun ReadlistRoute(
     val visibleManga = if (mainView == MainView.Novels) emptyList() else manga
     val visibleNovela = if (mainView == MainView.Manga) emptyList() else novela
     val visibleDoujinshi = if (showMatureContent && mainView != MainView.Novels) doujinshi else emptyList()
+    val visibleArtbook = if (mainView != MainView.Novels) artbook else emptyList()
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Lista de lectura") }) },
@@ -162,12 +170,12 @@ fun ReadlistRoute(
                 .padding(padding),
         ) {
             when {
-                isLoading && manga.isEmpty() && novela.isEmpty() && doujinshi.isEmpty() -> LoadingBox()
-                error != null && manga.isEmpty() && novela.isEmpty() && doujinshi.isEmpty() -> ErrorBox(
+                isLoading && manga.isEmpty() && novela.isEmpty() && doujinshi.isEmpty() && artbook.isEmpty() -> LoadingBox()
+                error != null && manga.isEmpty() && novela.isEmpty() && doujinshi.isEmpty() && artbook.isEmpty() -> ErrorBox(
                     message = error ?: "No se pudo cargar",
                     onRetry = { viewModel.load() },
                 )
-                visibleManga.isEmpty() && visibleNovela.isEmpty() && visibleDoujinshi.isEmpty() -> EmptyBox(
+                visibleManga.isEmpty() && visibleNovela.isEmpty() && visibleDoujinshi.isEmpty() && visibleArtbook.isEmpty() -> EmptyBox(
                     "Tu lista está vacía\nAñade series desde su ficha para leerlas más tarde.",
                 )
                 else -> LazyVerticalGrid(
@@ -202,6 +210,15 @@ fun ReadlistRoute(
                             SectionTitle("Doujinshi")
                         }
                         items(visibleDoujinshi, key = { it.id }) { serie ->
+                            SerieGridItem(serie, actions, onOpenSerie, onOpenBook)
+                        }
+                    }
+
+                    if (visibleArtbook.isNotEmpty()) {
+                        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                            SectionTitle("Artbooks")
+                        }
+                        items(visibleArtbook, key = { it.id }) { serie ->
                             SerieGridItem(serie, actions, onOpenSerie, onOpenBook)
                         }
                     }

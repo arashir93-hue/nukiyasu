@@ -73,6 +73,7 @@ import es.manabe.yomiyasu.core.models.ProgressStatus
 import es.manabe.yomiyasu.core.models.Serie
 import es.manabe.yomiyasu.core.models.SeriesQuery
 import es.manabe.yomiyasu.core.models.SortValue
+import es.manabe.yomiyasu.core.models.Variant
 import es.manabe.yomiyasu.core.networking.ApiException
 import es.manabe.yomiyasu.core.services.DownloadState
 import es.manabe.yomiyasu.core.services.LibraryApi
@@ -165,9 +166,11 @@ class SerieViewModel @Inject constructor(
             try {
                 val detail = library.serieDetail(id)
                 _serie.value = detail
-                _nihongoTrackerLink.value = runCatching {
-                    nihongoTracker.linkForSerie(id)
-                }.getOrNull()
+                _nihongoTrackerLink.value = if (detail.variant == Variant.Artbook) {
+                    null
+                } else {
+                    runCatching { nihongoTracker.linkForSerie(id) }.getOrNull()
+                }
 
                 val variant = detail.variant?.let { variant ->
                     LibraryVariant.entries.firstOrNull { it.rawValue == variant.name.lowercase() }
@@ -434,6 +437,7 @@ fun SerieRoute(
                     SerieHeader(
                         serie = serie!!,
                         nihongoTrackerLink = nihongoTrackerLink,
+                        showNihongoTracker = serie!!.variant != Variant.Artbook,
                         onOpenNihongoTracker = { nihongoTrackerDialogOpen = true },
                     )
                 }
@@ -550,7 +554,7 @@ fun SerieRoute(
         )
     }
 
-    if (nihongoTrackerDialogOpen && serie != null) {
+    if (nihongoTrackerDialogOpen && serie != null && serie!!.variant != Variant.Artbook) {
         NihongoTrackerMatchDialog(
             serie = serie!!,
             initialLink = nihongoTrackerLink,
@@ -567,6 +571,7 @@ fun SerieRoute(
 private fun SerieHeader(
     serie: Serie,
     nihongoTrackerLink: NihongoTrackerLink?,
+    showNihongoTracker: Boolean,
     onOpenNihongoTracker: () -> Unit,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -591,7 +596,7 @@ private fun SerieHeader(
                 )
             }
 
-            nihongoTrackerLink?.let { link ->
+            if (showNihongoTracker) nihongoTrackerLink?.let { link ->
                 Text(
                     text = if (link.mode == "manual") {
                         "NihongoTracker (manual): ${link.mediaTitle ?: serie.visibleName}"
@@ -604,8 +609,10 @@ private fun SerieHeader(
                 )
             }
 
-            TextButton(onClick = onOpenNihongoTracker) {
-                Text(if (nihongoTrackerLink == null) "Vincular NihongoTracker" else "Gestionar NihongoTracker")
+            if (showNihongoTracker) {
+                TextButton(onClick = onOpenNihongoTracker) {
+                    Text(if (nihongoTrackerLink == null) "Vincular NihongoTracker" else "Gestionar NihongoTracker")
+                }
             }
 
             Row(

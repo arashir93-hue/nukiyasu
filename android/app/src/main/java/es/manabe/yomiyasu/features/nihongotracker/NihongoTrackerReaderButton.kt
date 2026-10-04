@@ -25,6 +25,7 @@ import dagger.hilt.android.EntryPointAccessors
 import es.manabe.yomiyasu.components.LibraryEntryPoint
 import es.manabe.yomiyasu.core.models.Book
 import es.manabe.yomiyasu.core.models.NihongoTrackerBookStatus
+import es.manabe.yomiyasu.core.models.Variant
 import kotlinx.coroutines.launch
 
 /**
@@ -39,7 +40,7 @@ fun NihongoTrackerReaderButton(
     saveProgress: suspend () -> Unit,
     startReread: suspend () -> Unit = {},
 ) {
-    if (!completed) return
+    if (!completed || book.variant == Variant.Artbook) return
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()

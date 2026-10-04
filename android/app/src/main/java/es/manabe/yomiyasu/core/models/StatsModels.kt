@@ -7,10 +7,16 @@ import kotlinx.serialization.Serializable
 data class UserStats(
     val totalMangaBooks: Int = 0,
     val totalNovelaBooks: Int = 0,
+    val totalDoujinshiBooks: Int = 0,
+    val totalArtbookBooks: Int = 0,
     val totalPagesRead: Int = 0,
+    val totalMangaPagesRead: Int = 0,
+    val totalArtbookPagesRead: Int = 0,
     val totalCharacters: Int = 0,
     val totalMangaSeries: Int = 0,
     val totalNovelaSeries: Int = 0,
+    val totalDoujinshiSeries: Int = 0,
+    val totalArtbookSeries: Int = 0,
     val totalTimeRead: Double = 0.0,
 )
 
@@ -35,6 +41,8 @@ data class MonthlyGraphEntry(
 data class MonthlyGraphs(
     val manga: List<MonthlyGraphEntry> = emptyList(),
     val novela: List<MonthlyGraphEntry> = emptyList(),
+    val doujinshi: List<MonthlyGraphEntry> = emptyList(),
+    val artbook: List<MonthlyGraphEntry> = emptyList(),
 )
 
 @Serializable
@@ -72,6 +80,7 @@ data class ProgressRecord(
         get() {
             var text = when (resolvedVariant) {
                 Variant.Manga, Variant.Doujinshi -> ".log manga ${currentPage ?: 1} $bookName"
+                Variant.Artbook -> ".log artbook ${currentPage ?: 1} $bookName"
                 Variant.Novela -> ".log lectura ${characters ?: 0} $bookName"
             }
             val minutes = time
