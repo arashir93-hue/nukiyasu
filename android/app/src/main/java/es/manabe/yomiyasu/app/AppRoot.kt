@@ -2,6 +2,7 @@ package es.manabe.yomiyasu.app
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -26,40 +27,57 @@ import es.manabe.yomiyasu.app.ui.theme.YomiyasuTheme
 import es.manabe.yomiyasu.core.session.SessionStore
 import es.manabe.yomiyasu.features.auth.LoginView
 import es.manabe.yomiyasu.features.auth.RedeemView
+import es.manabe.yomiyasu.features.updates.UpdateDialog
+import es.manabe.yomiyasu.features.updates.UpdateViewModel
 
 @Composable
-fun AppRoot(viewModel: AppViewModel = hiltViewModel()) {
+fun AppRoot(
+    viewModel: AppViewModel = hiltViewModel(),
+    updateViewModel: UpdateViewModel = hiltViewModel(),
+) {
     val settings by viewModel.settingsData.collectAsStateWithLifecycle()
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
     val notice by viewModel.notice.collectAsStateWithLifecycle()
+    val updateState by updateViewModel.state.collectAsStateWithLifecycle()
 
     YomiyasuTheme(themeMode = settings.appearance) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            when (val state = sessionState) {
-                SessionStore.State.Loading -> LoadingScreen()
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val state = sessionState) {
+                    SessionStore.State.Loading -> LoadingScreen()
 
-                SessionStore.State.LoggedOut -> {
-                    var showRedeem by rememberSaveable { mutableStateOf(false) }
+                    SessionStore.State.LoggedOut -> {
+                        var showRedeem by rememberSaveable { mutableStateOf(false) }
 
-                    if (showRedeem) {
-                        RedeemView(onBack = { showRedeem = false })
-                    } else {
-                        LoginView(
-                            notice = notice,
-                            onOpenRedeem = { showRedeem = true },
-                        )
+                        if (showRedeem) {
+                            RedeemView(onBack = { showRedeem = false })
+                        } else {
+                            LoginView(
+                                notice = notice,
+                                onOpenRedeem = { showRedeem = true },
+                            )
+                        }
                     }
+
+                    is SessionStore.State.LoggedIn -> MainShell(
+                        mainView = settings.mainView,
+                        isSocketConnected = viewModel.isSocketConnected.collectAsStateWithLifecycle().value,
+                        onMarkLibraryUpdated = viewModel::markLibraryUpdated,
+                        onLogout = viewModel::logout,
+                    )
                 }
 
-                is SessionStore.State.LoggedIn -> MainShell(
-                    mainView = settings.mainView,
-                    isSocketConnected = viewModel.isSocketConnected.collectAsStateWithLifecycle().value,
-                    onMarkLibraryUpdated = viewModel::markLibraryUpdated,
-                    onLogout = viewModel::logout,
-                )
+                val available = (updateState as? UpdateViewModel.State.Available)?.update
+                if (available != null) {
+                    UpdateDialog(
+                        update = available,
+                        onLater = { updateViewModel.snooze(available) },
+                        onUpdateOpened = { updateViewModel.updateOpened(available) },
+                    )
+                }
             }
         }
     }
