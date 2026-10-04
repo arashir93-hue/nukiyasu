@@ -24,34 +24,29 @@ export function Dictionary(props:DictionaryProps):React.ReactElement {
     const {searchWord, setSearchWord} = props;
     const {readerSettings} = useSettingsStore();
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const [hint, setHint] = useState("");
 
     const open = searchWord !== "" && readerSettings.nativeDictionary;
 
-    const {data:wordDefinitions, isFetching} = useQuery({
+    const {data:wordDefinitions = [], isFetching, isError, error} = useQuery({
         queryKey:keys.dictionary(readerSettings.dictionaryVersion, searchWord),
         queryFn:async()=>{
-            if (searchWord === "" || searchWord === "\n") return undefined;
+            if (searchWord === "" || searchWord === "\n") return [];
 
-            try {
-                const res = await api.get<DicionaryResult[]>(`dictionary/${readerSettings.dictionaryVersion === "word" ? "v1" : "v2"}/${encodeURIComponent(searchWord)}`);
-                return res;
-            } catch (e) {
-                const error = e as HttpError;
-                if (error.status === 500) {
-                    setHint("El diccionario todavía no está listo.");
-                    return;
-                }
-                setHint("El máximo de texto seleccionable es de 30 caracteres");
-            }
+            const res = await api.get<DicionaryResult[]>(`dictionary/${readerSettings.dictionaryVersion === "word" ? "v1" : "v2"}/${encodeURIComponent(searchWord)}`);
+            return res ?? [];
         },
         enabled:open
     });
 
     useEffect(()=>{
         setSelectedIndex(0);
-        setHint("");
     }, [searchWord]);
+
+    const errorHint = isError
+        ? (error as HttpError).status === 500
+            ? "El diccionario no está disponible. Comprueba que JMDict esté instalado en el servidor."
+            : "No se ha podido consultar el diccionario."
+        : "";
 
     function getWordThings(frequency:string | undefined, pitches:{position:number}[] | undefined):string {
         let text = "";
@@ -137,10 +132,10 @@ export function Dictionary(props:DictionaryProps):React.ReactElement {
                                 ))}
                             </div>
 
-                            {hint ? (
+                            {errorHint ? (
                                 <p className="flex items-center gap-2 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">
                                     <CircleAlert className="size-3.5 shrink-0" />
-                                    {hint}
+                                    {errorHint}
                                 </p>
                             ) : null}
 
@@ -227,6 +222,11 @@ export function Dictionary(props:DictionaryProps):React.ReactElement {
                                 </p>
                             )}
                         </>
+                    ) : isError ? (
+                        <div className="flex flex-col items-center gap-2 py-8 text-center">
+                            <CircleAlert className="size-8 text-warning" />
+                            <p className="max-w-sm text-sm text-fg-muted">{errorHint}</p>
+                        </div>
                     ) : (
                         <div className="flex flex-col items-center gap-2 py-8 text-center">
                             {isFetching ? (
@@ -234,7 +234,7 @@ export function Dictionary(props:DictionaryProps):React.ReactElement {
                             ) : (
                                 <>
                                     <BookMarked className="size-8 text-fg-muted" />
-                                    <p className="text-sm text-fg-muted">Selecciona o toca una palabra en el libro para buscarla.</p>
+                                    <p className="text-sm text-fg-muted">No se ha encontrado una definición para este texto.</p>
                                 </>
                             )}
                         </div>

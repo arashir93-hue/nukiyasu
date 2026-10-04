@@ -17,6 +17,18 @@ interface GameStats {
     totalTimeRead:number;
 }
 
+const emptyGameStats:GameStats = {
+    totalMangaBooks:0,
+    totalNovelaBooks:0,
+    totalDoujinshiBooks:0,
+    totalMangaSeries:0,
+    totalNovelaSeries:0,
+    totalDoujinshiSeries:0,
+    totalPagesRead:0,
+    totalCharacters:0,
+    totalTimeRead:0,
+};
+
 function formatTime(minutes?:number):string {
     if (!minutes) return "0";
 
@@ -52,7 +64,8 @@ function GeneralStats():React.ReactElement {
     const {data:generalStats, isLoading, isError, refetch} = useQuery({
         queryKey:keys.stats,
         queryFn:async()=>{
-            return api.get<GameStats>("readprogress/mystats");
+            const stats = await api.get<Partial<GameStats>>("readprogress/mystats");
+            return {...emptyGameStats, ...stats};
         }
     });
 

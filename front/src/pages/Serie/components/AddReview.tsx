@@ -123,7 +123,10 @@ export function ReviewFormDialog({serie, open, onOpenChange, review}:ReviewFormD
             </Field>
 
             <Field label="¿Cuál es tu valoración personal? (opcional)">
-              <RatingInput value={rating} onChange={setRating} />
+              <div className="flex items-center gap-3">
+                <RatingInput value={rating} onChange={setRating} />
+                <span className="min-w-10 text-sm text-fg-muted">{rating > 0 ? `${rating * 2}/10` : "—"}</span>
+              </div>
             </Field>
 
             <Field label="¿Tienes comentarios sobre el libro? (opcional)" htmlFor="review-comment">

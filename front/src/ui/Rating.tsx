@@ -39,32 +39,36 @@ export interface RatingInputProps {
   className?: string;
 }
 
-/** Selector de estrellas (valores enteros). */
+/** Selector de estrellas en pasos de media estrella (escala persistida 1-10). */
 export function RatingInput({value, max = 5, onChange, className}:RatingInputProps):React.ReactElement {
   const [hover, setHover] = useState(0);
   const active = hover || value;
 
   return (
-    <span className={cn("inline-flex items-center gap-0.5", className)} onMouseLeave={()=>setHover(0)}>
-      {Array.from({length:max}, (_, index)=>{
-        const starValue = index + 1;
+    <span className={cn("relative inline-flex items-center", className)} onMouseLeave={()=>setHover(0)}>
+      <Rating value={active} max={max} className="gap-0.5 p-0.5" starClassName="size-5" />
+      <span
+        className="absolute inset-0 grid"
+        style={{gridTemplateColumns:`repeat(${max * 2}, minmax(0, 1fr))`}}
+      >
+        {Array.from({length:max * 2}, (_, index)=>{
+          const starValue = (index + 1) / 2;
 
-        return (
-          <button
-            key={starValue}
-            type="button"
-            aria-label={`${starValue} de ${max}`}
-            onMouseEnter={()=>setHover(starValue)}
-            onClick={()=>onChange(starValue === value ? 0 : starValue)}
-            className={cn("rounded-sm p-0.5 transition-transform hover:scale-110", focusRing)}
-          >
-            <Star
-              className={cn("size-5", starValue <= active ? "fill-current text-warning" : "text-app-border")}
-              strokeWidth={1.5}
+          return (
+            <button
+              key={starValue}
+              type="button"
+              aria-label={`${starValue} de ${max}`}
+              title={`${starValue * 2}/10`}
+              onMouseEnter={()=>setHover(starValue)}
+              onFocus={()=>setHover(starValue)}
+              onBlur={()=>setHover(0)}
+              onClick={()=>onChange(starValue === value ? 0 : starValue)}
+              className={cn("h-full rounded-sm", focusRing)}
             />
-          </button>
-        );
-      })}
+          );
+        })}
+      </span>
     </span>
   );
 }

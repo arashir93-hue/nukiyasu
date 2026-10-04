@@ -140,7 +140,7 @@ export class NihongoTrackerService {
     }
 
     async connect(user: Types.ObjectId, dto: ConnectNihongoTrackerDto) {
-        await this.requestExternal<unknown>(dto.apiKey, "/auth/verify");
+        await this.requestExternal<unknown>(dto.apiKey, "/users/me");
 
         await this.integrationModel.findOneAndUpdate(
             {user},

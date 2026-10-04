@@ -1,4 +1,4 @@
-import {Injectable, InternalServerErrorException} from "@nestjs/common";
+import {Injectable, Logger} from "@nestjs/common";
 import {AbstractIterator, AbstractLevelDOWN} from "abstract-leveldown";
 import {Word, kanjiBeginning, readingBeginning, setup as setupJmdict} from "jmdict-simplified-node";
 import levelup from "levelup";
@@ -21,10 +21,10 @@ export interface FreqDisplay {
 @Injectable()
 export class DictionaryService {
     private readonly dbPromise: Promise<levelup.LevelUp<AbstractLevelDOWN<unknown, unknown>, AbstractIterator<unknown, unknown>>>;
-  private db: levelup.LevelUp<AbstractLevelDOWN<unknown, unknown>, AbstractIterator<unknown, unknown>> | null = null; // Once resolved, db will hold the actual object.
-  private loadingDb: boolean;
-  private freqDict:Record<string, {reading:string, freq:string}[]>;
-  private pitchDict:Record<string, {reading:string, pitches:{position:number}[]}>;
+  private readonly logger = new Logger(DictionaryService.name);
+  private db: levelup.LevelUp<AbstractLevelDOWN<unknown, unknown>, AbstractIterator<unknown, unknown>> | null = null;
+  private freqDict:Record<string, {reading:string, freq:string}[]> = {};
+  private pitchDict:Record<string, {reading:string, pitches:{position:number}[]}> = {};
 
   constructor() {
       this.dbPromise = this.setupDB();
@@ -74,27 +74,33 @@ export class DictionaryService {
   }
 
   private async setupDB(): Promise<levelup.LevelUp<AbstractLevelDOWN<unknown, unknown>, AbstractIterator<unknown, unknown>>> {
-
-      this.loadingDb = true;
       const dictFolder = join(process.cwd(), "..", "dicts");
 
-      const rawFreqData = await fs.readFile(join(dictFolder, "frequency.json"), "utf-8");
-      this.freqDict = JSON.parse(rawFreqData);
-
-      const rawPitchData = await fs.readFile(join(dictFolder, "pitch.json"), "utf-8");
-      this.pitchDict = JSON.parse(rawPitchData);
+      this.freqDict = await this.readOptionalDictionary<Record<string, {reading:string, freq:string}[]>>(join(dictFolder, "frequency.json"));
+      this.pitchDict = await this.readOptionalDictionary<Record<string, {reading:string, pitches:{position:number}[]}>>(join(dictFolder, "pitch.json"));
 
       const jmdictPromise = setupJmdict(join(dictFolder, "jmdict"), join(dictFolder, "jmdict-eng-3.5.0.json"));
       const {db} = await jmdictPromise;
-      console.log("Carga finalizada");
-      this.loadingDb = false;
+      this.logger.log("Diccionario JMDict cargado");
       return db;
   }
 
-  async getDb(): Promise<levelup.LevelUp<AbstractLevelDOWN<unknown, unknown>, AbstractIterator<unknown, unknown>>> {
-      if (this.loadingDb) throw new InternalServerErrorException("Dictionary is being loaded into the cache");
+  private async readOptionalDictionary<T extends Record<string, unknown>>(path:string):Promise<T> {
+      try {
+          return JSON.parse(await fs.readFile(path, "utf-8")) as T;
+      } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+              this.logger.warn(`Diccionario auxiliar no encontrado: ${path}`);
+              return {} as T;
+          }
+          throw error;
+      }
+  }
 
+  async getDb(): Promise<levelup.LevelUp<AbstractLevelDOWN<unknown, unknown>, AbstractIterator<unknown, unknown>>> {
       if (!this.db) {
+          // La creación inicial del índice puede tardar. Las consultas esperan
+          // la misma promesa en vez de fallar mientras el servidor arranca.
           this.db = await this.dbPromise;
       }
       return this.db;
@@ -217,5 +223,7 @@ export class DictionaryService {
           }
           auxWord = parsedWord.substring(0, index); 
       }
+
+      return [];
   }
 }
