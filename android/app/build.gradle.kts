@@ -28,7 +28,10 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "es.manabe.yomiyasu"
+        // Identificador público nuevo para poder instalar Nukiyasu junto a la
+        // aplicación antigua Yomiyasu. El namespace y los paquetes Kotlin se
+        // conservan para no cambiar los identificadores internos del código.
+        applicationId = "es.manabe.nukiyasu"
         minSdk = 26
         targetSdk = 36
         versionCode = appVersionCode

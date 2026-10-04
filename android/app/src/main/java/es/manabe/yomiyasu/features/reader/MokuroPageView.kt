@@ -288,15 +288,21 @@ private suspend fun PointerInputScope.detectMokuroBoxTap(onTap: (Offset) -> Bool
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
         var moved = false
+        // SelectionContainer puede consumir el down o alguno de los eventos
+        // siguientes. En ese caso el gesto pertenece al texto nativo y no
+        // debe convertirse en una activación OCR/diccionario al levantar el
+        // dedo.
+        var childConsumed = down.isConsumed
 
         while (true) {
             val event = awaitPointerEvent(PointerEventPass.Main)
             val change = event.changes.firstOrNull { it.id == down.id } ?: break
+            childConsumed = childConsumed || change.isConsumed
             if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
                 moved = true
             }
             if (!change.pressed) {
-                if (!moved && !change.isConsumed && onTap(change.position)) {
+                if (shouldHandleMokuroBoxTap(moved, childConsumed, change.isConsumed) && onTap(change.position)) {
                     change.consume()
                 }
                 break
@@ -314,6 +320,12 @@ internal fun mokuroBoxContainsPoint(box: MokuroTextBox, pagePosition: Offset): B
         pagePosition.x <= box.rect.left + box.rect.width &&
         pagePosition.y >= box.rect.top &&
         pagePosition.y <= box.rect.top + box.rect.height
+
+internal fun shouldHandleMokuroBoxTap(
+    moved: Boolean,
+    childConsumed: Boolean,
+    upConsumed: Boolean,
+): Boolean = !moved && !childConsumed && !upConsumed
 
 private fun handleBoxTap(
     position: Offset,

@@ -100,4 +100,21 @@ class ReadingTimerTest {
         timer.tick()
         assertTrue(timer.isRunning.value)
     }
+
+    @Test
+    fun `reloading progress while running keeps the timer ticking`() {
+        val timer = timer()
+
+        timer.start()
+        current += 2_000
+        timer.resume(fromSeconds = 30)
+
+        assertTrue(timer.isRunning.value)
+
+        current += 1_000
+        timer.tick()
+
+        assertTrue(timer.isRunning.value)
+        assertTrue(timer.seconds.value >= 31)
+    }
 }

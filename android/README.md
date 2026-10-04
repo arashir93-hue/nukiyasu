@@ -2,7 +2,7 @@
 
 Aplicación nativa (Kotlin + Jetpack Compose) para móvil, tablet y plegables: biblioteca,
 lector de manga (mokuro) y de novelas (EPUB), diccionario japonés y estadísticas, contra la
-Cliente Android de Nukiyasu. Paridad funcional con la app iOS (`ios/`). El `applicationId` conserva el identificador histórico para que las instalaciones existentes puedan actualizarse.
+Cliente Android de Nukiyasu. Paridad funcional con la app iOS (`ios/`). El `namespace` y los paquetes Kotlin conservan el identificador histórico, pero el `applicationId` público es `es.manabe.nukiyasu` para poder instalar Nukiyasu junto a Yomiyasu.
 
 ## Requisitos
 
@@ -56,7 +56,7 @@ En **Debug** la URL se puede sobreescribir (con prioridad sobre la configurada e
   entorno del iOS:
 
 ```sh
-adb shell am start -n es.manabe.yomiyasu/.app.MainActivity \
+adb shell am start -n es.manabe.nukiyasu/.app.MainActivity \
   --es YOMIYASU_SERVER_URL http://10.0.2.2:3001 \
   --es YOMIYASU_E2E_USER usuario \
   --es YOMIYASU_E2E_PASSWORD contraseña \

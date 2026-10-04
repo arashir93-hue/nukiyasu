@@ -53,7 +53,12 @@ class ReadingTimer(
 
     fun resume(fromSeconds: Int) {
         _seconds.value = maxOf(0, fromSeconds)
-        lastTick = null
+        // La carga del progreso puede repetirse mientras el lector ya está
+        // visible (por ejemplo, después de una recreación o una actualización
+        // del libro). No borres lastTick en ese caso: dejaría la UI en estado
+        // "activo" con el trabajo de ticks sin una referencia desde la que
+        // calcular los segundos transcurridos.
+        lastTick = if (_isRunning.value) now() else null
     }
 
     fun reset() {

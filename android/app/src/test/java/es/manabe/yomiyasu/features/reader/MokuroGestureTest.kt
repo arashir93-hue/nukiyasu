@@ -130,4 +130,12 @@ class MokuroGestureTest {
             ),
         )
     }
+
+    @Test
+    fun `native text selection takes priority over OCR tap handling`() {
+        assertFalse(shouldHandleMokuroBoxTap(moved = false, childConsumed = true, upConsumed = false))
+        assertFalse(shouldHandleMokuroBoxTap(moved = false, childConsumed = false, upConsumed = true))
+        assertFalse(shouldHandleMokuroBoxTap(moved = true, childConsumed = false, upConsumed = false))
+        assertTrue(shouldHandleMokuroBoxTap(moved = false, childConsumed = false, upConsumed = false))
+    }
 }

@@ -32,7 +32,7 @@ import org.junit.runner.RunWith
  *   -e YOMIYASU_SERVER_URL http://192.168.1.136:3001 \
  *   -e YOMIYASU_E2E_USER usuario -e YOMIYASU_E2E_PASSWORD contraseña \
  *   -e YOMIYASU_E2E_BOOK <id> -e YOMIYASU_E2E_NOVEL <id> -e YOMIYASU_E2E_SERIE <id> \
- *   es.manabe.yomiyasu.test/androidx.test.runner.AndroidJUnitRunner
+ *   es.manabe.nukiyasu.test/androidx.test.runner.AndroidJUnitRunner
  *
  * Si faltan credenciales, los tests se saltan.
  */
