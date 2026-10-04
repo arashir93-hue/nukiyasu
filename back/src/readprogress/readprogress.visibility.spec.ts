@@ -92,6 +92,29 @@ describe("Readprogress mature visibility", () => {
         expect(stats).toEqual(expect.objectContaining({totalMangaBooks:1, totalMangaSeries:1}));
     });
 
+    it("mantiene artbooks fuera de las métricas específicas de manga", async() => {
+        const artbookAggregate = createAggregate([{
+            totalMangaBooks:0,
+            totalArtbookBooks:2,
+            totalMangaSeries:[],
+            totalArtbookSeries:[serieId],
+            totalPagesRead:40,
+            totalMangaPagesRead:0,
+            totalArtbookPagesRead:40,
+            totalCharacters:0,
+            totalTimeRead:0
+        }]);
+        const model = {aggregate:jest.fn().mockReturnValue(artbookAggregate)} as unknown as Model<ReadProgress>;
+        const contentAccess = {seriesAccessStages:jest.fn().mockReturnValue([accessStage])} as unknown as ContentAccessService;
+        const service = new ReadprogressService(model, {} as SerieprogressService, contentAccess);
+
+        const stats = await service.getUserStats(userId, policy);
+        const group = artbookAggregate.stages.find((stage:Record<string, unknown>) => "$group" in stage) as {$group:Record<string, unknown>};
+
+        expect(group.$group.totalArtbookBooks).toBeDefined();
+        expect(stats).toEqual(expect.objectContaining({totalMangaBooks:0, totalArtbookBooks:2, totalArtbookSeries:1}));
+    });
+
     it("no crea, edita ni elimina progreso oculto", async() => {
         const readprogressService = {
             findProgressByBookAndUser:jest.fn(),

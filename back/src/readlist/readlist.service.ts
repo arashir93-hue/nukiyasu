@@ -4,6 +4,7 @@ import {ReadList} from "./schemas/readlist.schema";
 import {Model, Types} from "mongoose";
 import {CreateReadList} from "./interfaces/readlist.interface";
 import {ContentAccessPolicy, ContentAccessService} from "../content-access/content-access.service";
+import {LibraryVariant} from "../common/library-variant";
 
 @Injectable()
 export class ReadlistService {
@@ -26,7 +27,7 @@ export class ReadlistService {
 
     async getUserReadListSeries(
         user:Types.ObjectId,
-        variant:"manga" | "novela" | "doujinshi",
+        variant:LibraryVariant,
         policy:ContentAccessPolicy
     ) {
         const result = await this.readListModel

@@ -185,6 +185,15 @@ export class ReadprogressService {
                         ]
                     }
                 },
+                totalArtbookBooks: {
+                    $sum: {
+                        $cond: [
+                            {$and: [{$eq: ["$status", "completed"]}, {$eq: ["$variant", "artbook"]}]},
+                            1,
+                            0
+                        ]
+                    }
+                },
                 mangaSeries: {
                     $addToSet: {
                         $cond: [
@@ -212,8 +221,23 @@ export class ReadprogressService {
                         ]
                     }
                 },
+                artbookSeries: {
+                    $addToSet: {
+                        $cond: [
+                            {$and:[{$eq: ["$variant", "artbook"]}, {$eq: ["$status", "completed"]}]},
+                            "$serie",
+                            null
+                        ]
+                    }
+                },
                 totalPagesRead: {
                     $sum: "$currentPage"
+                },
+                totalMangaPagesRead: {
+                    $sum: {$cond:[{$eq:["$variant", "manga"]}, "$currentPage", 0]}
+                },
+                totalArtbookPagesRead: {
+                    $sum: {$cond:[{$eq:["$variant", "artbook"]}, "$currentPage", 0]}
                 },
                 totalTimeRead: {
                     $sum: "$time"
@@ -228,10 +252,14 @@ export class ReadprogressService {
                     totalMangaBooks: 1,
                     totalNovelaBooks: 1,
                     totalDoujinshiBooks: 1,
+                    totalArtbookBooks: 1,
                     totalMangaSeries: "$mangaSeries",
                     totalNovelaSeries: "$novelaSeries",
                     totalDoujinshiSeries: "$doujinshiSeries",
+                    totalArtbookSeries: "$artbookSeries",
                     totalPagesRead: 1,
+                    totalMangaPagesRead: 1,
+                    totalArtbookPagesRead: 1,
                     totalCharacters:1,
                     totalTimeRead: {
                         $divide: ["$totalTimeRead", 60] // Convert seconds to minutes
@@ -240,12 +268,13 @@ export class ReadprogressService {
             );
 
         if (res.length > 0) {
-            const [result] = res as {totalMangaBooks:number, totalNovelaBooks:number, totalDoujinshiBooks:number, totalMangaSeries:Types.ObjectId[], totalNovelaSeries:Types.ObjectId[], totalDoujinshiSeries:Types.ObjectId[], totalPagesRead:number, totalCharacters:number, totalTimeRead:number}[];
+            const [result] = res as {totalMangaBooks:number, totalNovelaBooks:number, totalDoujinshiBooks:number, totalArtbookBooks:number, totalMangaSeries:Types.ObjectId[], totalNovelaSeries:Types.ObjectId[], totalDoujinshiSeries:Types.ObjectId[], totalArtbookSeries:Types.ObjectId[], totalPagesRead:number, totalCharacters:number, totalTimeRead:number}[];
 
             const mangaSeries = result.totalMangaSeries ?? [];
             const novelaSeries = result.totalNovelaSeries ?? [];
             const doujinshiSeries = result.totalDoujinshiSeries ?? [];
-            return {...result, totalMangaSeries:mangaSeries.filter(x=>!!x).length, totalNovelaSeries:novelaSeries.filter(x=>!!x).length, totalDoujinshiSeries:doujinshiSeries.filter(x=>!!x).length};
+            const artbookSeries = result.totalArtbookSeries ?? [];
+            return {...result, totalMangaSeries:mangaSeries.filter(x=>!!x).length, totalNovelaSeries:novelaSeries.filter(x=>!!x).length, totalDoujinshiSeries:doujinshiSeries.filter(x=>!!x).length, totalArtbookSeries:artbookSeries.filter(x=>!!x).length};
         }
         return {};
     }
@@ -362,8 +391,24 @@ export class ReadprogressService {
             })
             .sort({"_id.year":1, "_id.month":1})).filter(x=>x._id.year !== null);
 
-        if (mangaRes.length > 0 || novelaRes.length > 0 || doujinshiRes.length > 0) {
-            return {manga:mangaRes, novela:novelaRes, doujinshi:doujinshiRes};
+        const artbookResult = this.readProgressModel.aggregate()
+            .match({user:new Types.ObjectId(user), time:{$gt:0}, variant:"artbook"});
+
+        artbookResult.append(...this.contentAccessService.seriesAccessStages(policy));
+
+        const artbookRes = (await artbookResult.group({
+                _id: {year: {$year: "$endDate"}, month: {$month: "$endDate"}},
+                totalCharacters: {$sum: "$characters"},
+                totalTime: {$sum: "$time"}
+            })
+            .addFields({
+                meanReadSpeed: {$cond:[{$gt:["$totalTime", 0]}, {$multiply:[{$divide:["$totalCharacters", "$totalTime"]}, 3600]}, 0]},
+                totalHours: {$cond:[{$gt:["$totalTime", 0]}, {$divide:["$totalTime", 3600]}, 0]}
+            })
+            .sort({"_id.year":1, "_id.month":1})).filter(x=>x._id.year !== null);
+
+        if (mangaRes.length > 0 || novelaRes.length > 0 || doujinshiRes.length > 0 || artbookRes.length > 0) {
+            return {manga:mangaRes, novela:novelaRes, doujinshi:doujinshiRes, artbook:artbookRes};
         }
         return {};
     }

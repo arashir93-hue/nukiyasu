@@ -2,7 +2,7 @@ import {CircleArrowLeft, CircleArrowRight, CircleQuestionMark, Maximize, Minimiz
 import React, {Fragment, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {useNavigate} from "react-router";
 import {toast} from "react-toastify";
-import {nextBook, prevBook} from "../../../helpers/book";
+import {imageNavigationVariant, nextBook, prevBook} from "../../../helpers/book";
 import {useFullscreen} from "../../../helpers/useFullscreen";
 import {bookPageUrl} from "../../../lib/media";
 import {useMediaQuery} from "../../../lib/useMediaQuery";
@@ -108,7 +108,7 @@ export default function ImageReader({readerVars:{bookData, bookProgress, current
                 if (!await confirmDialog("¿Volver al libro anterior?")) return;
 
                 await saveProgress();
-                await prevBook({book:bookData, variant:"manga", navigate});
+                await prevBook({book:bookData, variant:imageNavigationVariant(bookData), navigate});
             })();
             return;
         }
@@ -118,7 +118,7 @@ export default function ImageReader({readerVars:{bookData, bookProgress, current
                 if (!await confirmDialog("¿Pasar al siguiente libro?")) return;
 
                 await saveProgress();
-                await nextBook({book:bookData, variant:"manga", navigate});
+                await nextBook({book:bookData, variant:imageNavigationVariant(bookData), navigate});
             })();
             return;
         }
@@ -410,7 +410,7 @@ export default function ImageReader({readerVars:{bookData, bookProgress, current
                     onPageChange={goToPage}
                     left={readerSettings.r2l ? (
                         <Fragment>
-                            <ReaderNavButton tooltip="Ir al siguiente libro" onClick={()=>void (async()=>{await saveProgress(); await nextBook({book:bookData, variant:"manga", navigate});})()}>
+                            <ReaderNavButton tooltip="Ir al siguiente libro" onClick={()=>void (async()=>{await saveProgress(); await nextBook({book:bookData, variant:imageNavigationVariant(bookData), navigate});})()}>
                                 <CircleArrowLeft />
                             </ReaderNavButton>
                             <ReaderNavButton tooltip="Ir a la última página" onClick={()=>goToSpread(spreads.length - 1)}>
@@ -420,7 +420,7 @@ export default function ImageReader({readerVars:{bookData, bookProgress, current
                         </Fragment>
                     ) : (
                         <Fragment>
-                            <ReaderNavButton tooltip="Ir al libro anterior" onClick={()=>void (async()=>{await saveProgress(); await prevBook({book:bookData, variant:"manga", navigate});})()}>
+                            <ReaderNavButton tooltip="Ir al libro anterior" onClick={()=>void (async()=>{await saveProgress(); await prevBook({book:bookData, variant:imageNavigationVariant(bookData), navigate});})()}>
                                 <CircleArrowLeft />
                             </ReaderNavButton>
                             <ReaderNavButton tooltip="Ir a la primera página" onClick={()=>goToSpread(0)}>
@@ -435,7 +435,7 @@ export default function ImageReader({readerVars:{bookData, bookProgress, current
                             <ReaderNavButton tooltip="Ir a la última página" onClick={()=>goToSpread(spreads.length - 1)}>
                                 <SkipForward />
                             </ReaderNavButton>
-                            <ReaderNavButton tooltip="Ir al siguiente libro" onClick={()=>void (async()=>{await saveProgress(); await nextBook({book:bookData, variant:"manga", navigate});})()}>
+                            <ReaderNavButton tooltip="Ir al siguiente libro" onClick={()=>void (async()=>{await saveProgress(); await nextBook({book:bookData, variant:imageNavigationVariant(bookData), navigate});})()}>
                                 <CircleArrowRight />
                             </ReaderNavButton>
                         </Fragment>
@@ -445,7 +445,7 @@ export default function ImageReader({readerVars:{bookData, bookProgress, current
                             <ReaderNavButton tooltip="Ir a la primera página" onClick={()=>goToSpread(0)}>
                                 <SkipForward />
                             </ReaderNavButton>
-                            <ReaderNavButton tooltip="Ir al libro anterior" onClick={()=>void (async()=>{await saveProgress(); await prevBook({book:bookData, variant:"manga", navigate});})()}>
+                            <ReaderNavButton tooltip="Ir al libro anterior" onClick={()=>void (async()=>{await saveProgress(); await prevBook({book:bookData, variant:imageNavigationVariant(bookData), navigate});})()}>
                                 <CircleArrowRight />
                             </ReaderNavButton>
                         </Fragment>

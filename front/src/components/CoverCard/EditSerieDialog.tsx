@@ -17,6 +17,7 @@ import {TagInput} from "../../ui/TagInput";
 import {Textarea} from "../../ui/Textarea";
 import {Tooltip} from "../../ui/Tooltip";
 import {Switch} from "../../ui/Switch";
+import type {LibraryVariant} from "../../types/library";
 
 interface EditSerieDialogProps {
   serie: SerieWithProgress;
@@ -24,7 +25,7 @@ interface EditSerieDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-async function getAnilistData(title:string, variant:"manga" | "novela" | "doujinshi", apply:{
+async function getAnilistData(title:string, variant:LibraryVariant, apply:{
   setName: (value: string) => void;
   setSortName: (value: string) => void;
   setSummary: (value: string) => void;

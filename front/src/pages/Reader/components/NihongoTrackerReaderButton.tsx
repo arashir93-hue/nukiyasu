@@ -49,7 +49,7 @@ export function NihongoTrackerReaderButton({book, currentPage, atLastPage, saveP
     if (open && status) setVolumeInput(String(status.volumeNumber));
   }, [open, status]);
 
-  if (!(atLastPage ?? currentPage >= book.pages) || !status?.connected || !status.linked) return null;
+  if (book.variant === "artbook" || !(atLastPage ?? currentPage >= book.pages) || !status?.connected || !status.linked) return null;
 
   const logCount = status.logCount ?? (status.alreadyLogged ? 1 : 0);
   const alreadyLogged = logCount > 0 || status.hasPreviousLogs === true;

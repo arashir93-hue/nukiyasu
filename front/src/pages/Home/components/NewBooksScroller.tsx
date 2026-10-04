@@ -21,7 +21,7 @@ function NewBooksScroller({variant}:NewBooksScrollerProps):React.ReactElement {
         }
     });
 
-    const title = variant === "manga" ? "Mangas nuevos" : variant === "doujinshi" ? "Doujinshi nuevos" : "Novelas nuevas";
+    const title = variant === "manga" ? "Mangas nuevos" : variant === "doujinshi" ? "Doujinshi nuevos" : variant === "artbook" ? "Artbooks nuevos" : "Novelas nuevas";
 
     if (isLoading) return <ScrollerSkeleton title={title}/>;
 

@@ -139,6 +139,12 @@ export class NihongoTrackerService {
         return decryptNihongoTrackerKey(this.configService, integration.encryptedApiKey);
     }
 
+    private assertSupportedVariant(variant: string): void {
+        if (variant === "artbook") {
+            throw new BadRequestException("Los artbooks no se registran en NihongoTracker");
+        }
+    }
+
     async connect(user: Types.ObjectId, dto: ConnectNihongoTrackerDto) {
         await this.requestExternal<unknown>(dto.apiKey, "/users/me");
 
@@ -204,6 +210,7 @@ export class NihongoTrackerService {
 
     async link(user: Types.ObjectId, serieId: Types.ObjectId, dto: LinkNihongoTrackerDto) {
         const serie = await this.accessibleSerie(user, serieId);
+        this.assertSupportedVariant(serie.variant);
         const expectedType = nihongoTrackerMediaTypeForVariant(serie.variant);
         if (dto.mediaType && dto.mediaType !== expectedType) {
             throw new BadRequestException("El tipo de medio no coincide con la serie");
@@ -273,7 +280,8 @@ export class NihongoTrackerService {
     }
 
     async setBookVolume(user:Types.ObjectId, bookId:Types.ObjectId, volumeNumber:number) {
-        await this.bookAndResolution(user, bookId);
+        const {serie} = await this.bookAndResolution(user, bookId);
+        this.assertSupportedVariant(serie.variant);
         return this.overrideModel.findOneAndUpdate(
             {user, book:bookId},
             {user, book:bookId, volumeNumber},
@@ -282,13 +290,15 @@ export class NihongoTrackerService {
     }
 
     async clearBookVolume(user:Types.ObjectId, bookId:Types.ObjectId) {
-        await this.bookAndResolution(user, bookId);
+        const {serie} = await this.bookAndResolution(user, bookId);
+        this.assertSupportedVariant(serie.variant);
         await this.overrideModel.deleteOne({user, book:bookId});
         return {cleared:true};
     }
 
     async bookStatus(user:Types.ObjectId, bookId:Types.ObjectId) {
         const {book, serie, resolution} = await this.bookAndResolution(user, bookId);
+        this.assertSupportedVariant(serie.variant);
         const integration = await this.integrationModel.exists({user});
         const link = await this.linkModel.findOne({user, serie:book.serie});
         const progress = await this.progressModel.findOne({user, book:bookId, status:"completed"}).sort({endDate:-1, lastUpdateDate:-1});
@@ -322,6 +332,7 @@ export class NihongoTrackerService {
 
     async logBook(user: Types.ObjectId, bookId: Types.ObjectId, dto:LogNihongoTrackerBookDto = {}) {
         const {book, serie, resolution} = await this.bookAndResolution(user, bookId);
+        this.assertSupportedVariant(serie.variant);
 
         const link = await this.linkModel.findOne({user, serie:book.serie});
         if (!link) throw new BadRequestException("Configura primero la serie en NihongoTracker");

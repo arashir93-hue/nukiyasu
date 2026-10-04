@@ -5,6 +5,15 @@ import {openNovel} from "./ttu";
 import {confirmDialog} from "../stores/ConfirmStore";
 import {isImageBasedVariant, ImageVariant} from "../types/library";
 
+/** Variante que recorre el lector nativo de imágenes. */
+export function imageNavigationVariant(book: Pick<Book, "variant" | "mokured">):ImageVariant {
+    if (isImageBasedVariant(book.variant)) return book.variant;
+    // Los EPUB mokureados usan el lector de imágenes para mantener la
+    // navegación OCR histórica, aunque su variante de biblioteca sea novela.
+    if (book.variant === "novela" && book.mokured) return "manga";
+    throw new Error(`La variante ${String(book.variant)} no es compatible con el lector de imágenes`);
+}
+
 type MoveBook = {
     book:Book;
     navigate:NavigateFunction;

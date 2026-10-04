@@ -129,7 +129,7 @@ export function LogTable({data, loading, refetch, onCopied, sort, onSortChange, 
       key:"tipo",
       header:"Tipo",
       width:"6rem",
-      render:(row)=><span className="text-fg-muted">{row.tipo === "doujinshi" ? "Doujinshi" : row.tipo === "manga" ? "Manga" : "Novela"}</span>,
+      render:(row)=><span className="text-fg-muted">{row.tipo === "doujinshi" ? "Doujinshi" : row.tipo === "artbook" ? "Artbook" : row.tipo === "manga" ? "Manga" : "Novela"}</span>,
     },
     {
       key:"status",

@@ -21,7 +21,7 @@ export function BookInfoDialog({book, open, onOpenChange}:BookInfoDialogProps):R
   const {data:trackerStatus} = useQuery({
     queryKey:["nihongo-tracker-book-status", book._id],
     queryFn:()=>getNihongoTrackerBookStatus(book._id),
-    enabled:open,
+    enabled:open && book.variant !== "artbook",
     retry:false,
     staleTime:60_000
   });
@@ -69,7 +69,7 @@ export function BookInfoDialog({book, open, onOpenChange}:BookInfoDialogProps):R
     ...(book.format === "images"
       ? []
       : [["Caracteres", String(book.characters ?? 0)] as [string, string]]),
-    ["Variante", book.variant === "manga" ? "Manga" : book.variant === "doujinshi" ? "Doujinshi" : "Novela"],
+    ["Variante", book.variant === "manga" ? "Manga" : book.variant === "doujinshi" ? "Doujinshi" : book.variant === "artbook" ? "Artbook" : "Novela"],
     ["Formato", book.format === "images" ? "Imágenes (sin mokuro)" : "Mokuro"],
     ["Mokuro", book.mokured ? "Sí" : "No"],
     ["Añadido", book.createdDate ? dayjs(book.createdDate).format("DD/MM/YYYY HH:mm") : "—"],
@@ -92,7 +92,7 @@ export function BookInfoDialog({book, open, onOpenChange}:BookInfoDialogProps):R
               </div>
             ))}
           </dl>
-          {trackerStatus?.connected && trackerStatus.linked ? (
+          {book.variant !== "artbook" && trackerStatus?.connected && trackerStatus.linked ? (
             <div className="mt-5 flex flex-col gap-2 border-t border-app-border/60 pt-4 text-sm">
               <p className="font-medium text-fg">NihongoTracker</p>
               <p className="text-xs text-fg-muted">

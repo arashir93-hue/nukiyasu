@@ -23,4 +23,9 @@ export class ScanWorker  {
     async handleDoujinshi() {
         await this.appService.rescanDoujinshiLibrary();
     }
+
+    @Process("scanartbooks")
+    async handleArtbooks() {
+        await this.appService.rescanArtbookLibrary();
+    }
 }

@@ -1,7 +1,7 @@
 import {promises as fs} from "fs";
 import type {Stats} from "fs";
 import {tmpdir} from "os";
-import {join} from "path";
+import {join, normalize, resolve} from "path";
 import {PassThrough} from "stream";
 import type {Response} from "express";
 import {
@@ -80,7 +80,7 @@ describe("contentDisposition", () => {
 describe("resolveInside", () => {
     it("resuelve rutas dentro de la raíz", () => {
         expect(resolveInside("/biblioteca", "mangas", "serie", "v001")).toBe(
-            "/biblioteca/mangas/serie/v001"
+            normalize(resolve("/biblioteca", "mangas", "serie", "v001"))
         );
     });
 

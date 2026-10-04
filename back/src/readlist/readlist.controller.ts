@@ -16,6 +16,7 @@ import {JwtAuthGuard} from "../auth/strategies/jwt.strategy";
 import {ApiOkResponse, ApiTags} from "@nestjs/swagger";
 import {CreateReadlistDto} from "./dto/create-readlist.dto";
 import {ContentAccessService} from "../content-access/content-access.service";
+import {LibraryVariant} from "../common/library-variant";
 
 @Controller("readlists")
 @ApiTags("Listas de Lectura")
@@ -41,7 +42,7 @@ export class ReadlistController {
 
     @Get(":variant")
     @ApiOkResponse({status:HttpStatus.OK})
-    async getReadList(@Req() req: Request, @Param("variant") variant: "manga" | "novela" | "doujinshi") {
+    async getReadList(@Req() req: Request, @Param("variant") variant: LibraryVariant) {
         if (!req.user) throw new UnauthorizedException();
 
         const {userId} = req.user as {userId: Types.ObjectId};

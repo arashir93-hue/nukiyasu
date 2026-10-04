@@ -5,7 +5,7 @@ import {NihongoTrackerReaderButton} from "./NihongoTrackerReaderButton";
 import { Book, BookProgress } from "../../../types/book";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { useMediaQuery } from "../../../lib/useMediaQuery";
-import { nextBook, prevBook } from "../../../helpers/book";
+import { imageNavigationVariant, nextBook, prevBook } from "../../../helpers/book";
 import { useNavigate } from "react-router";
 import { useFullscreen } from "../../../helpers/useFullscreen";
 import { injectMokuroShim, readMokuroSettings } from "../../../lib/mokuro";
@@ -188,7 +188,7 @@ export default function RemoteReader({readerVars:{bookData, currentPage, bookPro
                 overlay={<ReaderStatsReadout bookData={bookData} currentPage={currentPage} doublePages={doublePages} />}
                 left={readerSettings.r2l ? (
                     <Fragment>
-                        <ReaderNavButton tooltip="Ir al siguiente libro" onClick={()=>void leaveTo(()=>void nextBook({book:bookData, variant:"manga", navigate}))}>
+                        <ReaderNavButton tooltip="Ir al siguiente libro" onClick={()=>void leaveTo(()=>void nextBook({book:bookData, variant:imageNavigationVariant(bookData), navigate}))}>
                             <CircleArrowLeft />
                         </ReaderNavButton>
                         <ReaderNavButton tooltip="Ir a la última página" onClick={()=>setPage(bookData.pages)}>
@@ -198,7 +198,7 @@ export default function RemoteReader({readerVars:{bookData, currentPage, bookPro
                     </Fragment>
                 ) : (
                     <Fragment>
-                        <ReaderNavButton tooltip="Ir al libro anterior" onClick={()=>void leaveTo(()=>void prevBook({book:bookData, variant:"manga", navigate}))}>
+                        <ReaderNavButton tooltip="Ir al libro anterior" onClick={()=>void leaveTo(()=>void prevBook({book:bookData, variant:imageNavigationVariant(bookData), navigate}))}>
                             <CircleArrowLeft />
                         </ReaderNavButton>
                         <ReaderNavButton tooltip="Ir a la primera página" onClick={()=>setPage(1)}>
@@ -213,7 +213,7 @@ export default function RemoteReader({readerVars:{bookData, currentPage, bookPro
                         <ReaderNavButton tooltip="Ir a la última página" onClick={()=>setPage(bookData.pages)}>
                             <SkipForward />
                         </ReaderNavButton>
-                        <ReaderNavButton tooltip="Ir al siguiente libro" onClick={()=>void leaveTo(()=>void nextBook({book:bookData, variant:"manga", navigate}))}>
+                        <ReaderNavButton tooltip="Ir al siguiente libro" onClick={()=>void leaveTo(()=>void nextBook({book:bookData, variant:imageNavigationVariant(bookData), navigate}))}>
                             <CircleArrowRight />
                         </ReaderNavButton>
                     </Fragment>
@@ -223,7 +223,7 @@ export default function RemoteReader({readerVars:{bookData, currentPage, bookPro
                         <ReaderNavButton tooltip="Ir a la primera página" onClick={()=>setPage(1)}>
                             <SkipForward />
                         </ReaderNavButton>
-                        <ReaderNavButton tooltip="Ir al libro anterior" onClick={()=>void leaveTo(()=>void prevBook({book:bookData, variant:"manga", navigate}))}>
+                        <ReaderNavButton tooltip="Ir al libro anterior" onClick={()=>void leaveTo(()=>void prevBook({book:bookData, variant:imageNavigationVariant(bookData), navigate}))}>
                             <CircleArrowRight />
                         </ReaderNavButton>
                     </Fragment>

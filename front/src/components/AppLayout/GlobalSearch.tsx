@@ -58,8 +58,10 @@ export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.React
       if (!res || cancelled) return;
 
       res.data.sort((a, b)=>{
-        if (a.variant === "doujinshi" && b.variant !== "doujinshi") return 1;
-        if (b.variant === "doujinshi" && a.variant !== "doujinshi") return -1;
+      if (a.variant === "doujinshi" && b.variant !== "doujinshi") return 1;
+      if (b.variant === "doujinshi" && a.variant !== "doujinshi") return -1;
+        if (a.variant === "artbook" && b.variant !== "artbook") return 1;
+        if (b.variant === "artbook" && a.variant !== "artbook") return -1;
         if (a.variant === "manga" && b.variant === "novela") return -1;
         if (a.variant === "novela" && b.variant === "manga") return 1;
         return 0;
@@ -74,8 +76,10 @@ export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.React
       if (!res || cancelled) return;
 
       res.sort((a, b)=>{
-        if (a.variant === "doujinshi" && b.variant !== "doujinshi") return 1;
-        if (b.variant === "doujinshi" && a.variant !== "doujinshi") return -1;
+      if (a.variant === "doujinshi" && b.variant !== "doujinshi") return 1;
+      if (b.variant === "doujinshi" && a.variant !== "doujinshi") return -1;
+        if (a.variant === "artbook" && b.variant !== "artbook") return 1;
+        if (b.variant === "artbook" && a.variant !== "artbook") return -1;
         if (a.variant === "manga" && b.variant === "novela") return -1;
         if (a.variant === "novela" && b.variant === "manga") return 1;
         return 0;
@@ -101,6 +105,8 @@ export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.React
       novelaBooks: books.filter((item)=>item.variant === "novela"),
       doujinshiSeries: series.filter((item)=>item.variant === "doujinshi"),
       doujinshiBooks: books.filter((item)=>item.variant === "doujinshi"),
+      artbookSeries: series.filter((item)=>item.variant === "artbook"),
+      artbookBooks: books.filter((item)=>item.variant === "artbook"),
     };
   }, [series, books]);
 
@@ -232,6 +238,16 @@ export function GlobalSearch({open, onOpenChange}:GlobalSearchProps):React.React
         {groups.doujinshiBooks.length > 0 ? (
           <Command.Group heading="Doujinshi" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-muted/80">
             {groups.doujinshiBooks.map((data)=>renderItem({type:"book", data}))}
+          </Command.Group>
+        ) : null}
+        {groups.artbookSeries.length > 0 ? (
+          <Command.Group heading="Series de artbooks" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-muted/80">
+            {groups.artbookSeries.map((data)=>renderItem({type:"serie", data}))}
+          </Command.Group>
+        ) : null}
+        {groups.artbookBooks.length > 0 ? (
+          <Command.Group heading="Artbooks" className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-fg-muted/80">
+            {groups.artbookBooks.map((data)=>renderItem({type:"book", data}))}
           </Command.Group>
         ) : null}
       </Command.List>

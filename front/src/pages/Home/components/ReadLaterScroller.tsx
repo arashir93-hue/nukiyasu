@@ -19,7 +19,9 @@ function ReadLaterScroller({variant}:ReadLaterScrollerProps):React.ReactElement 
         }
     });
 
-    if (isLoading) return <ScrollerSkeleton title={`"Leer más tarde" ${variant}`}/>;
+    const title = `"Leer más tarde" ${variant === "artbook" ? "artbooks" : variant}`;
+
+    if (isLoading) return <ScrollerSkeleton title={title}/>;
 
     if (isError) {
         return <SectionError message="No se pudo cargar la lista de lectura más tarde" onRetry={()=>{
@@ -30,7 +32,7 @@ function ReadLaterScroller({variant}:ReadLaterScrollerProps):React.ReactElement 
     if (!readlist || readlist.length === 0) return <></>;
 
     return (
-        <ComponentScroller type="series" title={`"Leer más tarde" ${variant}`} components={readlist} noVariantIndicator/>
+        <ComponentScroller type="series" title={title} components={readlist} noVariantIndicator/>
     );
 }
 

@@ -280,7 +280,7 @@ function SerieCoverCard({
           to={`/app/series/${serie._id}`}
           className="line-clamp-2 h-10 text-[13px] font-medium leading-tight text-fg transition-colors hover:text-primary hover:no-underline"
         >
-          {showVariant ? <span className="text-fg-muted">{serie.variant === "novela" ? "[小]" : serie.variant === "doujinshi" ? "[同]" : "[漫]"} </span> : null}
+          {showVariant ? <span className="text-fg-muted">{serie.variant === "novela" ? "[小]" : serie.variant === "doujinshi" ? "[同]" : serie.variant === "artbook" ? "[画]" : "[漫]"} </span> : null}
           {serie.visibleName}
         </Link>
         <div className="flex items-center justify-between gap-1">

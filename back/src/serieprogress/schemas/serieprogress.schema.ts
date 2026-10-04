@@ -24,8 +24,8 @@ export class SerieProgress {
     @Prop({type:Date, default:new Date()})
     lastUpdate:Date;
 
-    @Prop({type:String, enum:["manga", "novela", "doujinshi"]})
-    variant:"manga" | "novela" | "doujinshi";
+    @Prop({type:String, enum:["manga", "novela", "doujinshi", "artbook"]})
+    variant:"manga" | "novela" | "doujinshi" | "artbook";
 }
 
 export const SerieProgressSchema = SchemaFactory.createForClass(SerieProgress);

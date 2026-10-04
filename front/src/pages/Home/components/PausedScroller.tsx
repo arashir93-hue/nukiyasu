@@ -19,7 +19,7 @@ function PausedScroller({variant}:PausedScrollerProps):React.ReactElement {
         }
     });
 
-    if (isLoading) return <ScrollerSkeleton title={`Pausadas (${variant})`}/>;
+    if (isLoading) return <ScrollerSkeleton title={`Pausadas (${variant === "artbook" ? "artbooks" : variant})`}/>;
 
     if (isError) {
         return <SectionError message="No se pudo cargar la lista de series pausadas" onRetry={()=>{
@@ -30,7 +30,7 @@ function PausedScroller({variant}:PausedScrollerProps):React.ReactElement {
     if (!paused || paused.length === 0) return <></>;
 
     return (
-        <ComponentScroller type="series" title={`Pausadas (${variant})`} components={paused} noVariantIndicator/>
+        <ComponentScroller type="series" title={`Pausadas (${variant === "artbook" ? "artbooks" : variant})`} components={paused} noVariantIndicator/>
     );
 }
 

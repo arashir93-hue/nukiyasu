@@ -24,7 +24,7 @@ interface SpeedPoint {
 }
 
 interface SpeedChartProps {
-    data:{manga:SpeedPoint[], novelas:SpeedPoint[], doujinshi:SpeedPoint[]};
+    data:{manga:SpeedPoint[], novelas:SpeedPoint[], doujinshi:SpeedPoint[], artbook:SpeedPoint[]};
     labels:string[];
 }
 
@@ -73,6 +73,16 @@ function SpeedChart({data, labels}:SpeedChartProps):React.ReactElement {
                 pointBackgroundColor: isDark ? "#1E1E1E" : "#ffffff",
                 pointHoverRadius: 7,
                 pointHoverBackgroundColor: isDark ? "#1E1E1E" : "#ffffff",
+            },
+            {
+                label: "Artbook",
+                data:data.artbook.map((item)=>item.speed),
+                borderColor: tokens.accent,
+                backgroundColor: `${tokens.accent}18`,
+                fill: false,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 3,
             },
         ],
     }), [data, labels, tokens.primary, tokens.accent, tokens.warning, isDark]);

@@ -50,8 +50,8 @@ export class Book {
   @Prop({type:Array, default:[]})
   pageChars:number[];
 
-  @Prop({type:String, enum:["manga", "novela", "doujinshi"], required:true})
-  variant:"manga" | "novela" | "doujinshi";
+  @Prop({type:String, enum:["manga", "novela", "doujinshi", "artbook"], required:true})
+  variant:"manga" | "novela" | "doujinshi" | "artbook";
 
   @Prop({type:Boolean, default:false})
   mokured:boolean;

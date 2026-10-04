@@ -69,7 +69,7 @@ describe("NihongoTrackerService", () => {
         await service.connect(user, {apiKey:"nt_test_key_123"});
 
         expect(fetchMock).toHaveBeenCalledWith(
-            "https://nihongotracker.app/api/auth/verify",
+            "https://nihongotracker.app/api/users/me",
             expect.objectContaining({headers:expect.objectContaining({"X-API-Key":"nt_test_key_123"})})
         );
         expect(integrationModel.findOneAndUpdate).toHaveBeenCalledWith(

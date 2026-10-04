@@ -55,6 +55,7 @@ export class SeriesController {
         const foundSerie = await this.seriesService.findById(serie);
 
         if (!foundSerie) throw new NotFoundException();
+        if (foundSerie.variant === "artbook") throw new BadRequestException("Los artbooks no se empaquetan como ZIP");
 
         await this.booksService.zipBooksFromSerie(foundSerie._id);
 
@@ -363,6 +364,8 @@ export class SeriesController {
         const {userId} = req.user as {userId:Types.ObjectId};
         const policy = await this.contentAccessService.forUser(userId);
         const foundSerie = await this.seriesService.findAccessibleById(serie, policy);
+        if (!foundSerie) throw new NotFoundException();
+        if (foundSerie.variant === "artbook") throw new BadRequestException("Los artbooks se leen desde la biblioteca y no se descargan como ZIP");
         const exteriorRoot = path.join(__dirname, "..", "..", "..", "exterior");
         const isNovela = foundSerie.variant === "novela";
 

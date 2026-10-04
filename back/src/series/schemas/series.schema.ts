@@ -11,8 +11,8 @@ export class Serie {
   @Prop({type: String, required: true})
   path: string;
 
-  @Prop({type: String, required: true, enum: ["manga", "novela", "doujinshi"]})
-  variant:"manga" | "novela" | "doujinshi";
+  @Prop({type: String, required: true, enum: ["manga", "novela", "doujinshi", "artbook"]})
+  variant:"manga" | "novela" | "doujinshi" | "artbook";
 
   @Prop({type: String, required: true})
   visibleName: string;

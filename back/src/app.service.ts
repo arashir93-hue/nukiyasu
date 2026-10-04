@@ -33,6 +33,8 @@ export class AppService {
       const job = await this.rescanQueue.add("scanmangas");
       const job2 = await this.rescanQueue.add("scanranobe");
       const job3 = await this.rescanQueue.add("scandoujinshi");
+      const job4 = await this.rescanQueue.add("scanartbooks");
+      console.log("created job " + job4.id);
 
       console.log(`created job ${ job.id}`);
       console.log(`created job ${ job2.id}`);
@@ -45,6 +47,10 @@ export class AppService {
 
   async rescanDoujinshiLibrary() {
       return this.rescanImageLibrary("doujinshi", "doujinshi");
+  }
+
+  async rescanArtbookLibrary() {
+      return this.rescanImageLibrary("artbook", "artbooks");
   }
 
   /**
@@ -63,9 +69,9 @@ export class AppService {
    * La otra opción que tendrá es restaurar el elemento con el
    * mismo nombre para que se le quite la propiedad "missing"
    */
-  private async rescanImageLibrary(variant:"manga" | "doujinshi", folderName:string) {
+  private async rescanImageLibrary(variant:"manga" | "doujinshi" | "artbook", folderName:string) {
       try {
-          this.logger.log(`\x1b[34mEscaneando biblioteca de ${variant === "doujinshi" ? "doujinshi" : "manga"}...`);
+          this.logger.log(`\x1b[34mEscaneando biblioteca de ${variant === "doujinshi" ? "doujinshi" : variant === "artbook" ? "artbooks" : "manga"}...`);
           const existingFolders: string[] = [];
           const existingBooks: {
               seriePath: string;
@@ -153,7 +159,7 @@ export class AppService {
           // Añade las series nuevas a la base de datos
           if (foldersToAddInDb.length > 0) {
               // Promise to wait for the series to be created
-              this.logger.log(`\x1b[34mEncontradas series de ${variant === "doujinshi" ? "doujinshi" : "manga"} nuevas`);
+              this.logger.log(`\x1b[34mEncontradas series de ${variant === "doujinshi" ? "doujinshi" : variant === "artbook" ? "artbooks" : "manga"} nuevas`);
               areChanges = true;
               await Promise.all(
                   foldersToAddInDb.map(async(elem) => {
@@ -172,7 +178,7 @@ export class AppService {
 
           // Marca las series no encontradas como desaparecidas
           if (foldersToMarkAsDeleted.length > 0) {
-              this.logger.log(`\x1b[34mEncontradas series de ${variant === "doujinshi" ? "doujinshi" : "manga"} desaparecidas`);
+              this.logger.log(`\x1b[34mEncontradas series de ${variant === "doujinshi" ? "doujinshi" : variant === "artbook" ? "artbooks" : "manga"} desaparecidas`);
               areChanges = true;
               await Promise.all(foldersToMarkAsDeleted.map((elem) =>
                   this.seriesService.markAsMissing(elem, variant)
@@ -346,7 +352,7 @@ export class AppService {
 
           await this.syncBookCounts(variant);
           // FIN PROCESO DE LIBROS
-          this.logger.log(`\x1b[34mProceso de búsqueda de ${variant === "doujinshi" ? "doujinshi" : "mangas"} finalizado`);
+          this.logger.log(`\x1b[34mProceso de búsqueda de ${variant === "doujinshi" ? "doujinshi" : variant === "artbook" ? "artbooks" : "mangas"} finalizado`);
           if (areChanges) {
               // Avisar al frontend si hay cambios
               this.websocketsGateway.sendNotificationToClient({action:"LIBRARY_UPDATE"});

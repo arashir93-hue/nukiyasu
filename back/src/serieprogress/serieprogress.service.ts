@@ -6,7 +6,7 @@ import {CreateOrModifySerieProgress} from "./interfaces/serieprogress";
 import {Book} from "../books/schemas/book.schema";
 import {FullSerie} from "../series/interfaces/serieWithProgress";
 import {ContentAccessPolicy, ContentAccessService} from "../content-access/content-access.service";
-import {isImageBasedVariant} from "../common/library-variant";
+import {isImageBasedVariant, LibraryVariant} from "../common/library-variant";
 
 @Injectable()
 export class SerieprogressService {
@@ -15,7 +15,7 @@ export class SerieprogressService {
         private readonly contentAccessService:ContentAccessService
     ) {}
 
-    async createOrModifySerieProgress(user:Types.ObjectId, serie:Types.ObjectId, books:Types.ObjectId[], variant:"manga" | "novela" | "doujinshi") {
+    async createOrModifySerieProgress(user:Types.ObjectId, serie:Types.ObjectId, books:Types.ObjectId[], variant:LibraryVariant) {
         const foundProgress = await this.serieProgressModel.findOne({
             user:user,
             serie:serie
@@ -36,7 +36,7 @@ export class SerieprogressService {
         return this.serieProgressModel.create(createProgress);
     }
 
-    async createOrIncreaseBooks(createSerieprogressDto: CreateOrModifySerieProgress, variant:"manga" | "novela" | "doujinshi") {
+    async createOrIncreaseBooks(createSerieprogressDto: CreateOrModifySerieProgress, variant:LibraryVariant) {
         const foundProgress = await this.serieProgressModel.findOne({
             user:createSerieprogressDto.user,
             serie:createSerieprogressDto.serie
@@ -71,7 +71,7 @@ export class SerieprogressService {
 
     async getUserPausedSeries(
         user:Types.ObjectId,
-            variant:"manga" | "novela" | "doujinshi",
+            variant:LibraryVariant,
         policy:ContentAccessPolicy
     ) {
         const result = await this.serieProgressModel.aggregate()

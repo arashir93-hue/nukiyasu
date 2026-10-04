@@ -1,6 +1,7 @@
 import {Types} from "mongoose";
 import {ReadProgress, ReadProgressStatus} from "../schemas/readprogress.schema";
 import {Book} from "../../books/schemas/book.schema";
+import {LibraryVariant} from "../../common/library-variant";
 
 export class UpdateReadProgress {
   time?: number;
@@ -23,7 +24,7 @@ export class CreateReadProgress extends UpdateReadProgress {
 
   serie:Types.ObjectId;
 
-  variant:"manga" | "novela" | "doujinshi";
+  variant:LibraryVariant;
 }
 
 export class ReadProgressWithBook extends ReadProgress {

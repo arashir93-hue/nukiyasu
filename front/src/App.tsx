@@ -42,6 +42,7 @@ function App() {
                         <Route path="manga" element={<Suspense fallback={<RouteFallback/>}><Library variant="manga"/></Suspense>}/>
                         <Route path="novels" element={<Suspense fallback={<RouteFallback/>}><Library variant="novela"/></Suspense>}/>
                         <Route path="doujinshi" element={<Suspense fallback={<RouteFallback/>}><Library variant="doujinshi"/></Suspense>}/>
+                        <Route path="artbooks" element={<Suspense fallback={<RouteFallback/>}><Library variant="artbook"/></Suspense>}/>
                     </Route>
                     <Route path="series/:id" element={<Suspense fallback={<RouteFallback/>}><Serie/></Suspense>}/>
                     <Route path="words" element={<Suspense fallback={<RouteFallback/>}><Words/></Suspense>}/>

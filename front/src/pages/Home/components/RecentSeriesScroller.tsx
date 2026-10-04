@@ -24,7 +24,7 @@ function RecentSeriesScroller({variant}:RecentSeriesScrollerProps):React.ReactEl
         }
     });
 
-    const title = `Series de ${variant === "manga" ? "manga" : variant === "doujinshi" ? "doujinshi" : "novelas"} con volúmenes nuevos`;
+    const title = `Series de ${variant === "manga" ? "manga" : variant === "doujinshi" ? "doujinshi" : variant === "artbook" ? "artbooks" : "novelas"} con volúmenes nuevos`;
 
     if (isLoading) return <ScrollerSkeleton title={title}/>;
 

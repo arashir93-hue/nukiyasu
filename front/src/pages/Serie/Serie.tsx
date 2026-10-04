@@ -155,12 +155,14 @@ function Serie():React.ReactElement {
                     <Badge variant="neutral">{serieData.bookCount} libros</Badge>
 
                     <div className="ml-2 flex items-center gap-1">
-                        <NihongoTrackerLinkButton onClick={()=>setNihongoTrackerOpen(true)} />
-                        <Tooltip content="Descargar serie">
-                            <IconButton label="Descargar serie" onClick={()=>window.open(`/api/series/${serieData._id}/download`)}>
-                                <Download />
-                            </IconButton>
-                        </Tooltip>
+                        {serieData.variant !== "artbook" ? <NihongoTrackerLinkButton onClick={()=>setNihongoTrackerOpen(true)} /> : null}
+                        {serieData.variant !== "artbook" ? (
+                            <Tooltip content="Descargar serie">
+                                <IconButton label="Descargar serie" onClick={()=>window.open(`/api/series/${serieData._id}/download`)}>
+                                    <Download />
+                                </IconButton>
+                            </Tooltip>
+                        ) : null}
                         <Tooltip content={serieData.readlist ? "Quitar de “Leer más tarde”" : "Añadir a “Leer más tarde”"}>
                             <IconButton
                                 label={serieData.readlist ? "Quitar de Leer más tarde" : "Añadir a Leer más tarde"}
@@ -316,11 +318,13 @@ function Serie():React.ReactElement {
             </div>
 
             <RerollFab />
-            <NihongoTrackerLinkDialog
-                serie={serieData}
-                open={nihongoTrackerOpen}
-                onOpenChange={setNihongoTrackerOpen}
-            />
+            {serieData.variant !== "artbook" ? (
+                <NihongoTrackerLinkDialog
+                    serie={serieData}
+                    open={nihongoTrackerOpen}
+                    onOpenChange={setNihongoTrackerOpen}
+                />
+            ) : null}
         </div>
     );
 }

@@ -17,6 +17,17 @@ describe("AppService image library variants", () => {
         await expect(service.rescanDoujinshiLibrary()).resolves.toBeUndefined();
     });
 
+    it("omite una raíz de artbooks ausente sin interrumpir la aplicación", async() => {
+        const service = new AppService(
+            {ensureVariantMaturity:jest.fn()} as unknown as SeriesService,
+            {} as BooksService,
+            {} as WebsocketsGateway,
+            {} as Queue
+        );
+
+        await expect(service.rescanArtbookLibrary()).resolves.toBeUndefined();
+    });
+
     it("recalcula el contador usando solo Books disponibles", async() => {
         const serieWithBooks = {_id:new Types.ObjectId()};
         const serieWithoutBooks = {_id:new Types.ObjectId()};

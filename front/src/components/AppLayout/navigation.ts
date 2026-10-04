@@ -5,6 +5,7 @@ import {
   Clock,
   House,
   Images,
+  Image,
   Languages,
   type LucideIcon,
   ShieldCheck,
@@ -33,6 +34,7 @@ export const primaryNav: NavSection = {
     {label: "Mangas", to: "/app/library/manga", icon: Images},
     {label: "Novelas", to: "/app/library/novels", icon: BookOpen},
     {label: "Doujinshi", to: "/app/library/doujinshi", icon: Images, matureOnly:true},
+    {label: "Artbooks", to: "/app/library/artbooks", icon: Image},
   ],
 };
 

@@ -1,5 +1,5 @@
 import {keepPreviousData, useQuery} from "@tanstack/react-query";
-import {ArrowLeft, BookOpen, Dices, Images, RefreshCw, SearchX, X} from "lucide-react";
+import {ArrowLeft, BookOpen, Dices, Image, Images, RefreshCw, SearchX, X} from "lucide-react";
 import React from "react";
 import {useNavigate} from "react-router";
 import {toast} from "react-toastify";
@@ -153,6 +153,7 @@ function Library({variant}:LibraryProps):React.ReactElement {
                             {value:"manga", icon:<Images />, label:<span className="hidden sm:inline">Mangas</span>},
                             {value:"novela", icon:<BookOpen />, label:<span className="hidden sm:inline">Novelas</span>},
                             ...(userData?.showMatureContent === true ? [{value:"doujinshi" as const, icon:<Images />, label:<span className="hidden sm:inline">Doujinshi</span>}] : []),
+                            {value:"artbook" as const, icon:<Image />, label:<span className="hidden sm:inline">Artbooks</span>},
                         ]}
                     />
 

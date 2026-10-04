@@ -250,6 +250,7 @@ export class BooksController {
         const foundBook = await this.booksService.findAccessibleById(book, policy);
 
         if (!foundBook) throw new NotFoundException();
+        if (foundBook.variant === "artbook") throw new BadRequestException("Los artbooks se leen desde la biblioteca y no se descargan como ZIP");
 
         if (!foundBook.seriePath || !foundBook.path) throw new BadRequestException();
 

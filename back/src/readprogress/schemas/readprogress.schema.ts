@@ -49,8 +49,8 @@ export class ReadProgress {
   @Prop({type:Number, default:0})
   characters:number;
 
-  @Prop({type:String, enum:["manga", "novela", "doujinshi"]})
-  variant:"manga" | "novela" | "doujinshi";
+  @Prop({type:String, enum:["manga", "novela", "doujinshi", "artbook"]})
+  variant:"manga" | "novela" | "doujinshi" | "artbook";
 }
 
 export const ReadProgressSchema = SchemaFactory.createForClass(ReadProgress);

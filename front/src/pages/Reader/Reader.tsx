@@ -7,7 +7,7 @@ import {ReaderSettings} from "./components/ReaderSettings";
 import {beginReadingProgress, createProgress} from "../../helpers/progress";
 import {PageText} from "./components/PageText";
 import {Dictionary} from "./components/Dictionary";
-import {nextBook, prevBook} from "../../helpers/book";
+import {imageNavigationVariant, nextBook, prevBook} from "../../helpers/book";
 import {useTitle} from "../../lib/useTitle";
 import {useAuth} from "../../contexts/AuthContext";
 import {getCookie} from "../../helpers/cookies";
@@ -378,7 +378,7 @@ function Reader(props:ReaderProps):React.ReactElement {
 
                                 // Wait 500 ms
                                 setTimeout(()=>{
-                                    void prevBook({book:bookData, variant:"manga", navigate});
+                                    void prevBook({book:bookData, variant:imageNavigationVariant(bookData), navigate});
                                 }, 500);
                                 return;
                             }
@@ -388,7 +388,7 @@ function Reader(props:ReaderProps):React.ReactElement {
 
                                 // Wait 500 ms
                                 setTimeout(()=>{
-                                    void nextBook({book:bookData, variant:"manga", navigate});
+                                    void nextBook({book:bookData, variant:imageNavigationVariant(bookData), navigate});
                                 }, 500);
 
                                 return;

@@ -72,7 +72,7 @@ export function StopWatchMenu({characters, bookData, oldProgress, currentPage, r
             text = `.log lectura ${currentChars} ${bookData.visibleName}`;
         } else if (isImageBasedVariant(bookData.variant) && !!currentPage) {
             const readPages = currentPage - (oldProgress?.currentPage || 0);
-            text = `.log manga ${readPages} ${bookData.visibleName}`;
+            text = `.log ${bookData.variant === "artbook" ? "artbook" : "manga"} ${readPages} ${bookData.visibleName}`;
         }
 
         const currentTime = timer - (oldProgress?.time || 0);

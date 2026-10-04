@@ -246,7 +246,7 @@ function BookCardMenu({book, insideSerie, deck, read, setRead, openBook}:Extract
               {book.status === "reading" ? "Eliminar progreso actual" : "Marcar como no leído"}
             </MenuItem>
           ) : null}
-          {book.status === "completed" ? (
+          {book.status === "completed" && book.variant !== "artbook" ? (
             <MenuItem disabled={logging} onSelect={()=>void logInNihongoTracker()}>
               <ListChecks />
               Registrar en NihongoTracker
@@ -273,10 +273,12 @@ function BookCardMenu({book, insideSerie, deck, read, setRead, openBook}:Extract
             {book.readlist ? <BookmarkMinus /> : <BookmarkPlus />}
             {book.readlist ? "Quitar de “Leer más tarde”" : "Añadir a “Leer más tarde”"}
           </MenuItem>
-          <MenuItem onSelect={()=>window.open(bookDownloadUrl(book))}>
-            <Download />
-            Descargar libro
-          </MenuItem>
+          {book.variant !== "artbook" ? (
+            <MenuItem onSelect={()=>window.open(bookDownloadUrl(book))}>
+              <Download />
+              Descargar libro
+            </MenuItem>
+          ) : null}
           {book.variant === "novela" ? (
             <MenuItem onSelect={sendToKindle}>
               <Send />

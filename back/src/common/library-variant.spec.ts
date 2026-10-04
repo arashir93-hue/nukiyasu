@@ -4,7 +4,8 @@ describe("library variants", () => {
     it.each([
         ["manga", "mangas", true],
         ["novela", "novelas", false],
-        ["doujinshi", "doujinshi", true]
+        ["doujinshi", "doujinshi", true],
+        ["artbook", "artbooks", true]
     ] as const)("resuelve %s como %s", (variant, folder, imageBased) => {
         expect(libraryFolderForVariant(variant)).toBe(folder);
         expect(isImageBasedVariant(variant)).toBe(imageBased);
@@ -18,5 +19,7 @@ describe("library variants", () => {
         expect(nihongoTrackerMediaTypeForVariant("manga")).toBe("manga");
         expect(nihongoTrackerMediaTypeForVariant("doujinshi")).toBe("manga");
         expect(nihongoTrackerMediaTypeForVariant("novela")).toBe("light-novel");
+        // Los artbooks comparten lector de imágenes, pero el servicio de NT
+        // los bloquea explícitamente y nunca deben convertirse en un manga.
     });
 });

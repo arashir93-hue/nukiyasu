@@ -7,7 +7,7 @@ const ORIGINAL_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".avif"];
 
 export interface LibraryStaticPath {
     relativePath:string;
-    variant:"manga" | "novela" | "doujinshi";
+    variant:"manga" | "novela" | "doujinshi" | "artbook";
     seriePath:string;
 }
 
@@ -33,11 +33,11 @@ export function parseLibraryStaticPath(relativePath:string):LibraryStaticPath | 
 
     const [folder, seriePath] = segments;
 
-    if (folder !== "mangas" && folder !== "novelas" && folder !== "doujinshi") return null;
+    if (folder !== "mangas" && folder !== "novelas" && folder !== "doujinshi" && folder !== "artbooks") return null;
 
     return {
         relativePath:`/${normalized}`,
-        variant:folder === "mangas" ? "manga" : folder === "doujinshi" ? "doujinshi" : "novela",
+        variant:folder === "mangas" ? "manga" : folder === "doujinshi" ? "doujinshi" : folder === "artbooks" ? "artbook" : "novela",
         seriePath
     };
 }
