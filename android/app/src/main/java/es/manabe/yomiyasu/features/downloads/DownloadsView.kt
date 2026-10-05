@@ -101,8 +101,6 @@ class DownloadsViewModel @Inject constructor(
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            // Se rellena después de validar la visibilidad contra el servidor;
-            // no mostramos registros locales antiguos durante esa comprobación.
             initialValue = DownloadsUiState(),
         )
 
@@ -166,7 +164,7 @@ class DownloadsViewModel @Inject constructor(
                 if (books.isEmpty()) {
                     _message.value = "La serie no tiene libros"
                 } else {
-                    downloads.enqueueSeries(books)
+                    downloads.enqueueSeries(books, serie.visibleName, serie.isMature)
                     _message.value = if (books.size == 1) {
                         "Añadido 1 libro a la cola"
                     } else {
@@ -401,6 +399,15 @@ private fun DownloadedRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (record.serieName.isNotBlank()) {
+                Text(
+                    text = record.serieName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = recordSubtitle(record, sizeText, dateText),

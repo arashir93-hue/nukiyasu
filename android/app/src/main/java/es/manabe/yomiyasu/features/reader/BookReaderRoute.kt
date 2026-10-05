@@ -16,7 +16,10 @@ import es.manabe.yomiyasu.core.models.Book
 import es.manabe.yomiyasu.core.models.Variant
 import es.manabe.yomiyasu.core.networking.ApiException
 import es.manabe.yomiyasu.core.services.LibraryApi
+import es.manabe.yomiyasu.core.services.DownloadManager
 import es.manabe.yomiyasu.core.services.SocketService
+import es.manabe.yomiyasu.core.services.resolveOfflineFirst
+import es.manabe.yomiyasu.core.session.SessionStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +29,8 @@ import javax.inject.Inject
 @HiltViewModel
 class BookReaderViewModel @Inject constructor(
     private val library: LibraryApi,
+    private val downloads: DownloadManager,
+    private val session: SessionStore,
     private val socket: SocketService,
 ) : ViewModel() {
 
@@ -59,7 +64,11 @@ class BookReaderViewModel @Inject constructor(
             _error.value = null
             _book.value = null
             try {
-                _book.value = library.book(bookId)
+                val showMatureContent = (session.state.value as? SessionStore.State.LoggedIn)
+                    ?.user?.showMatureContent == true
+                _book.value = resolveOfflineFirst(downloads.localBook(bookId, showMatureContent)) {
+                    library.book(bookId)
+                }
             } catch (error: ApiException) {
                 _error.value = error.userMessage
             }

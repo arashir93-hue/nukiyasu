@@ -18,6 +18,8 @@ import es.manabe.yomiyasu.core.services.ProgressApi
 import es.manabe.yomiyasu.core.services.ReadProgressRequest
 import es.manabe.yomiyasu.core.services.StaticUrls
 import es.manabe.yomiyasu.core.services.SocketService
+import es.manabe.yomiyasu.core.services.resolveOfflineFirst
+import es.manabe.yomiyasu.core.session.SessionStore
 import es.manabe.yomiyasu.core.settings.AppSettings
 import es.manabe.yomiyasu.core.settings.AppSettingsData
 import es.manabe.yomiyasu.core.settings.ReaderSettings
@@ -66,6 +68,8 @@ class MangaReaderViewModel @Inject constructor(
     private val library: LibraryApi,
     private val api: ApiClient,
     private val downloads: DownloadManager,
+    private val session: SessionStore,
+    private val offlineProgress: es.manabe.yomiyasu.core.services.OfflineProgressSync,
     private val progress: ProgressApi,
     private val mirror: ProgressMirror,
     settings: ReaderSettings,
@@ -143,7 +147,13 @@ class MangaReaderViewModel @Inject constructor(
             _state.value = ReaderLoadState()
 
             try {
-                val book = library.book(bookId)
+                // A complete local snapshot is authoritative for offline reading;
+                // fall back to the API for legacy downloads without metadata.
+                val showMatureContent = (session.state.value as? SessionStore.State.LoggedIn)
+                    ?.user?.showMatureContent == true
+                val book = resolveOfflineFirst(downloads.localBook(bookId, showMatureContent)) {
+                    library.book(bookId)
+                }
 
                 val parsed: MokuroBook
                 val localImagesDir: File?
@@ -153,7 +163,7 @@ class MangaReaderViewModel @Inject constructor(
                     val pagePaths = book.pagePaths.orEmpty()
                     check(pagePaths.isNotEmpty()) { "El tomo no tiene páginas" }
 
-                    localImagesDir = if (downloads.records.value.containsKey(bookId)) {
+                    localImagesDir = if (downloads.isDownloaded(bookId)) {
                         downloads.localImagesDirectory(bookId)
                     } else {
                         null
@@ -175,7 +185,11 @@ class MangaReaderViewModel @Inject constructor(
                     }
                 }
 
-                val storedProgress = runCatching { progress.progressForBook(bookId) }.getOrNull()
+                val storedProgress = if (network.isOnline.value) {
+                    runCatching { progress.progressForBook(bookId) }.getOrNull()
+                } else {
+                    null
+                }
                 val restoredReadingSession =
                     savedStateHandle.get<String>(READER_POSITION_BOOK) == bookId &&
                         savedStateHandle.get<String>(READER_POSITION_READING) != null
@@ -250,7 +264,7 @@ class MangaReaderViewModel @Inject constructor(
             runCatching { URLDecoder.decode(imagePath, "UTF-8") }.getOrDefault(imagePath)
         }
         val localDir = _state.value.localImagesDir
-        val localFile = if (localDir != null) File(localDir, decodedPath) else null
+        val localFile = if (localDir != null) downloads.localImageFile(book.id, decodedPath) else null
 
         // Descargas antiguas (o incompletas): si la imagen no está en local se
         // cae a la URL remota en lugar de dejar la página en blanco
@@ -272,19 +286,14 @@ class MangaReaderViewModel @Inject constructor(
         mirror.setMangaPage(book.id, page)
         mirror.setMangaTime(book.id, timeSeconds)
 
-        if (!network.isOnline.value) return
-
         val characters = book.pageChars?.getOrNull(page - 1) ?: 0
         val totalPages = book.pages ?: 0
         val status = if (totalPages > 0 && page >= totalPages) "completed" else "reading"
 
-        progress.save(
+        offlineProgress.saveOrQueue(
             ReadProgressRequest(
-                book = book.id,
-                time = timeSeconds,
-                currentPage = page,
-                characters = characters,
-                status = status,
+                book = book.id, time = timeSeconds, currentPage = page,
+                characters = characters, status = status,
                 endDate = if (status == "completed") Instant.now().toString() else null,
             ),
         )

@@ -369,7 +369,7 @@ fun SerieRoute(
                                         },
                                         onClick = {
                                             menuOpen = false
-                                            actions.actions.enqueueSeries(books)
+                                            actions.actions.enqueueSeries(books, serie?.visibleName.orEmpty(), serie?.isMature == true)
                                         },
                                     )
                                 }

@@ -322,6 +322,8 @@ data class Book(
     val lastProgress: ReadProgress? = null,
     val readlist: ReadlistValue? = null,
     val type: String? = null,
+    /** Copied from the series when supplied by the API; absent legacy data is safe. */
+    val isMature: Boolean = false,
 ) {
     val resolvedStatus: ProgressStatus get() = status ?: ProgressStatus.Unread
     val isMokured: Boolean get() = mokured ?: false

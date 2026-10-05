@@ -14,6 +14,7 @@ import es.manabe.yomiyasu.core.networking.ApiClient
 import es.manabe.yomiyasu.core.networking.ApiException
 import es.manabe.yomiyasu.core.networking.Endpoint
 import es.manabe.yomiyasu.core.networking.jsonBody
+import es.manabe.yomiyasu.core.networking.YomiyasuJson
 import es.manabe.yomiyasu.core.services.SocketService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,6 +59,7 @@ class SessionStore @Inject constructor(
         const val AccessToken = "accessToken"
         const val RefreshToken = "refreshToken"
         const val Uuid = "uuid"
+        const val CachedUser = "cachedUser"
     }
 
     init {
@@ -75,8 +77,9 @@ class SessionStore @Inject constructor(
                 .also { tokenStore.setString(Key.Uuid, it) }
 
             if (api.activeBaseUrl == null) {
-                // Sin servidor no hay nada que restaurar; el login pedirá la URL.
-                updateState(State.LoggedOut)
+                tokenStore.getString(Key.CachedUser)?.let { decodeCachedUser(it) }
+                    ?.let { updateState(State.LoggedIn(it)) }
+                    ?: updateState(State.LoggedOut)
                 return@withLock
             }
 
@@ -91,8 +94,15 @@ class SessionStore @Inject constructor(
                 try {
                     val user = api.send(Endpoint.get("api/auth/me"), AuthUser.serializer())
                     updateState(State.LoggedIn(user))
+                    cacheUser(user)
                 } catch (error: ApiException) {
-                    clearSession(SESSION_EXPIRED_MESSAGE)
+                    if (error is ApiException.Http && (error.status == 401 || error.status == 403)) {
+                        clearSession(SESSION_EXPIRED_MESSAGE)
+                    } else {
+                        decodeCachedUser(tokenStore.getString(Key.CachedUser) ?: "")
+                            ?.let { updateState(State.LoggedIn(it)) }
+                            ?: clearSession(SESSION_EXPIRED_MESSAGE, clearCachedUser = false)
+                    }
                 }
             }
         }
@@ -134,6 +144,7 @@ class SessionStore @Inject constructor(
         }
 
         persist(newAccess, newRefresh)
+        cacheUser(response.user)
         updateState(State.LoggedIn(response.user))
     }
 
@@ -216,7 +227,9 @@ class SessionStore @Inject constructor(
 
         val current = _state.value
         if (current is State.LoggedIn) {
-            updateState(State.LoggedIn(current.user.copy(showMatureContent = response.showMatureContent)))
+            val updated = current.user.copy(showMatureContent = response.showMatureContent)
+            cacheUser(updated)
+            updateState(State.LoggedIn(updated))
         }
         socket.markLibraryUpdated()
         return response.showMatureContent
@@ -243,11 +256,12 @@ class SessionStore @Inject constructor(
         tokenStore.setString(Key.RefreshToken, newRefreshToken)
     }
 
-    private fun clearSession(notice: String? = null) {
+    private fun clearSession(notice: String? = null, clearCachedUser: Boolean = true) {
         accessToken = null
         refreshToken = null
         tokenStore.remove(Key.AccessToken)
         tokenStore.remove(Key.RefreshToken)
+        if (clearCachedUser) tokenStore.remove(Key.CachedUser)
         _notice.value = notice
         updateState(State.LoggedOut)
     }
@@ -255,4 +269,12 @@ class SessionStore @Inject constructor(
     companion object {
         const val SESSION_EXPIRED_MESSAGE = "La sesión ha caducado. Vuelve a iniciar sesión."
     }
+
+    private fun cacheUser(user: AuthUser) {
+        tokenStore.setString(Key.CachedUser, YomiyasuJson.encodeToString(AuthUser.serializer(), user))
+    }
+
+    private fun decodeCachedUser(value: String): AuthUser? = runCatching {
+        if (value.isBlank()) null else YomiyasuJson.decodeFromString(AuthUser.serializer(), value)
+    }.getOrNull()
 }

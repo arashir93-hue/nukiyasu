@@ -91,7 +91,7 @@ class LibraryActions @Inject constructor(
         downloads.enqueue(book)
     }
 
-    fun enqueueSeries(books: List<Book>) {
-        downloads.enqueueSeries(books)
+    fun enqueueSeries(books: List<Book>, serieName: String = "", isMature: Boolean = false) {
+        downloads.enqueueSeries(books, serieName, isMature)
     }
 }

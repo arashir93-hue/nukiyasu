@@ -304,4 +304,13 @@ class ModelDecodingTest {
         assertEquals(".log manga 7 Doujin 1&90", doujinshi.logLine)
         assertEquals(".log artbook 9 Artbook 1", artbook.logLine)
     }
+
+    @Test
+    fun `book mature flag defaults to false for offline snapshots`() {
+        val book = json.decodeFromString(
+            Book.serializer(),
+            """{"_id":"b4","visibleName":"Tomo","variant":"manga"}""",
+        )
+        assertFalse(book.isMature)
+    }
 }
