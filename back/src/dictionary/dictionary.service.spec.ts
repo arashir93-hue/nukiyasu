@@ -1,4 +1,6 @@
 import {promises as fs} from "fs";
+import {readFileSync} from "node:fs";
+import {join} from "node:path";
 import {kanjiBeginning, readingBeginning, setup as setupJmdict} from "jmdict-simplified-node";
 import {DictionaryService} from "./dictionary.service";
 
@@ -47,5 +49,35 @@ describe("DictionaryService", () => {
         const service = new DictionaryService();
 
         await expect(service.searchByWord("未登録語")).resolves.toEqual([]);
+    });
+
+    it("mantiene la deconjugación histórica al usar las reglas compartidas", () => {
+        const service = new DictionaryService();
+        const expected = new Map([
+            ["食べました", "食べる"],
+            ["食べない", "食べる"],
+            ["行った", "行く"],
+            ["飲んでいる", "飲むうる"],
+            ["食べさせられました", "食べるいせるられる"],
+            ["見ました", "見る"],
+            ["しない", "する"],
+            ["した", "する"],
+            ["来た", "来る"],
+            ["食べさせる", "食べるする"],
+            ["行きます", "行くる"]
+        ]);
+
+        expected.forEach((output, input) => {
+            expect(service.convertKana(input)).toBe(output);
+        });
+    });
+
+    it("usa la fuente compartida ordenada de 568 reglas", () => {
+        const resource = JSON.parse(
+            readFileSync(join(__dirname, "../utils/deinflection-rules.json"), "utf8"),
+        ) as {version:number; rules:unknown[]};
+
+        expect(resource.version).toBe(1);
+        expect(resource.rules).toHaveLength(568);
     });
 });

@@ -76,7 +76,10 @@ class LocalDictionaryTest {
                     LocalDictionaryLookupRow("2847337", 0, "たべるラー油"),
                 ),
             ),
-            entries = linkedMapOf("1358280" to entry("1358280", "食べる"), "2847337" to entry("2847337", "食べるラー油")),
+            entries = linkedMapOf(
+                "1358280" to entry("1358280", "食べる", reading = "たべる"),
+                "2847337" to entry("2847337", "食べるラー油", reading = "たべるラー油"),
+            ),
         )
         val result = LocalDictionary(fixture) { dataSource }.searchByWord("たべる")
 
@@ -113,6 +116,37 @@ class LocalDictionaryTest {
         assertEquals(listOf("1578850", "2827861", "1282180"), foundWords(result).map { it.id })
         assertEquals(listOf("kana|行く", "kanji|行く"), dataSource.calls)
         fixture.parentFile?.deleteRecursively()
+    }
+
+    @Test
+    fun `deconjugated forms resolve the same entry ids as the backend flow`() {
+        val cases = listOf(
+            "食べました" to ("1358280" to "食べる"),
+            "食べない" to ("1358280" to "食べる"),
+            "行った" to ("1578850" to "行く"),
+            "飲んでいる" to ("1169870" to "飲む"),
+            "食べさせられました" to ("1358280" to "食べる"),
+        )
+
+        cases.forEach { (query, expected) ->
+            val fixture = fixtureFile("deconjugation-${query.hashCode()}")
+            val dataSource = FakeDataSource(
+                lookupRows = mapOf(
+                    "kana|${expected.second}" to listOf(
+                        LocalDictionaryLookupRow(expected.first, 0, expected.second),
+                    ),
+                ),
+                entries = mapOf(expected.first to entry(expected.first, expected.second)),
+            )
+            val dictionary = LocalDictionary(
+                dictionaryFile = fixture,
+                openDataSource = { dataSource },
+                deinflector = sharedDeinflector(),
+            )
+
+            assertEquals(expected.first, foundWords(dictionary.searchByWord(query)).single().id)
+            fixture.parentFile?.deleteRecursively()
+        }
     }
 
     @Test
@@ -179,10 +213,10 @@ class LocalDictionaryTest {
             writeText("fixture")
         }
 
-    private fun entry(id: String, text: String) = DictionaryWord(
+    private fun entry(id: String, text: String, reading: String = text) = DictionaryWord(
         id = id,
         kanji = listOf(DictionaryKanji(common = true, text = text, tags = emptyList())),
-        kana = listOf(DictionaryKana(common = true, text = text, tags = emptyList(), appliesToKanji = emptyList())),
+        kana = listOf(DictionaryKana(common = true, text = reading, tags = emptyList(), appliesToKanji = emptyList())),
         sense = listOf(
             DictionarySense(
                 partOfSpeech = listOf("n"),
@@ -190,6 +224,16 @@ class LocalDictionaryTest {
             ),
         ),
     )
+
+    private fun sharedDeinflector(): JapaneseDeinflector {
+        val candidates = listOf(
+            File("../back/src/utils/deinflection-rules.json"),
+            File("../../back/src/utils/deinflection-rules.json"),
+        )
+        val file = candidates.firstOrNull { it.isFile }
+            ?: error("Shared deinflection rules not found from ${System.getProperty("user.dir")}")
+        return JapaneseDeinflector.fromJson(file.readText())
+    }
 
     private class FakeDataSource(
         private val metadata: Map<String, String> = validMetadata,

@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.gradle.api.tasks.Copy
 
 plugins {
     alias(libs.plugins.android.application)
@@ -22,6 +23,9 @@ val debugServerUrl = providers.gradleProperty("yomiyasu.serverUrl").getOrElse(""
 // Permite que la CI fije versión sin tocar el fichero (-Pyomiyasu.versionCode / -Pyomiyasu.versionName)
 val appVersionCode = providers.gradleProperty("yomiyasu.versionCode").getOrElse("5").toInt()
 val appVersionName = providers.gradleProperty("yomiyasu.versionName").getOrElse("8.0.0")
+
+val sharedDeinflectionRules = rootProject.file("../back/src/utils/deinflection-rules.json")
+val generatedDictionaryAssets = layout.buildDirectory.dir("generated/shared-dictionary-assets").get().asFile
 
 android {
     namespace = "es.manabe.yomiyasu"
@@ -91,6 +95,17 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+android.sourceSets.getByName("main").assets.srcDir(generatedDictionaryAssets)
+
+tasks.register<Copy>("copySharedDeinflectionRules") {
+    from(sharedDeinflectionRules)
+    into(generatedDictionaryAssets.resolve("dictionary"))
+}
+
+tasks.named("preBuild").configure {
+    dependsOn("copySharedDeinflectionRules")
 }
 
 dependencies {

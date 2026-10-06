@@ -1,0 +1,2277 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "input": "ければ",
+      "output": "い"
+    },
+    {
+      "input": "えば",
+      "output": "う"
+    },
+    {
+      "input": "けば",
+      "output": "く"
+    },
+    {
+      "input": "げば",
+      "output": "ぐ"
+    },
+    {
+      "input": "せば",
+      "output": "す"
+    },
+    {
+      "input": "てば",
+      "output": "つ"
+    },
+    {
+      "input": "ねば",
+      "output": "ぬ"
+    },
+    {
+      "input": "べば",
+      "output": "ぶ"
+    },
+    {
+      "input": "めば",
+      "output": "む"
+    },
+    {
+      "input": "れば",
+      "output": "る"
+    },
+    {
+      "input": "ちゃう",
+      "output": "る"
+    },
+    {
+      "input": "いじゃう",
+      "output": "ぐ"
+    },
+    {
+      "input": "いちゃう",
+      "output": "く"
+    },
+    {
+      "input": "しちゃう",
+      "output": "す"
+    },
+    {
+      "input": "っちゃう",
+      "output": "う"
+    },
+    {
+      "input": "っちゃう",
+      "output": "く"
+    },
+    {
+      "input": "っちゃう",
+      "output": "つ"
+    },
+    {
+      "input": "っちゃう",
+      "output": "る"
+    },
+    {
+      "input": "んじゃう",
+      "output": "ぬ"
+    },
+    {
+      "input": "んじゃう",
+      "output": "ぶ"
+    },
+    {
+      "input": "んじゃう",
+      "output": "む"
+    },
+    {
+      "input": "じちゃう",
+      "output": "ずる"
+    },
+    {
+      "input": "しちゃう",
+      "output": "する"
+    },
+    {
+      "input": "為ちゃう",
+      "output": "為る"
+    },
+    {
+      "input": "きちゃう",
+      "output": "くる"
+    },
+    {
+      "input": "来ちゃう",
+      "output": "来る"
+    },
+    {
+      "input": "來ちゃう",
+      "output": "來る"
+    },
+    {
+      "input": "ちまう",
+      "output": "る"
+    },
+    {
+      "input": "いじまう",
+      "output": "ぐ"
+    },
+    {
+      "input": "いちまう",
+      "output": "く"
+    },
+    {
+      "input": "しちまう",
+      "output": "す"
+    },
+    {
+      "input": "っちまう",
+      "output": "う"
+    },
+    {
+      "input": "っちまう",
+      "output": "く"
+    },
+    {
+      "input": "っちまう",
+      "output": "つ"
+    },
+    {
+      "input": "っちまう",
+      "output": "る"
+    },
+    {
+      "input": "んじまう",
+      "output": "ぬ"
+    },
+    {
+      "input": "んじまう",
+      "output": "ぶ"
+    },
+    {
+      "input": "んじまう",
+      "output": "む"
+    },
+    {
+      "input": "じちまう",
+      "output": "ずる"
+    },
+    {
+      "input": "しちまう",
+      "output": "する"
+    },
+    {
+      "input": "為ちまう",
+      "output": "為る"
+    },
+    {
+      "input": "きちまう",
+      "output": "くる"
+    },
+    {
+      "input": "来ちまう",
+      "output": "来る"
+    },
+    {
+      "input": "來ちまう",
+      "output": "來る"
+    },
+    {
+      "input": "てしまう",
+      "output": "て"
+    },
+    {
+      "input": "でしまう",
+      "output": "で"
+    },
+    {
+      "input": "なさい",
+      "output": "る"
+    },
+    {
+      "input": "いなさい",
+      "output": "う"
+    },
+    {
+      "input": "きなさい",
+      "output": "く"
+    },
+    {
+      "input": "ぎなさい",
+      "output": "ぐ"
+    },
+    {
+      "input": "しなさい",
+      "output": "す"
+    },
+    {
+      "input": "ちなさい",
+      "output": "つ"
+    },
+    {
+      "input": "になさい",
+      "output": "ぬ"
+    },
+    {
+      "input": "びなさい",
+      "output": "ぶ"
+    },
+    {
+      "input": "みなさい",
+      "output": "む"
+    },
+    {
+      "input": "りなさい",
+      "output": "る"
+    },
+    {
+      "input": "じなさい",
+      "output": "ずる"
+    },
+    {
+      "input": "しなさい",
+      "output": "する"
+    },
+    {
+      "input": "為なさい",
+      "output": "為る"
+    },
+    {
+      "input": "きなさい",
+      "output": "くる"
+    },
+    {
+      "input": "来なさい",
+      "output": "来る"
+    },
+    {
+      "input": "來なさい",
+      "output": "來る"
+    },
+    {
+      "input": "そう",
+      "output": "い"
+    },
+    {
+      "input": "そう",
+      "output": "る"
+    },
+    {
+      "input": "いそう",
+      "output": "う"
+    },
+    {
+      "input": "きそう",
+      "output": "く"
+    },
+    {
+      "input": "ぎそう",
+      "output": "ぐ"
+    },
+    {
+      "input": "しそう",
+      "output": "す"
+    },
+    {
+      "input": "ちそう",
+      "output": "つ"
+    },
+    {
+      "input": "にそう",
+      "output": "ぬ"
+    },
+    {
+      "input": "びそう",
+      "output": "ぶ"
+    },
+    {
+      "input": "みそう",
+      "output": "む"
+    },
+    {
+      "input": "りそう",
+      "output": "る"
+    },
+    {
+      "input": "じそう",
+      "output": "ずる"
+    },
+    {
+      "input": "しそう",
+      "output": "する"
+    },
+    {
+      "input": "為そう",
+      "output": "為る"
+    },
+    {
+      "input": "きそう",
+      "output": "くる"
+    },
+    {
+      "input": "来そう",
+      "output": "来る"
+    },
+    {
+      "input": "來そう",
+      "output": "來る"
+    },
+    {
+      "input": "すぎる",
+      "output": "い"
+    },
+    {
+      "input": "すぎる",
+      "output": "る"
+    },
+    {
+      "input": "いすぎる",
+      "output": "う"
+    },
+    {
+      "input": "きすぎる",
+      "output": "く"
+    },
+    {
+      "input": "ぎすぎる",
+      "output": "ぐ"
+    },
+    {
+      "input": "しすぎる",
+      "output": "す"
+    },
+    {
+      "input": "ちすぎる",
+      "output": "つ"
+    },
+    {
+      "input": "にすぎる",
+      "output": "ぬ"
+    },
+    {
+      "input": "びすぎる",
+      "output": "ぶ"
+    },
+    {
+      "input": "みすぎる",
+      "output": "む"
+    },
+    {
+      "input": "りすぎる",
+      "output": "る"
+    },
+    {
+      "input": "じすぎる",
+      "output": "ずる"
+    },
+    {
+      "input": "しすぎる",
+      "output": "する"
+    },
+    {
+      "input": "為すぎる",
+      "output": "為る"
+    },
+    {
+      "input": "きすぎる",
+      "output": "くる"
+    },
+    {
+      "input": "来すぎる",
+      "output": "来る"
+    },
+    {
+      "input": "來すぎる",
+      "output": "來る"
+    },
+    {
+      "input": "たい",
+      "output": "る"
+    },
+    {
+      "input": "いたい",
+      "output": "う"
+    },
+    {
+      "input": "きたい",
+      "output": "く"
+    },
+    {
+      "input": "ぎたい",
+      "output": "ぐ"
+    },
+    {
+      "input": "したい",
+      "output": "す"
+    },
+    {
+      "input": "ちたい",
+      "output": "つ"
+    },
+    {
+      "input": "にたい",
+      "output": "ぬ"
+    },
+    {
+      "input": "びたい",
+      "output": "ぶ"
+    },
+    {
+      "input": "みたい",
+      "output": "む"
+    },
+    {
+      "input": "りたい",
+      "output": "る"
+    },
+    {
+      "input": "じたい",
+      "output": "ずる"
+    },
+    {
+      "input": "したい",
+      "output": "する"
+    },
+    {
+      "input": "為たい",
+      "output": "為る"
+    },
+    {
+      "input": "きたい",
+      "output": "くる"
+    },
+    {
+      "input": "来たい",
+      "output": "来る"
+    },
+    {
+      "input": "來たい",
+      "output": "來る"
+    },
+    {
+      "input": "かったら",
+      "output": "い"
+    },
+    {
+      "input": "たら",
+      "output": "る"
+    },
+    {
+      "input": "いたら",
+      "output": "く"
+    },
+    {
+      "input": "いだら",
+      "output": "ぐ"
+    },
+    {
+      "input": "したら",
+      "output": "す"
+    },
+    {
+      "input": "ったら",
+      "output": "う"
+    },
+    {
+      "input": "ったら",
+      "output": "つ"
+    },
+    {
+      "input": "ったら",
+      "output": "る"
+    },
+    {
+      "input": "んだら",
+      "output": "ぬ"
+    },
+    {
+      "input": "んだら",
+      "output": "ぶ"
+    },
+    {
+      "input": "んだら",
+      "output": "む"
+    },
+    {
+      "input": "じたら",
+      "output": "ずる"
+    },
+    {
+      "input": "したら",
+      "output": "する"
+    },
+    {
+      "input": "為たら",
+      "output": "為る"
+    },
+    {
+      "input": "きたら",
+      "output": "くる"
+    },
+    {
+      "input": "来たら",
+      "output": "来る"
+    },
+    {
+      "input": "來たら",
+      "output": "來る"
+    },
+    {
+      "input": "いったら",
+      "output": "いく"
+    },
+    {
+      "input": "おうたら",
+      "output": "おう"
+    },
+    {
+      "input": "こうたら",
+      "output": "こう"
+    },
+    {
+      "input": "そうたら",
+      "output": "そう"
+    },
+    {
+      "input": "とうたら",
+      "output": "とう"
+    },
+    {
+      "input": "行ったら",
+      "output": "行く"
+    },
+    {
+      "input": "逝ったら",
+      "output": "逝く"
+    },
+    {
+      "input": "往ったら",
+      "output": "往く"
+    },
+    {
+      "input": "請うたら",
+      "output": "請う"
+    },
+    {
+      "input": "乞うたら",
+      "output": "乞う"
+    },
+    {
+      "input": "恋うたら",
+      "output": "恋う"
+    },
+    {
+      "input": "問うたら",
+      "output": "問う"
+    },
+    {
+      "input": "負うたら",
+      "output": "負う"
+    },
+    {
+      "input": "沿うたら",
+      "output": "沿う"
+    },
+    {
+      "input": "添うたら",
+      "output": "添う"
+    },
+    {
+      "input": "副うたら",
+      "output": "副う"
+    },
+    {
+      "input": "厭うたら",
+      "output": "厭う"
+    },
+    {
+      "input": "のたもうたら",
+      "output": "のたまう"
+    },
+    {
+      "input": "かったり",
+      "output": "い"
+    },
+    {
+      "input": "たり",
+      "output": "る"
+    },
+    {
+      "input": "いたり",
+      "output": "く"
+    },
+    {
+      "input": "いだり",
+      "output": "ぐ"
+    },
+    {
+      "input": "したり",
+      "output": "す"
+    },
+    {
+      "input": "ったり",
+      "output": "う"
+    },
+    {
+      "input": "ったり",
+      "output": "つ"
+    },
+    {
+      "input": "ったり",
+      "output": "る"
+    },
+    {
+      "input": "んだり",
+      "output": "ぬ"
+    },
+    {
+      "input": "んだり",
+      "output": "ぶ"
+    },
+    {
+      "input": "んだり",
+      "output": "む"
+    },
+    {
+      "input": "じたり",
+      "output": "ずる"
+    },
+    {
+      "input": "したり",
+      "output": "する"
+    },
+    {
+      "input": "為たり",
+      "output": "為る"
+    },
+    {
+      "input": "きたり",
+      "output": "くる"
+    },
+    {
+      "input": "来たり",
+      "output": "来る"
+    },
+    {
+      "input": "來たり",
+      "output": "來る"
+    },
+    {
+      "input": "いったり",
+      "output": "いく"
+    },
+    {
+      "input": "おうたり",
+      "output": "おう"
+    },
+    {
+      "input": "こうたり",
+      "output": "こう"
+    },
+    {
+      "input": "そうたり",
+      "output": "そう"
+    },
+    {
+      "input": "とうたり",
+      "output": "とう"
+    },
+    {
+      "input": "行ったり",
+      "output": "行く"
+    },
+    {
+      "input": "逝ったり",
+      "output": "逝く"
+    },
+    {
+      "input": "往ったり",
+      "output": "往く"
+    },
+    {
+      "input": "請うたり",
+      "output": "請う"
+    },
+    {
+      "input": "乞うたり",
+      "output": "乞う"
+    },
+    {
+      "input": "恋うたり",
+      "output": "恋う"
+    },
+    {
+      "input": "問うたり",
+      "output": "問う"
+    },
+    {
+      "input": "負うたり",
+      "output": "負う"
+    },
+    {
+      "input": "沿うたり",
+      "output": "沿う"
+    },
+    {
+      "input": "添うたり",
+      "output": "添う"
+    },
+    {
+      "input": "副うたり",
+      "output": "副う"
+    },
+    {
+      "input": "厭うたり",
+      "output": "厭う"
+    },
+    {
+      "input": "のたもうたり",
+      "output": "のたまう"
+    },
+    {
+      "input": "くて",
+      "output": "い"
+    },
+    {
+      "input": "て",
+      "output": "る"
+    },
+    {
+      "input": "いて",
+      "output": "く"
+    },
+    {
+      "input": "いで",
+      "output": "ぐ"
+    },
+    {
+      "input": "して",
+      "output": "す"
+    },
+    {
+      "input": "って",
+      "output": "う"
+    },
+    {
+      "input": "って",
+      "output": "つ"
+    },
+    {
+      "input": "って",
+      "output": "る"
+    },
+    {
+      "input": "んで",
+      "output": "ぬ"
+    },
+    {
+      "input": "んで",
+      "output": "ぶ"
+    },
+    {
+      "input": "んで",
+      "output": "む"
+    },
+    {
+      "input": "じて",
+      "output": "ずる"
+    },
+    {
+      "input": "して",
+      "output": "する"
+    },
+    {
+      "input": "為て",
+      "output": "為る"
+    },
+    {
+      "input": "きて",
+      "output": "くる"
+    },
+    {
+      "input": "来て",
+      "output": "来る"
+    },
+    {
+      "input": "來て",
+      "output": "來る"
+    },
+    {
+      "input": "いって",
+      "output": "いく"
+    },
+    {
+      "input": "おうて",
+      "output": "おう"
+    },
+    {
+      "input": "こうて",
+      "output": "こう"
+    },
+    {
+      "input": "そうて",
+      "output": "そう"
+    },
+    {
+      "input": "とうて",
+      "output": "とう"
+    },
+    {
+      "input": "行って",
+      "output": "行く"
+    },
+    {
+      "input": "逝って",
+      "output": "逝く"
+    },
+    {
+      "input": "往って",
+      "output": "往く"
+    },
+    {
+      "input": "請うて",
+      "output": "請う"
+    },
+    {
+      "input": "乞うて",
+      "output": "乞う"
+    },
+    {
+      "input": "恋うて",
+      "output": "恋う"
+    },
+    {
+      "input": "問うて",
+      "output": "問う"
+    },
+    {
+      "input": "負うて",
+      "output": "負う"
+    },
+    {
+      "input": "沿うて",
+      "output": "沿う"
+    },
+    {
+      "input": "添うて",
+      "output": "添う"
+    },
+    {
+      "input": "副うて",
+      "output": "副う"
+    },
+    {
+      "input": "厭うて",
+      "output": "厭う"
+    },
+    {
+      "input": "のたもうて",
+      "output": "のたまう"
+    },
+    {
+      "input": "ず",
+      "output": "る"
+    },
+    {
+      "input": "かず",
+      "output": "く"
+    },
+    {
+      "input": "がず",
+      "output": "ぐ"
+    },
+    {
+      "input": "さず",
+      "output": "す"
+    },
+    {
+      "input": "たず",
+      "output": "つ"
+    },
+    {
+      "input": "なず",
+      "output": "ぬ"
+    },
+    {
+      "input": "ばず",
+      "output": "ぶ"
+    },
+    {
+      "input": "まず",
+      "output": "む"
+    },
+    {
+      "input": "らず",
+      "output": "る"
+    },
+    {
+      "input": "わず",
+      "output": "う"
+    },
+    {
+      "input": "ぜず",
+      "output": "ずる"
+    },
+    {
+      "input": "せず",
+      "output": "する"
+    },
+    {
+      "input": "為ず",
+      "output": "為る"
+    },
+    {
+      "input": "こず",
+      "output": "くる"
+    },
+    {
+      "input": "来ず",
+      "output": "来る"
+    },
+    {
+      "input": "來ず",
+      "output": "來る"
+    },
+    {
+      "input": "ぬ",
+      "output": "る"
+    },
+    {
+      "input": "かぬ",
+      "output": "く"
+    },
+    {
+      "input": "がぬ",
+      "output": "ぐ"
+    },
+    {
+      "input": "さぬ",
+      "output": "す"
+    },
+    {
+      "input": "たぬ",
+      "output": "つ"
+    },
+    {
+      "input": "なぬ",
+      "output": "ぬ"
+    },
+    {
+      "input": "ばぬ",
+      "output": "ぶ"
+    },
+    {
+      "input": "まぬ",
+      "output": "む"
+    },
+    {
+      "input": "らぬ",
+      "output": "る"
+    },
+    {
+      "input": "わぬ",
+      "output": "う"
+    },
+    {
+      "input": "ぜぬ",
+      "output": "ずる"
+    },
+    {
+      "input": "せぬ",
+      "output": "する"
+    },
+    {
+      "input": "為ぬ",
+      "output": "為る"
+    },
+    {
+      "input": "こぬ",
+      "output": "くる"
+    },
+    {
+      "input": "来ぬ",
+      "output": "来る"
+    },
+    {
+      "input": "來ぬ",
+      "output": "來る"
+    },
+    {
+      "input": "く",
+      "output": "い"
+    },
+    {
+      "input": "させる",
+      "output": "る"
+    },
+    {
+      "input": "かせる",
+      "output": "く"
+    },
+    {
+      "input": "がせる",
+      "output": "ぐ"
+    },
+    {
+      "input": "させる",
+      "output": "す"
+    },
+    {
+      "input": "たせる",
+      "output": "つ"
+    },
+    {
+      "input": "なせる",
+      "output": "ぬ"
+    },
+    {
+      "input": "ばせる",
+      "output": "ぶ"
+    },
+    {
+      "input": "ませる",
+      "output": "む"
+    },
+    {
+      "input": "らせる",
+      "output": "る"
+    },
+    {
+      "input": "わせる",
+      "output": "う"
+    },
+    {
+      "input": "じさせる",
+      "output": "ずる"
+    },
+    {
+      "input": "ぜさせる",
+      "output": "ずる"
+    },
+    {
+      "input": "させる",
+      "output": "する"
+    },
+    {
+      "input": "為せる",
+      "output": "為る"
+    },
+    {
+      "input": "せさせる",
+      "output": "する"
+    },
+    {
+      "input": "為させる",
+      "output": "為る"
+    },
+    {
+      "input": "こさせる",
+      "output": "くる"
+    },
+    {
+      "input": "来させる",
+      "output": "来る"
+    },
+    {
+      "input": "來させる",
+      "output": "來る"
+    },
+    {
+      "input": "ろ",
+      "output": "る"
+    },
+    {
+      "input": "よ",
+      "output": "る"
+    },
+    {
+      "input": "え",
+      "output": "う"
+    },
+    {
+      "input": "け",
+      "output": "く"
+    },
+    {
+      "input": "げ",
+      "output": "ぐ"
+    },
+    {
+      "input": "せ",
+      "output": "す"
+    },
+    {
+      "input": "て",
+      "output": "つ"
+    },
+    {
+      "input": "ね",
+      "output": "ぬ"
+    },
+    {
+      "input": "べ",
+      "output": "ぶ"
+    },
+    {
+      "input": "め",
+      "output": "む"
+    },
+    {
+      "input": "れ",
+      "output": "る"
+    },
+    {
+      "input": "じろ",
+      "output": "ずる"
+    },
+    {
+      "input": "ぜよ",
+      "output": "ずる"
+    },
+    {
+      "input": "しろ",
+      "output": "する"
+    },
+    {
+      "input": "せよ",
+      "output": "する"
+    },
+    {
+      "input": "為ろ",
+      "output": "為る"
+    },
+    {
+      "input": "為よ",
+      "output": "為る"
+    },
+    {
+      "input": "こい",
+      "output": "くる"
+    },
+    {
+      "input": "来い",
+      "output": "来る"
+    },
+    {
+      "input": "來い",
+      "output": "來る"
+    },
+    {
+      "input": "い",
+      "output": "いる"
+    },
+    {
+      "input": "え",
+      "output": "える"
+    },
+    {
+      "input": "き",
+      "output": "きる"
+    },
+    {
+      "input": "ぎ",
+      "output": "ぎる"
+    },
+    {
+      "input": "け",
+      "output": "ける"
+    },
+    {
+      "input": "げ",
+      "output": "げる"
+    },
+    {
+      "input": "じ",
+      "output": "じる"
+    },
+    {
+      "input": "せ",
+      "output": "せる"
+    },
+    {
+      "input": "ぜ",
+      "output": "ぜる"
+    },
+    {
+      "input": "ち",
+      "output": "ちる"
+    },
+    {
+      "input": "て",
+      "output": "てる"
+    },
+    {
+      "input": "で",
+      "output": "でる"
+    },
+    {
+      "input": "に",
+      "output": "にる"
+    },
+    {
+      "input": "ね",
+      "output": "ねる"
+    },
+    {
+      "input": "ひ",
+      "output": "ひる"
+    },
+    {
+      "input": "び",
+      "output": "びる"
+    },
+    {
+      "input": "へ",
+      "output": "へる"
+    },
+    {
+      "input": "べ",
+      "output": "べる"
+    },
+    {
+      "input": "み",
+      "output": "みる"
+    },
+    {
+      "input": "め",
+      "output": "める"
+    },
+    {
+      "input": "り",
+      "output": "りる"
+    },
+    {
+      "input": "れ",
+      "output": "れる"
+    },
+    {
+      "input": "い",
+      "output": "う"
+    },
+    {
+      "input": "き",
+      "output": "く"
+    },
+    {
+      "input": "ぎ",
+      "output": "ぐ"
+    },
+    {
+      "input": "し",
+      "output": "す"
+    },
+    {
+      "input": "ち",
+      "output": "つ"
+    },
+    {
+      "input": "に",
+      "output": "ぬ"
+    },
+    {
+      "input": "び",
+      "output": "ぶ"
+    },
+    {
+      "input": "み",
+      "output": "む"
+    },
+    {
+      "input": "り",
+      "output": "る"
+    },
+    {
+      "input": "き",
+      "output": "くる"
+    },
+    {
+      "input": "来",
+      "output": "来る"
+    },
+    {
+      "input": "來",
+      "output": "來る"
+    },
+    {
+      "input": "くない",
+      "output": "い"
+    },
+    {
+      "input": "ない",
+      "output": "る"
+    },
+    {
+      "input": "かない",
+      "output": "く"
+    },
+    {
+      "input": "がない",
+      "output": "ぐ"
+    },
+    {
+      "input": "さない",
+      "output": "す"
+    },
+    {
+      "input": "たない",
+      "output": "つ"
+    },
+    {
+      "input": "なない",
+      "output": "ぬ"
+    },
+    {
+      "input": "ばない",
+      "output": "ぶ"
+    },
+    {
+      "input": "まない",
+      "output": "む"
+    },
+    {
+      "input": "らない",
+      "output": "る"
+    },
+    {
+      "input": "わない",
+      "output": "う"
+    },
+    {
+      "input": "じない",
+      "output": "ずる"
+    },
+    {
+      "input": "しない",
+      "output": "する"
+    },
+    {
+      "input": "為ない",
+      "output": "為る"
+    },
+    {
+      "input": "こない",
+      "output": "くる"
+    },
+    {
+      "input": "来ない",
+      "output": "来る"
+    },
+    {
+      "input": "來ない",
+      "output": "來る"
+    },
+    {
+      "input": "さ",
+      "output": "い"
+    },
+    {
+      "input": "かれる",
+      "output": "く"
+    },
+    {
+      "input": "がれる",
+      "output": "ぐ"
+    },
+    {
+      "input": "される",
+      "output": "す"
+    },
+    {
+      "input": "たれる",
+      "output": "つ"
+    },
+    {
+      "input": "なれる",
+      "output": "ぬ"
+    },
+    {
+      "input": "ばれる",
+      "output": "ぶ"
+    },
+    {
+      "input": "まれる",
+      "output": "む"
+    },
+    {
+      "input": "われる",
+      "output": "う"
+    },
+    {
+      "input": "られる",
+      "output": "る"
+    },
+    {
+      "input": "じされる",
+      "output": "ずる"
+    },
+    {
+      "input": "ぜされる",
+      "output": "ずる"
+    },
+    {
+      "input": "される",
+      "output": "する"
+    },
+    {
+      "input": "為れる",
+      "output": "為る"
+    },
+    {
+      "input": "こられる",
+      "output": "くる"
+    },
+    {
+      "input": "来られる",
+      "output": "来る"
+    },
+    {
+      "input": "來られる",
+      "output": "來る"
+    },
+    {
+      "input": "かった",
+      "output": "い"
+    },
+    {
+      "input": "た",
+      "output": "る"
+    },
+    {
+      "input": "いた",
+      "output": "く"
+    },
+    {
+      "input": "いだ",
+      "output": "ぐ"
+    },
+    {
+      "input": "した",
+      "output": "す"
+    },
+    {
+      "input": "った",
+      "output": "う"
+    },
+    {
+      "input": "った",
+      "output": "つ"
+    },
+    {
+      "input": "った",
+      "output": "る"
+    },
+    {
+      "input": "んだ",
+      "output": "ぬ"
+    },
+    {
+      "input": "んだ",
+      "output": "ぶ"
+    },
+    {
+      "input": "んだ",
+      "output": "む"
+    },
+    {
+      "input": "じた",
+      "output": "ずる"
+    },
+    {
+      "input": "した",
+      "output": "する"
+    },
+    {
+      "input": "為た",
+      "output": "為る"
+    },
+    {
+      "input": "きた",
+      "output": "くる"
+    },
+    {
+      "input": "来た",
+      "output": "来る"
+    },
+    {
+      "input": "來た",
+      "output": "來る"
+    },
+    {
+      "input": "いった",
+      "output": "いく"
+    },
+    {
+      "input": "おうた",
+      "output": "おう"
+    },
+    {
+      "input": "こうた",
+      "output": "こう"
+    },
+    {
+      "input": "そうた",
+      "output": "そう"
+    },
+    {
+      "input": "とうた",
+      "output": "とう"
+    },
+    {
+      "input": "行った",
+      "output": "行く"
+    },
+    {
+      "input": "逝った",
+      "output": "逝く"
+    },
+    {
+      "input": "往った",
+      "output": "往く"
+    },
+    {
+      "input": "請うた",
+      "output": "請う"
+    },
+    {
+      "input": "乞うた",
+      "output": "乞う"
+    },
+    {
+      "input": "恋うた",
+      "output": "恋う"
+    },
+    {
+      "input": "問うた",
+      "output": "問う"
+    },
+    {
+      "input": "負うた",
+      "output": "負う"
+    },
+    {
+      "input": "沿うた",
+      "output": "沿う"
+    },
+    {
+      "input": "添うた",
+      "output": "添う"
+    },
+    {
+      "input": "副うた",
+      "output": "副う"
+    },
+    {
+      "input": "厭うた",
+      "output": "厭う"
+    },
+    {
+      "input": "のたもうた",
+      "output": "のたまう"
+    },
+    {
+      "input": "ます",
+      "output": "る"
+    },
+    {
+      "input": "います",
+      "output": "う"
+    },
+    {
+      "input": "きます",
+      "output": "く"
+    },
+    {
+      "input": "ぎます",
+      "output": "ぐ"
+    },
+    {
+      "input": "します",
+      "output": "す"
+    },
+    {
+      "input": "ちます",
+      "output": "つ"
+    },
+    {
+      "input": "にます",
+      "output": "ぬ"
+    },
+    {
+      "input": "びます",
+      "output": "ぶ"
+    },
+    {
+      "input": "みます",
+      "output": "む"
+    },
+    {
+      "input": "ります",
+      "output": "る"
+    },
+    {
+      "input": "じます",
+      "output": "ずる"
+    },
+    {
+      "input": "します",
+      "output": "する"
+    },
+    {
+      "input": "為ます",
+      "output": "為る"
+    },
+    {
+      "input": "きます",
+      "output": "くる"
+    },
+    {
+      "input": "来ます",
+      "output": "来る"
+    },
+    {
+      "input": "來ます",
+      "output": "來る"
+    },
+    {
+      "input": "くありません",
+      "output": "い"
+    },
+    {
+      "input": "ません",
+      "output": "る"
+    },
+    {
+      "input": "いません",
+      "output": "う"
+    },
+    {
+      "input": "きません",
+      "output": "く"
+    },
+    {
+      "input": "ぎません",
+      "output": "ぐ"
+    },
+    {
+      "input": "しません",
+      "output": "す"
+    },
+    {
+      "input": "ちません",
+      "output": "つ"
+    },
+    {
+      "input": "にません",
+      "output": "ぬ"
+    },
+    {
+      "input": "びません",
+      "output": "ぶ"
+    },
+    {
+      "input": "みません",
+      "output": "む"
+    },
+    {
+      "input": "りません",
+      "output": "る"
+    },
+    {
+      "input": "じません",
+      "output": "ずる"
+    },
+    {
+      "input": "しません",
+      "output": "する"
+    },
+    {
+      "input": "為ません",
+      "output": "為る"
+    },
+    {
+      "input": "きません",
+      "output": "くる"
+    },
+    {
+      "input": "来ません",
+      "output": "来る"
+    },
+    {
+      "input": "來ません",
+      "output": "來る"
+    },
+    {
+      "input": "ました",
+      "output": "る"
+    },
+    {
+      "input": "いました",
+      "output": "う"
+    },
+    {
+      "input": "きました",
+      "output": "く"
+    },
+    {
+      "input": "ぎました",
+      "output": "ぐ"
+    },
+    {
+      "input": "しました",
+      "output": "す"
+    },
+    {
+      "input": "ちました",
+      "output": "つ"
+    },
+    {
+      "input": "にました",
+      "output": "ぬ"
+    },
+    {
+      "input": "びました",
+      "output": "ぶ"
+    },
+    {
+      "input": "みました",
+      "output": "む"
+    },
+    {
+      "input": "りました",
+      "output": "る"
+    },
+    {
+      "input": "じました",
+      "output": "ずる"
+    },
+    {
+      "input": "しました",
+      "output": "する"
+    },
+    {
+      "input": "為ました",
+      "output": "為る"
+    },
+    {
+      "input": "きました",
+      "output": "くる"
+    },
+    {
+      "input": "来ました",
+      "output": "来る"
+    },
+    {
+      "input": "來ました",
+      "output": "來る"
+    },
+    {
+      "input": "くありませんでした",
+      "output": "い"
+    },
+    {
+      "input": "ませんでした",
+      "output": "る"
+    },
+    {
+      "input": "いませんでした",
+      "output": "う"
+    },
+    {
+      "input": "きませんでした",
+      "output": "く"
+    },
+    {
+      "input": "ぎませんでした",
+      "output": "ぐ"
+    },
+    {
+      "input": "しませんでした",
+      "output": "す"
+    },
+    {
+      "input": "ちませんでした",
+      "output": "つ"
+    },
+    {
+      "input": "にませんでした",
+      "output": "ぬ"
+    },
+    {
+      "input": "びませんでした",
+      "output": "ぶ"
+    },
+    {
+      "input": "みませんでした",
+      "output": "む"
+    },
+    {
+      "input": "りませんでした",
+      "output": "る"
+    },
+    {
+      "input": "じませんでした",
+      "output": "ずる"
+    },
+    {
+      "input": "しませんでした",
+      "output": "する"
+    },
+    {
+      "input": "為ませんでした",
+      "output": "為る"
+    },
+    {
+      "input": "きませんでした",
+      "output": "くる"
+    },
+    {
+      "input": "来ませんでした",
+      "output": "来る"
+    },
+    {
+      "input": "來ませんでした",
+      "output": "來る"
+    },
+    {
+      "input": "ましょう",
+      "output": "る"
+    },
+    {
+      "input": "いましょう",
+      "output": "う"
+    },
+    {
+      "input": "きましょう",
+      "output": "く"
+    },
+    {
+      "input": "ぎましょう",
+      "output": "ぐ"
+    },
+    {
+      "input": "しましょう",
+      "output": "す"
+    },
+    {
+      "input": "ちましょう",
+      "output": "つ"
+    },
+    {
+      "input": "にましょう",
+      "output": "ぬ"
+    },
+    {
+      "input": "びましょう",
+      "output": "ぶ"
+    },
+    {
+      "input": "みましょう",
+      "output": "む"
+    },
+    {
+      "input": "りましょう",
+      "output": "る"
+    },
+    {
+      "input": "じましょう",
+      "output": "ずる"
+    },
+    {
+      "input": "しましょう",
+      "output": "する"
+    },
+    {
+      "input": "為ましょう",
+      "output": "為る"
+    },
+    {
+      "input": "きましょう",
+      "output": "くる"
+    },
+    {
+      "input": "来ましょう",
+      "output": "来る"
+    },
+    {
+      "input": "來ましょう",
+      "output": "來る"
+    },
+    {
+      "input": "れる",
+      "output": "る"
+    },
+    {
+      "input": "える",
+      "output": "う"
+    },
+    {
+      "input": "ける",
+      "output": "く"
+    },
+    {
+      "input": "げる",
+      "output": "ぐ"
+    },
+    {
+      "input": "せる",
+      "output": "す"
+    },
+    {
+      "input": "てる",
+      "output": "つ"
+    },
+    {
+      "input": "ねる",
+      "output": "ぬ"
+    },
+    {
+      "input": "べる",
+      "output": "ぶ"
+    },
+    {
+      "input": "める",
+      "output": "む"
+    },
+    {
+      "input": "これる",
+      "output": "くる"
+    },
+    {
+      "input": "来れる",
+      "output": "来る"
+    },
+    {
+      "input": "來れる",
+      "output": "來る"
+    },
+    {
+      "input": "られる",
+      "output": "る"
+    },
+    {
+      "input": "ざれる",
+      "output": "ずる"
+    },
+    {
+      "input": "ぜられる",
+      "output": "ずる"
+    },
+    {
+      "input": "せられる",
+      "output": "する"
+    },
+    {
+      "input": "為られる",
+      "output": "為る"
+    },
+    {
+      "input": "こられる",
+      "output": "くる"
+    },
+    {
+      "input": "来られる",
+      "output": "来る"
+    },
+    {
+      "input": "來られる",
+      "output": "來る"
+    },
+    {
+      "input": "よう",
+      "output": "る"
+    },
+    {
+      "input": "おう",
+      "output": "う"
+    },
+    {
+      "input": "こう",
+      "output": "く"
+    },
+    {
+      "input": "ごう",
+      "output": "ぐ"
+    },
+    {
+      "input": "そう",
+      "output": "す"
+    },
+    {
+      "input": "とう",
+      "output": "つ"
+    },
+    {
+      "input": "のう",
+      "output": "ぬ"
+    },
+    {
+      "input": "ぼう",
+      "output": "ぶ"
+    },
+    {
+      "input": "もう",
+      "output": "む"
+    },
+    {
+      "input": "ろう",
+      "output": "る"
+    },
+    {
+      "input": "じよう",
+      "output": "ずる"
+    },
+    {
+      "input": "しよう",
+      "output": "する"
+    },
+    {
+      "input": "為よう",
+      "output": "為る"
+    },
+    {
+      "input": "こよう",
+      "output": "くる"
+    },
+    {
+      "input": "来よう",
+      "output": "来る"
+    },
+    {
+      "input": "來よう",
+      "output": "來る"
+    },
+    {
+      "input": "かされる",
+      "output": "く"
+    },
+    {
+      "input": "がされる",
+      "output": "ぐ"
+    },
+    {
+      "input": "たされる",
+      "output": "つ"
+    },
+    {
+      "input": "なされる",
+      "output": "ぬ"
+    },
+    {
+      "input": "ばされる",
+      "output": "ぶ"
+    },
+    {
+      "input": "まされる",
+      "output": "む"
+    },
+    {
+      "input": "らされる",
+      "output": "る"
+    },
+    {
+      "input": "わされる",
+      "output": "う"
+    },
+    {
+      "input": "とく",
+      "output": "る"
+    },
+    {
+      "input": "いとく",
+      "output": "く"
+    },
+    {
+      "input": "いどく",
+      "output": "ぐ"
+    },
+    {
+      "input": "しとく",
+      "output": "す"
+    },
+    {
+      "input": "っとく",
+      "output": "う"
+    },
+    {
+      "input": "っとく",
+      "output": "つ"
+    },
+    {
+      "input": "っとく",
+      "output": "る"
+    },
+    {
+      "input": "んどく",
+      "output": "ぬ"
+    },
+    {
+      "input": "んどく",
+      "output": "ぶ"
+    },
+    {
+      "input": "んどく",
+      "output": "む"
+    },
+    {
+      "input": "じとく",
+      "output": "ずる"
+    },
+    {
+      "input": "しとく",
+      "output": "する"
+    },
+    {
+      "input": "為とく",
+      "output": "為る"
+    },
+    {
+      "input": "きとく",
+      "output": "くる"
+    },
+    {
+      "input": "来とく",
+      "output": "来る"
+    },
+    {
+      "input": "來とく",
+      "output": "來る"
+    },
+    {
+      "input": "ている",
+      "output": "て"
+    },
+    {
+      "input": "ておる",
+      "output": "て"
+    },
+    {
+      "input": "てる",
+      "output": "て"
+    },
+    {
+      "input": "でいる",
+      "output": "で"
+    },
+    {
+      "input": "でおる",
+      "output": "で"
+    },
+    {
+      "input": "でる",
+      "output": "で"
+    },
+    {
+      "input": "とる",
+      "output": "て"
+    },
+    {
+      "input": "ないでいる",
+      "output": "ない"
+    },
+    {
+      "input": "き",
+      "output": "い"
+    },
+    {
+      "input": "しげ",
+      "output": "しい"
+    },
+    {
+      "input": "ねえ",
+      "output": "ない"
+    },
+    {
+      "input": "めえ",
+      "output": "むい"
+    },
+    {
+      "input": "みい",
+      "output": "むい"
+    },
+    {
+      "input": "ちぇえ",
+      "output": "つい"
+    },
+    {
+      "input": "ちい",
+      "output": "つい"
+    },
+    {
+      "input": "せえ",
+      "output": "すい"
+    },
+    {
+      "input": "ええ",
+      "output": "いい"
+    },
+    {
+      "input": "ええ",
+      "output": "わい"
+    },
+    {
+      "input": "ええ",
+      "output": "よい"
+    },
+    {
+      "input": "いぇえ",
+      "output": "よい"
+    },
+    {
+      "input": "うぇえ",
+      "output": "わい"
+    },
+    {
+      "input": "けえ",
+      "output": "かい"
+    },
+    {
+      "input": "げえ",
+      "output": "がい"
+    },
+    {
+      "input": "げえ",
+      "output": "ごい"
+    },
+    {
+      "input": "せえ",
+      "output": "さい"
+    },
+    {
+      "input": "めえ",
+      "output": "まい"
+    },
+    {
+      "input": "ぜえ",
+      "output": "ずい"
+    },
+    {
+      "input": "っぜえ",
+      "output": "ずい"
+    },
+    {
+      "input": "れえ",
+      "output": "らい"
+    },
+    {
+      "input": "れえ",
+      "output": "らい"
+    },
+    {
+      "input": "ちぇえ",
+      "output": "ちゃい"
+    },
+    {
+      "input": "でえ",
+      "output": "どい"
+    },
+    {
+      "input": "れえ",
+      "output": "れい"
+    },
+    {
+      "input": "べえ",
+      "output": "ばい"
+    }
+  ]
+}
