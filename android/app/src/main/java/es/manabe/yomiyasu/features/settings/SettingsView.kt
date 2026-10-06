@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -172,6 +173,7 @@ class SettingsViewModel @Inject constructor(
 fun SettingsRoute(
     isSocketConnected: Boolean,
     onOpenAccount: () -> Unit,
+    onOpenOfflineDictionary: () -> Unit,
     onLogout: () -> Unit,
     onBack: (() -> Unit)? = null,
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -203,6 +205,7 @@ fun SettingsRoute(
         matureContentSaving = matureContentSaving,
         matureContentError = matureContentError,
         onMatureContentChange = viewModel::setShowMatureContent,
+        onOpenOfflineDictionary = onOpenOfflineDictionary,
         onChangeServer = viewModel::changeServer,
         onOpenAccount = onOpenAccount,
         onLogout = onLogout,
@@ -228,6 +231,7 @@ private fun SettingsScreen(
     matureContentSaving: Boolean,
     matureContentError: String?,
     onMatureContentChange: (Boolean) -> Unit,
+    onOpenOfflineDictionary: () -> Unit,
     onChangeServer: (String) -> String?,
     onOpenAccount: () -> Unit,
     onLogout: () -> Unit,
@@ -285,6 +289,13 @@ private fun SettingsScreen(
             }
 
             item { SectionHeader("Biblioteca") }
+            item {
+                SettingsEntry(
+                    title = "Diccionario offline",
+                    icon = Icons.Filled.Translate,
+                    onClick = onOpenOfflineDictionary,
+                )
+            }
             item {
                 SwitchRow(
                     title = "Mostrar contenido adulto",

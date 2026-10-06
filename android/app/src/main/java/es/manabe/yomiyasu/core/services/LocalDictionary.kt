@@ -40,9 +40,9 @@ interface LocalDictionaryDataSource : AutoCloseable {
 }
 
 /**
- * Read-only local JMDict engine. It is deliberately not connected to
- * DictionaryLookupViewModel yet; the online DictionaryApi remains the active
- * source for the application in this phase.
+ * Read-only local JMDict engine. Word lookups use it when the installed
+ * dictionary is ready; sentence lookup and saved-word operations remain
+ * online-only in DictionaryLookupViewModel.
  */
 class LocalDictionary(
     private val dictionaryFile: File,

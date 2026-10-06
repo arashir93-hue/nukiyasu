@@ -291,7 +291,13 @@ private fun ShellNavHost(
             es.manabe.yomiyasu.features.settings.SettingsRoute(
                 isSocketConnected = isSocketConnected,
                 onOpenAccount = { navController.navigate(Routes.Account) },
+                onOpenOfflineDictionary = { navController.navigate(Routes.OfflineDictionary) },
                 onLogout = onLogout,
+            )
+        }
+        composable(Routes.OfflineDictionary) {
+            es.manabe.yomiyasu.features.settings.OfflineDictionaryRoute(
+                onBack = { navController.popBackStack() },
             )
         }
         composable(Routes.Account) {

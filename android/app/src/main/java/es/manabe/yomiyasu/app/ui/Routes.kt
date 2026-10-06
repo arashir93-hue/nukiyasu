@@ -11,6 +11,7 @@ object Routes {
     const val Stats = "stats"
     const val Downloads = "downloads"
     const val Settings = "settings"
+    const val OfflineDictionary = "offline-dictionary"
     const val Account = "account"
 
     const val SeriePattern = "serie/{serieId}?randomVariant={randomVariant}"

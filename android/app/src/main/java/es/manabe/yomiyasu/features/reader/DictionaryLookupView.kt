@@ -52,13 +52,19 @@ import es.manabe.yomiyasu.core.models.DictionaryDisplay
 import es.manabe.yomiyasu.core.models.DictionaryWord
 import es.manabe.yomiyasu.core.models.UserWordRequest
 import es.manabe.yomiyasu.core.networking.ApiException
-import es.manabe.yomiyasu.core.services.DictionaryApi
+import es.manabe.yomiyasu.core.services.ConnectivityStatus
+import es.manabe.yomiyasu.core.services.DictionaryLookupDataSource
+import es.manabe.yomiyasu.core.services.LocalDictionary
+import es.manabe.yomiyasu.core.services.LocalDictionaryLookupResult
+import es.manabe.yomiyasu.core.services.LocalDictionaryStatus
 import es.manabe.yomiyasu.core.settings.DictionaryLookupMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 sealed interface DictionaryLookupSaveAlert {
@@ -78,7 +84,9 @@ data class DictionaryLookupUiState(
 
 @HiltViewModel
 class DictionaryLookupViewModel @Inject constructor(
-    private val dictionaryApi: DictionaryApi,
+    private val dictionaryApi: DictionaryLookupDataSource,
+    private val localDictionary: LocalDictionary,
+    private val connectivity: ConnectivityStatus,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DictionaryLookupUiState())
@@ -104,7 +112,7 @@ class DictionaryLookupViewModel @Inject constructor(
 
             try {
                 val displays = when (mode) {
-                    DictionaryLookupMode.Word -> dictionaryApi.lookupWord(query)
+                    DictionaryLookupMode.Word -> lookupWordV1()
                     DictionaryLookupMode.Sentence -> dictionaryApi.lookupSentence(query)
                 }
                 _state.update {
@@ -112,7 +120,13 @@ class DictionaryLookupViewModel @Inject constructor(
                 }
             } catch (error: ApiException) {
                 _state.update {
-                    it.copy(displays = emptyList(), error = error.userMessage, isLoading = false)
+                    it.copy(
+                        displays = emptyList(),
+                        error = if (!connectivity.isOnline.value) {
+                            "Este modo de diccionario requiere conexión a Internet."
+                        } else error.userMessage,
+                        isLoading = false,
+                    )
                 }
             } catch (error: Exception) {
                 _state.update {
@@ -124,6 +138,18 @@ class DictionaryLookupViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    private suspend fun lookupWordV1(): List<DictionaryDisplay> {
+        val status = withContext(Dispatchers.IO) { localDictionary.status() }
+        if (status == LocalDictionaryStatus.READY) {
+            return when (val local = withContext(Dispatchers.IO) { localDictionary.searchByWord(query) }) {
+                is LocalDictionaryLookupResult.Found -> local.displays
+                LocalDictionaryLookupResult.NoResults -> emptyList()
+                is LocalDictionaryLookupResult.Unavailable -> dictionaryApi.lookupWord(query)
+            }
+        }
+        return dictionaryApi.lookupWord(query)
     }
 
     fun select(index: Int) {

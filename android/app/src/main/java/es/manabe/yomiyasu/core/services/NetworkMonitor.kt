@@ -11,15 +11,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
+interface ConnectivityStatus {
+    val isOnline: StateFlow<Boolean>
+}
+
 @Singleton
 class NetworkMonitor @Inject constructor(
     @ApplicationContext context: Context,
-) {
+) : ConnectivityStatus {
     private val connectivityManager =
         context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
-    private val _isOnline = MutableStateFlow(true)
-    val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
+    private val _isOnline = MutableStateFlow(false)
+    override val isOnline: StateFlow<Boolean> = _isOnline.asStateFlow()
 
     private val callback = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
@@ -43,7 +47,7 @@ class NetworkMonitor @Inject constructor(
         _isOnline.value = connectivityManager.activeNetwork
             ?.let { connectivityManager.getNetworkCapabilities(it) }
             ?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            ?: true
+            ?: false
 
         runCatching { connectivityManager.registerDefaultNetworkCallback(callback) }
     }

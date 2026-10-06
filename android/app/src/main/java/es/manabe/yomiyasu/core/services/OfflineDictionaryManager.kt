@@ -6,6 +6,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -49,7 +52,9 @@ class OfflineDictionaryManager internal constructor(
     }
 
     private val operationLock = Any()
+    private val operationScope = CoroutineScope(SupervisorJob() + dispatcher)
     private var activeJob: Job? = null
+    private var backgroundInstallJob: Job? = null
     private var latestPackage: RemoteDictionaryPackage? = null
     private val _state = MutableStateFlow(initialState())
     val state: StateFlow<OfflineDictionaryState> = _state.asStateFlow()
@@ -121,6 +126,17 @@ class OfflineDictionaryManager internal constructor(
 
     fun cancel() {
         synchronized(operationLock) { activeJob?.cancel() }
+    }
+
+    /** Starts an installation owned by the application manager, not a screen's lifecycle. */
+    fun installLatestInBackground(): Job = synchronized(operationLock) {
+        backgroundInstallJob?.takeIf { it.isActive } ?: operationScope.launch {
+            try {
+                installLatest()
+            } finally {
+                synchronized(operationLock) { backgroundInstallJob = null }
+            }
+        }.also { backgroundInstallJob = it }
     }
 
     fun deleteDictionary() {

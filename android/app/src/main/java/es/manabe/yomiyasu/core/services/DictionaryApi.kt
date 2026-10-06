@@ -13,12 +13,20 @@ import kotlinx.serialization.builtins.ListSerializer
 import javax.inject.Inject
 import javax.inject.Singleton
 
+interface DictionaryLookupDataSource {
+    suspend fun lookupWord(text: String): List<DictionaryDisplay>
+    suspend fun lookupSentence(text: String): List<DictionaryDisplay>
+    suspend fun saveWord(request: UserWordRequest): Int
+    suspend fun words(sort: WordsSort): List<UserWord>
+    suspend fun deleteWord(word: String)
+}
+
 @Singleton
 class DictionaryApi @Inject constructor(
     private val api: ApiClient,
-) {
+) : DictionaryLookupDataSource {
 
-    suspend fun lookupWord(text: String): List<DictionaryDisplay> {
+    override suspend fun lookupWord(text: String): List<DictionaryDisplay> {
         val query = text.take(15)
         val data = api.sendBytes(Endpoint.get("api/dictionary/v1/$query"))
 
@@ -34,13 +42,13 @@ class DictionaryApi @Inject constructor(
         }
     }
 
-    suspend fun lookupSentence(text: String): List<DictionaryDisplay> = api.send(
+    override suspend fun lookupSentence(text: String): List<DictionaryDisplay> = api.send(
         Endpoint.get("api/dictionary/v2/${text.take(30)}"),
         ListSerializer(DictionaryDisplay.serializer()),
         authorized = false,
     )
 
-    suspend fun saveWord(request: UserWordRequest): Int {
+    override suspend fun saveWord(request: UserWordRequest): Int {
         val response = api.send(
             Endpoint.post("api/userwords", body = jsonBody(request)),
             SaveWordResponse.serializer(),
@@ -48,7 +56,7 @@ class DictionaryApi @Inject constructor(
         return response.modifiedCount
     }
 
-    suspend fun words(sort: WordsSort): List<UserWord> {
+    override suspend fun words(sort: WordsSort): List<UserWord> {
         val query = sort.queryValue?.let { listOf("sort" to it) } ?: emptyList()
         return api.send(
             Endpoint.get("api/userwords", query),
@@ -56,7 +64,7 @@ class DictionaryApi @Inject constructor(
         )
     }
 
-    suspend fun deleteWord(word: String) {
+    override suspend fun deleteWord(word: String) {
         api.send(Endpoint.delete("api/userwords/$word"))
     }
 }

@@ -180,6 +180,20 @@ class OfflineDictionaryManagerTest {
     }
 
     @Test
+    fun `background installation is reused when settings screen is recreated`() = runTest {
+        val fixture = fixture(slow = true)
+        val manager = fixture.manager()
+        val first = manager.installLatestInBackground()
+        while (manager.state.value.status != OfflineDictionaryManagerStatus.DOWNLOADING) delay(1)
+        val second = manager.installLatestInBackground()
+        assertEquals(first, second)
+        manager.cancel()
+        first.join()
+        assertEquals(OfflineDictionaryManagerStatus.CANCELLED, manager.state.value.status)
+        fixture.cleanup()
+    }
+
+    @Test
     fun `previous valid copy is restored when current is corrupt`() = runTest {
         val fixture = fixture()
         fixture.previous.writeText("valid")
