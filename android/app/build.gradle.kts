@@ -21,8 +21,8 @@ val keystoreProperties = Properties().apply {
 val debugServerUrl = providers.gradleProperty("yomiyasu.serverUrl").getOrElse("")
 
 // Permite que la CI fije versión sin tocar el fichero (-Pyomiyasu.versionCode / -Pyomiyasu.versionName)
-val appVersionCode = providers.gradleProperty("yomiyasu.versionCode").getOrElse("5").toInt()
-val appVersionName = providers.gradleProperty("yomiyasu.versionName").getOrElse("8.0.0")
+val appVersionCode = providers.gradleProperty("yomiyasu.versionCode").getOrElse("6").toInt()
+val appVersionName = providers.gradleProperty("yomiyasu.versionName").getOrElse("8.1.0")
 
 val sharedDeinflectionRules = rootProject.file("../back/src/utils/deinflection-rules.json")
 val generatedDictionaryAssets = layout.buildDirectory.dir("generated/shared-dictionary-assets").get().asFile
