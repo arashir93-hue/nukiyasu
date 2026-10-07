@@ -6,10 +6,14 @@ import {CreateUserDto} from "./dto/create-user.dto";
 import {UpdateUserDto} from "./dto/update-user.dto";
 import {isEmail} from "class-validator";
 import {checkPasswords, hashData} from "../auth/helpers/helper";
+import {UserPersonalDataCleanupService} from "./user-personal-data-cleanup.service";
 
 @Injectable()
 export class UsersService {
-    constructor(@InjectModel(User.name) private readonly userModel: Model<UserDocument>) {}
+    constructor(
+        @InjectModel(User.name) private readonly userModel: Model<UserDocument>,
+        private readonly personalDataCleanup: UserPersonalDataCleanupService
+    ) {}
 
     async create(createUserDto: CreateUserDto, admin = false): Promise<UserDocument> {
         return this.userModel.create({...createUserDto, admin});
@@ -90,6 +94,7 @@ export class UsersService {
     }
 
     async deleteUser(userId:Types.ObjectId) {
+        await this.personalDataCleanup.cleanup(userId);
         return this.userModel.findByIdAndDelete(userId);
     }
 }

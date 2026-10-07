@@ -87,6 +87,15 @@ describe("DoujinshiCollectionsService", () => {
         });
     });
 
+    it("normaliza NFKC sin cambiar el nombre japonés visible", async() => {
+        await service.createCollection(userA, {name:"  ＡＢＣ 漫画  "} as CreateDoujinshiCollectionDto);
+
+        expect(collectionModel.create).toHaveBeenCalledWith(expect.objectContaining({
+            name:"ＡＢＣ 漫画",
+            normalizedName:"abc 漫画"
+        }));
+    });
+
     it("convierte duplicados de nombre en conflicto", async() => {
         collectionModel.create.mockRejectedValueOnce({code:11000});
 
@@ -96,11 +105,13 @@ describe("DoujinshiCollectionsService", () => {
 
     it("lista colecciones ordenadas y cuenta solo elementos visibles", async() => {
         collectionModel.aggregate.mockResolvedValueOnce([
-            {_id:collectionId, name:"Comedia", visibleItemCount:1}
+            {_id:collectionId, name:"Comedia", visibleItemCount:1},
+            {_id:new Types.ObjectId(), name:"Drama", visibleItemCount:0}
         ]);
 
         await expect(service.listCollections(userA, policy)).resolves.toEqual([
-            {_id:collectionId, name:"Comedia", visibleItemCount:1}
+            {_id:collectionId, name:"Comedia", visibleItemCount:1},
+            expect.objectContaining({name:"Drama", visibleItemCount:0})
         ]);
 
         const pipeline = collectionModel.aggregate.mock.calls[0][0];
@@ -130,6 +141,13 @@ describe("DoujinshiCollectionsService", () => {
             })},
             {new:true}
         );
+    });
+
+    it("devuelve conflicto al renombrar contra un nombre normalizado existente", async() => {
+        collectionModel.findOneAndUpdate.mockRejectedValueOnce({code:11000});
+
+        await expect(service.updateCollection(userA, collectionId, {name:" COMEDIA "}))
+            .rejects.toBeInstanceOf(ConflictException);
     });
 
     it("rechaza sortOrder fuera del rango entero", async() => {
