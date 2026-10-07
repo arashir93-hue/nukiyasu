@@ -313,4 +313,22 @@ class ModelDecodingTest {
         )
         assertFalse(book.isMature)
     }
+
+    @Test
+    fun `doujinshi organization models decode collection and batch`() {
+        val collection = json.decodeFromString(
+            DoujinshiCollection.serializer(),
+            """{"_id":"c1","name":"Favoritos","isFavorite":true,"sortOrder":2,"visibleItemCount":4}""",
+        )
+        val batch = json.decodeFromString(
+            DoujinshiOrganizationBatch.serializer(),
+            """{"items":{"s1":{"isFavorite":true,"collectionIds":["c1","c2"]},"s2":{"isFavorite":false}}}""",
+        )
+
+        assertEquals("c1", collection.id)
+        assertTrue(collection.isFavorite)
+        assertEquals(4, collection.visibleItemCount)
+        assertEquals(listOf("c1", "c2"), batch.items["s1"]?.collectionIds)
+        assertFalse(batch.items["s2"]?.isFavorite ?: true)
+    }
 }

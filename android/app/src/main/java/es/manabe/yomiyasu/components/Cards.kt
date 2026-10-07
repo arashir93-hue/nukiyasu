@@ -21,6 +21,9 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.PlayCircle
@@ -71,6 +74,9 @@ class SerieCardActions(
     val onMarkRead: () -> Unit = {},
     val onTogglePaused: () -> Unit = {},
     val onToggleReadlist: () -> Unit = {},
+    val isFavorite: Boolean? = null,
+    val onToggleFavorite: (() -> Unit)? = null,
+    val onOrganize: (() -> Unit)? = null,
 )
 
 fun bookInfoText(book: Book, settings: AppSettingsData): String? {
@@ -446,6 +452,33 @@ fun SerieCard(
                         actions.onToggleReadlist()
                     },
                 )
+
+                actions.onToggleFavorite?.let { toggleFavorite ->
+                    DropdownMenuItem(
+                        text = { Text(if (actions.isFavorite == true) "Quitar de favoritos" else "Añadir a favoritos") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = if (actions.isFavorite == true) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = {
+                            menuOpen = false
+                            toggleFavorite()
+                        },
+                    )
+                }
+
+                actions.onOrganize?.let { organize ->
+                    DropdownMenuItem(
+                        text = { Text("Añadir a colección") },
+                        leadingIcon = { Icon(Icons.Filled.FolderOpen, contentDescription = null) },
+                        onClick = {
+                            menuOpen = false
+                            organize()
+                        },
+                    )
+                }
             }
         }
 

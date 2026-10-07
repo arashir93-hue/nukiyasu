@@ -4,6 +4,13 @@ import es.manabe.yomiyasu.core.models.AlphabetGroup
 import es.manabe.yomiyasu.core.models.Book
 import es.manabe.yomiyasu.core.models.BooksQuery
 import es.manabe.yomiyasu.core.models.CreateReviewRequest
+import es.manabe.yomiyasu.core.models.DoujinshiCollection
+import es.manabe.yomiyasu.core.models.DoujinshiCollectionPage
+import es.manabe.yomiyasu.core.models.DoujinshiCollectionRequest
+import es.manabe.yomiyasu.core.models.DoujinshiCollectionUpdateRequest
+import es.manabe.yomiyasu.core.models.DoujinshiFavoritePage
+import es.manabe.yomiyasu.core.models.DoujinshiFavoriteStatus
+import es.manabe.yomiyasu.core.models.DoujinshiOrganizationBatch
 import es.manabe.yomiyasu.core.models.GenresAndArtists
 import es.manabe.yomiyasu.core.models.LibraryVariant
 import es.manabe.yomiyasu.core.models.ReadlistEntry
@@ -109,5 +116,84 @@ class LibraryApi @Inject constructor(
     suspend fun deleteReview(id: String) {
         api.send(Endpoint.delete("api/reviews/$id"))
     }
+
+    suspend fun doujinshiFavorites(page: Int = 1, limit: Int = 24): DoujinshiFavoritePage = api.send(
+        Endpoint.get(
+            "api/doujinshi/favorites",
+            listOf("page" to page.toString(), "limit" to limit.toString()),
+        ),
+        DoujinshiFavoritePage.serializer(),
+    )
+
+    suspend fun setDoujinshiFavorite(serieId: String, desiredState: Boolean): DoujinshiFavoriteStatus =
+        if (desiredState) {
+            api.send(
+                Endpoint.put("api/doujinshi/series/$serieId/favorite", jsonBody(Unit)),
+                DoujinshiFavoriteStatus.serializer(),
+            )
+        } else {
+            api.send(
+                Endpoint.delete("api/doujinshi/series/$serieId/favorite"),
+                DoujinshiFavoriteStatus.serializer(),
+            )
+        }
+
+    suspend fun doujinshiCollections(): List<DoujinshiCollection> = api.send(
+        Endpoint.get("api/doujinshi/collections"),
+        kotlinx.serialization.builtins.ListSerializer(DoujinshiCollection.serializer()),
+    )
+
+    suspend fun createDoujinshiCollection(name: String): DoujinshiCollection = api.send(
+        Endpoint.post(
+            "api/doujinshi/collections",
+            body = jsonBody(DoujinshiCollectionRequest(name)),
+        ),
+        DoujinshiCollection.serializer(),
+    )
+
+    suspend fun updateDoujinshiCollection(
+        collectionId: String,
+        request: DoujinshiCollectionUpdateRequest,
+    ): DoujinshiCollection = api.send(
+        Endpoint.patch(
+            "api/doujinshi/collections/$collectionId",
+            body = jsonBody(request),
+        ),
+        DoujinshiCollection.serializer(),
+    )
+
+    suspend fun deleteDoujinshiCollection(collectionId: String) {
+        api.send(Endpoint.delete("api/doujinshi/collections/$collectionId"))
+    }
+
+    suspend fun doujinshiCollectionItems(
+        collectionId: String,
+        page: Int = 1,
+        limit: Int = 24,
+    ): DoujinshiCollectionPage = api.send(
+        Endpoint.get(
+            "api/doujinshi/collections/$collectionId/items",
+            listOf("page" to page.toString(), "limit" to limit.toString()),
+        ),
+        DoujinshiCollectionPage.serializer(),
+    )
+
+    suspend fun setDoujinshiCollectionItem(collectionId: String, serieId: String, included: Boolean) {
+        if (included) {
+            api.send(
+                Endpoint.put("api/doujinshi/collections/$collectionId/items/$serieId", jsonBody(Unit)),
+            )
+        } else {
+            api.send(Endpoint.delete("api/doujinshi/collections/$collectionId/items/$serieId"))
+        }
+    }
+
+    suspend fun doujinshiOrganization(serieIds: List<String>): DoujinshiOrganizationBatch = api.send(
+        Endpoint.post(
+            "api/doujinshi/organization/batch",
+            body = jsonBody(mapOf("serieIds" to serieIds)),
+        ),
+        DoujinshiOrganizationBatch.serializer(),
+    )
 
 }

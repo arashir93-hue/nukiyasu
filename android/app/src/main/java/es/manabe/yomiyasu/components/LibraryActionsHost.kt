@@ -10,6 +10,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import es.manabe.yomiyasu.core.services.DownloadManager
+import es.manabe.yomiyasu.core.services.DoujinshiRepository
 import es.manabe.yomiyasu.core.services.LibraryActions
 import es.manabe.yomiyasu.core.services.NihongoTrackerApi
 import es.manabe.yomiyasu.core.services.StaticUrls
@@ -21,6 +22,7 @@ interface LibraryEntryPoint {
     fun staticUrls(): StaticUrls
     fun downloadManager(): DownloadManager
     fun nihongoTrackerApi(): NihongoTrackerApi
+    fun doujinshiRepository(): DoujinshiRepository
 }
 
 class LibraryActionsHost(
@@ -30,6 +32,17 @@ class LibraryActionsHost(
 ) {
     val downloadRecords: Map<String, es.manabe.yomiyasu.core.services.DownloadRecord>
         get() = downloads.records.value
+}
+
+@Composable
+fun rememberDoujinshiRepository(): DoujinshiRepository {
+    val context = LocalContext.current
+    return remember {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            LibraryEntryPoint::class.java,
+        ).doujinshiRepository()
+    }
 }
 
 @Composable

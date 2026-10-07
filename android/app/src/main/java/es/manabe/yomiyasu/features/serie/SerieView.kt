@@ -20,6 +20,8 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -67,6 +69,7 @@ import es.manabe.yomiyasu.components.StarRating
 import es.manabe.yomiyasu.components.rememberLibraryActions
 import es.manabe.yomiyasu.core.models.Book
 import es.manabe.yomiyasu.core.models.BooksQuery
+import es.manabe.yomiyasu.core.models.DoujinshiOrganization
 import es.manabe.yomiyasu.core.models.LibraryVariant
 import es.manabe.yomiyasu.core.models.NihongoTrackerLink
 import es.manabe.yomiyasu.core.models.ProgressStatus
@@ -76,12 +79,14 @@ import es.manabe.yomiyasu.core.models.SortValue
 import es.manabe.yomiyasu.core.models.Variant
 import es.manabe.yomiyasu.core.networking.ApiException
 import es.manabe.yomiyasu.core.services.DownloadState
+import es.manabe.yomiyasu.core.services.DoujinshiRepository
 import es.manabe.yomiyasu.core.services.LibraryApi
 import es.manabe.yomiyasu.core.services.SocketService
 import es.manabe.yomiyasu.core.settings.AppSettings
 import es.manabe.yomiyasu.core.settings.AppSettingsData
 import es.manabe.yomiyasu.core.settings.RandomCriteriaStore
 import es.manabe.yomiyasu.features.nihongotracker.NihongoTrackerMatchDialog
+import es.manabe.yomiyasu.features.doujinshi.DoujinshiOrganizationDialog
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -94,6 +99,7 @@ class SerieViewModel @Inject constructor(
     private val socket: SocketService,
     private val randomCriteria: RandomCriteriaStore,
     private val nihongoTracker: es.manabe.yomiyasu.core.services.NihongoTrackerApi,
+    private val doujinshi: DoujinshiRepository,
     settings: AppSettings,
 ) : ViewModel() {
 
@@ -143,6 +149,7 @@ class SerieViewModel @Inject constructor(
     }
 
     val settingsData: StateFlow<AppSettingsData> = settings.flow
+    val doujinshiOrganizations: StateFlow<Map<String, DoujinshiOrganization>> = doujinshi.organizations
 
     private var didLoad = false
     private var lastSerieId: String? = null
@@ -166,6 +173,10 @@ class SerieViewModel @Inject constructor(
             try {
                 val detail = library.serieDetail(id)
                 _serie.value = detail
+                if (detail.variant == Variant.Doujinshi) {
+                    doujinshi.refreshOrganization(listOf(detail.id))
+                    doujinshi.refreshCollections()
+                }
                 _nihongoTrackerLink.value = if (detail.variant == Variant.Artbook) {
                     null
                 } else {
@@ -231,6 +242,21 @@ class SerieViewModel @Inject constructor(
         }
     }
 
+    fun setDoujinshiFavorite(desiredState: Boolean) {
+        val currentSerie = _serie.value ?: return
+        if (currentSerie.variant != Variant.Doujinshi) return
+        val previous = doujinshi.organizations.value[currentSerie.id]?.isFavorite ?: false
+        doujinshi.setFavoriteLocally(currentSerie.id, desiredState)
+        viewModelScope.launch {
+            try {
+                doujinshi.setFavorite(currentSerie.id, desiredState)
+            } catch (error: ApiException) {
+                doujinshi.setFavoriteLocally(currentSerie.id, previous)
+                _actionError.value = error.userMessage
+            }
+        }
+    }
+
     fun shouldBlur(index: Int): Boolean {
         val serie = _serie.value ?: return false
         val readCount = _books.value.size - serie.unreadCount
@@ -266,6 +292,7 @@ fun SerieRoute(
     val settings by viewModel.settingsData.collectAsStateWithLifecycle()
     val actionError by viewModel.actionError.collectAsStateWithLifecycle()
     val nihongoTrackerLink by viewModel.nihongoTrackerLink.collectAsStateWithLifecycle()
+    val doujinshiOrganizations by viewModel.doujinshiOrganizations.collectAsStateWithLifecycle()
 
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberLibraryActions(snackbar)
@@ -277,6 +304,7 @@ fun SerieRoute(
     var markReadDialog by remember { mutableStateOf(false) }
     var reviewFormOpen by remember { mutableStateOf(false) }
     var nihongoTrackerDialogOpen by remember { mutableStateOf(false) }
+    var doujinshiOrganizationOpen by remember { mutableStateOf(false) }
     var activeSerieId by remember { mutableStateOf(serieId) }
     var rerollActive by remember { mutableStateOf(randomVariant != null) }
 
@@ -326,6 +354,30 @@ fun SerieRoute(
                                         viewModel.toggleReadlist()
                                     },
                                 )
+
+                                if (serie?.variant == Variant.Doujinshi) {
+                                    val isFavorite = doujinshiOrganizations[serie!!.id]?.isFavorite == true
+                                    DropdownMenuItem(
+                                        text = { Text(if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos") },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                                contentDescription = null,
+                                            )
+                                        },
+                                        onClick = {
+                                            menuOpen = false
+                                            viewModel.setDoujinshiFavorite(!isFavorite)
+                                        },
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Añadir a colección") },
+                                        onClick = {
+                                            menuOpen = false
+                                            doujinshiOrganizationOpen = true
+                                        },
+                                    )
+                                }
 
                                 DropdownMenuItem(
                                     text = { Text(if (serie?.isPaused == true) "Reanudar serie" else "Pausar serie") },
@@ -563,6 +615,16 @@ fun SerieRoute(
             onLinkChanged = { link ->
                 viewModel.setNihongoTrackerLink(link)
             },
+        )
+    }
+
+    if (doujinshiOrganizationOpen && serie != null && serie!!.variant == Variant.Doujinshi) {
+        DoujinshiOrganizationDialog(
+            serieId = serie!!.id,
+            serieName = serie!!.visibleName,
+            initialOrganization = doujinshiOrganizations[serie!!.id],
+            open = true,
+            onOpenChange = { doujinshiOrganizationOpen = it },
         )
     }
 }

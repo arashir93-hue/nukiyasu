@@ -370,6 +370,52 @@ data class SeriesPage(
 )
 
 @Serializable
+data class DoujinshiCollection(
+    @SerialName("_id") val id: String,
+    val name: String = "",
+    val isFavorite: Boolean = false,
+    val sortOrder: Int = 0,
+    val visibleItemCount: Int = 0,
+    val createdAt: String? = null,
+    val updatedAt: String? = null,
+)
+
+@Serializable
+data class DoujinshiOrganization(
+    val isFavorite: Boolean = false,
+    val collectionIds: List<String> = emptyList(),
+)
+
+@Serializable
+data class DoujinshiOrganizationBatch(
+    val items: Map<String, DoujinshiOrganization> = emptyMap(),
+)
+
+@Serializable
+data class DoujinshiFavoritePage(
+    val data: List<Serie> = emptyList(),
+    val pages: Int = 1,
+)
+
+@Serializable
+data class DoujinshiCollectionPage(
+    val data: List<Serie> = emptyList(),
+    val pages: Int = 1,
+)
+
+@Serializable
+data class DoujinshiCollectionRequest(val name: String)
+
+@Serializable
+data class DoujinshiCollectionUpdateRequest(
+    val name: String? = null,
+    val isFavorite: Boolean? = null,
+)
+
+@Serializable
+data class DoujinshiFavoriteStatus(val isFavorite: Boolean = false)
+
+@Serializable
 data class AlphabetGroup(
     val group: String,
     val count: Int = 0,

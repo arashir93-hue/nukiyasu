@@ -250,6 +250,7 @@ private fun ShellNavHost(
                 onOpenRandomSerie = { id, variant ->
                     navController.navigate(Routes.serie(id, variant.rawValue))
                 },
+                onOpenDoujinshiCollection = { id -> navController.navigate(Routes.doujinshiCollection(id)) },
             )
         }
         composable(Routes.Readlist) {
@@ -324,6 +325,19 @@ private fun ShellNavHost(
                 randomVariant = randomVariant,
                 onOpenBook = { navController.navigate(Routes.book(it)) },
                 onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = Routes.DoujinshiCollectionPattern,
+            arguments = listOf(navArgument("collectionId") { type = NavType.StringType }),
+        ) { entry ->
+            val collectionId = entry.arguments?.getString("collectionId").orEmpty()
+            es.manabe.yomiyasu.features.doujinshi.DoujinshiCollectionRoute(
+                collectionId = collectionId,
+                onBack = { navController.popBackStack() },
+                onOpenSerie = { navController.navigate(Routes.serie(it)) },
+                onOpenBook = { navController.navigate(Routes.book(it)) },
+                onDeleted = { navController.popBackStack() },
             )
         }
         composable(

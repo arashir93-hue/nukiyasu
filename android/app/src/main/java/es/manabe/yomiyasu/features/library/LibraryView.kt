@@ -58,6 +58,9 @@ import es.manabe.yomiyasu.components.LoadingBox
 import es.manabe.yomiyasu.components.SerieCard
 import es.manabe.yomiyasu.components.SerieCardActions
 import es.manabe.yomiyasu.components.rememberLibraryActions
+import es.manabe.yomiyasu.core.models.DoujinshiCollection
+import es.manabe.yomiyasu.core.models.DoujinshiCollectionUpdateRequest
+import es.manabe.yomiyasu.core.models.DoujinshiOrganization
 import es.manabe.yomiyasu.core.models.AlphabetGroup
 import es.manabe.yomiyasu.core.models.LibraryVariant
 import es.manabe.yomiyasu.core.models.MainView
@@ -66,9 +69,12 @@ import es.manabe.yomiyasu.core.models.SeriesQuery
 import es.manabe.yomiyasu.core.networking.ApiException
 import es.manabe.yomiyasu.core.session.SessionStore
 import es.manabe.yomiyasu.core.services.LibraryApi
+import es.manabe.yomiyasu.core.services.DoujinshiRepository
 import es.manabe.yomiyasu.core.services.SocketService
 import es.manabe.yomiyasu.core.settings.RandomCriteria
 import es.manabe.yomiyasu.core.settings.RandomCriteriaStore
+import es.manabe.yomiyasu.features.doujinshi.DoujinshiLibrarySections
+import es.manabe.yomiyasu.features.doujinshi.DoujinshiSerieCard
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -87,6 +93,7 @@ class LibraryViewModel @Inject constructor(
     private val socket: SocketService,
     private val randomCriteria: RandomCriteriaStore,
     private val session: SessionStore,
+    private val doujinshi: DoujinshiRepository,
 ) : ViewModel() {
 
     var variant by mutableStateOf(LibraryVariant.All)
@@ -116,6 +123,26 @@ class LibraryViewModel @Inject constructor(
     val genresList: List<String> get() = genres
     val authorsList: List<String> get() = authors
 
+    val doujinshiOrganizations: StateFlow<Map<String, DoujinshiOrganization>> = doujinshi.organizations
+    val doujinshiCollections: StateFlow<List<DoujinshiCollection>> = doujinshi.collections
+
+    private val _doujinshiFavorites = MutableStateFlow<List<Serie>>(emptyList())
+    val doujinshiFavorites: StateFlow<List<Serie>> = _doujinshiFavorites.asStateFlow()
+
+    private val _doujinshiFavoritesLoading = MutableStateFlow(false)
+    val doujinshiFavoritesLoading: StateFlow<Boolean> = _doujinshiFavoritesLoading.asStateFlow()
+
+    private val _doujinshiFavoritePage = MutableStateFlow(1)
+    val doujinshiFavoritePage: StateFlow<Int> = _doujinshiFavoritePage.asStateFlow()
+    private val _doujinshiFavoritePages = MutableStateFlow(1)
+    val doujinshiFavoritePages: StateFlow<Int> = _doujinshiFavoritePages.asStateFlow()
+
+    private val _doujinshiError = MutableStateFlow<String?>(null)
+    val doujinshiError: StateFlow<String?> = _doujinshiError.asStateFlow()
+
+    private val _pendingFavoriteIds = MutableStateFlow<Set<String>>(emptySet())
+    val pendingFavoriteIds: StateFlow<Set<String>> = _pendingFavoriteIds.asStateFlow()
+
     val showMatureContent: StateFlow<Boolean> = session.state
         .map { current -> (current as? SessionStore.State.LoggedIn)?.user?.showMatureContent ?: false }
         .distinctUntilChanged()
@@ -133,10 +160,14 @@ class LibraryViewModel @Inject constructor(
         }
         viewModelScope.launch {
             showMatureContent.collect { visible ->
-                if (!visible && variant == LibraryVariant.Doujinshi) {
-                    variant = LibraryVariant.All
-                    query = query.copy(variant = variant, page = 1)
-                    if (didLoad) load(reset = true)
+                if (!visible) {
+                    doujinshi.clear()
+                    _doujinshiFavorites.value = emptyList()
+                    if (variant == LibraryVariant.Doujinshi) {
+                        variant = LibraryVariant.All
+                        query = query.copy(variant = variant, page = 1)
+                        if (didLoad) load(reset = true)
+                    }
                 }
             }
         }
@@ -146,6 +177,7 @@ class LibraryViewModel @Inject constructor(
         if (variant == newVariant) return
         variant = newVariant
         load(reset = true)
+        if (newVariant == LibraryVariant.Doujinshi) loadDoujinshiExtras()
     }
 
     fun applyQuery(newQuery: SeriesQuery) {
@@ -177,6 +209,10 @@ class LibraryViewModel @Inject constructor(
 
                 _series.value = if (reset) page.data else _series.value + page.data
                 totalPages = page.pages
+
+                if (variant == LibraryVariant.Doujinshi) {
+                    doujinshi.refreshOrganization(page.data.map { it.id })
+                }
 
                 if (reset) {
                     coroutineScope {
@@ -220,6 +256,97 @@ class LibraryViewModel @Inject constructor(
             }
         }
     }
+
+    fun loadDoujinshiExtras() {
+        if (!showMatureContent.value) return
+        viewModelScope.launch {
+            _doujinshiError.value = null
+            _doujinshiFavoritesLoading.value = true
+            try {
+                doujinshi.refreshCollections()
+                val page = library.doujinshiFavorites(page = 1)
+                _doujinshiFavorites.value = page.data
+                _doujinshiFavoritePage.value = 1
+                _doujinshiFavoritePages.value = page.pages
+                doujinshi.refreshOrganization(page.data.map { it.id })
+            } catch (error: ApiException) {
+                _doujinshiError.value = error.userMessage
+            } finally {
+                _doujinshiFavoritesLoading.value = false
+            }
+        }
+    }
+
+    fun loadMoreDoujinshiFavorites() {
+        if (_doujinshiFavoritesLoading.value || _doujinshiFavoritePage.value >= _doujinshiFavoritePages.value) return
+        viewModelScope.launch {
+            _doujinshiFavoritesLoading.value = true
+            try {
+                val nextPage = _doujinshiFavoritePage.value + 1
+                val page = library.doujinshiFavorites(page = nextPage)
+                _doujinshiFavorites.value += page.data
+                _doujinshiFavoritePage.value = nextPage
+                _doujinshiFavoritePages.value = page.pages
+                doujinshi.refreshOrganization(page.data.map { it.id })
+            } catch (error: ApiException) {
+                _doujinshiError.value = error.userMessage
+            } finally {
+                _doujinshiFavoritesLoading.value = false
+            }
+        }
+    }
+
+    fun setDoujinshiFavorite(serieId: String, desiredState: Boolean) {
+        if (_pendingFavoriteIds.value.contains(serieId)) return
+        val previous = doujinshi.organizations.value[serieId]?.isFavorite ?: false
+        _pendingFavoriteIds.value = _pendingFavoriteIds.value + serieId
+        doujinshi.setFavoriteLocally(serieId, desiredState)
+        viewModelScope.launch {
+            try {
+                doujinshi.setFavorite(serieId, desiredState)
+                loadDoujinshiExtras()
+            } catch (error: ApiException) {
+                doujinshi.setFavoriteLocally(serieId, previous)
+                _doujinshiError.value = error.userMessage
+            } finally {
+                _pendingFavoriteIds.value = _pendingFavoriteIds.value - serieId
+            }
+        }
+    }
+
+    fun createDoujinshiCollection(name: String, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                doujinshi.createCollection(name)
+            } catch (error: ApiException) {
+                onError(error.userMessage)
+            }
+        }
+    }
+
+    fun updateDoujinshiCollection(
+        collectionId: String,
+        request: DoujinshiCollectionUpdateRequest,
+        onError: (String) -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            try {
+                doujinshi.updateCollection(collectionId, request)
+            } catch (error: ApiException) {
+                onError(error.userMessage)
+            }
+        }
+    }
+
+    fun deleteDoujinshiCollection(collectionId: String, onError: (String) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                doujinshi.deleteCollection(collectionId)
+            } catch (error: ApiException) {
+                onError(error.userMessage)
+            }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -229,6 +356,7 @@ fun LibraryRoute(
     onOpenSerie: (String) -> Unit,
     onOpenBook: (String) -> Unit,
     onOpenRandomSerie: (String, LibraryVariant) -> Unit,
+    onOpenDoujinshiCollection: (String) -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val series by viewModel.series.collectAsStateWithLifecycle()
@@ -236,6 +364,8 @@ fun LibraryRoute(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
     val showMatureContent by viewModel.showMatureContent.collectAsStateWithLifecycle()
+    val doujinshiOrganizations by viewModel.doujinshiOrganizations.collectAsStateWithLifecycle()
+    val pendingFavoriteIds by viewModel.pendingFavoriteIds.collectAsStateWithLifecycle()
 
     val snackbar = remember { SnackbarHostState() }
     val actions = rememberLibraryActions(snackbar)
@@ -334,7 +464,21 @@ fun LibraryRoute(
                 onRefresh = { viewModel.load(reset = true) },
                 modifier = Modifier.fillMaxSize(),
             ) {
-                when {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (viewModel.variant == LibraryVariant.Doujinshi) {
+                        DoujinshiLibrarySections(
+                            viewModel = viewModel,
+                            onOpenSerie = onOpenSerie,
+                            onOpenCollection = onOpenDoujinshiCollection,
+                        )
+                        Text(
+                            text = "Todos",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        )
+                    }
+
+                    when {
                     isLoading && series.isEmpty() -> LoadingBox()
                     error != null && series.isEmpty() -> ErrorBox(
                         message = error ?: "No se pudo cargar",
@@ -353,19 +497,36 @@ fun LibraryRoute(
                                 .testTag("libraryGrid"),
                         ) {
                             items(series, key = { it.id }) { serie ->
-                                SerieCard(
-                                    serie = serie,
-                                    coverUrl = actions.staticUrls.serieCover(serie)?.toString(),
-                                    actions = SerieCardActions(
-                                        onOpen = { onOpenSerie(serie.id) },
-                                        onContinueReading = serie.currentBook?.let { current ->
-                                            { onOpenBook(current.id) }
-                                        },
-                                        onMarkRead = { actions.actions.markSerieRead(serie.id) },
-                                        onTogglePaused = { actions.actions.setSeriePaused(!serie.isPaused, serie.id) },
-                                        onToggleReadlist = { actions.actions.toggleReadlist(serie.id, serie.isInReadlist) },
-                                    ),
+                                val cardActions = SerieCardActions(
+                                    onOpen = { onOpenSerie(serie.id) },
+                                    onContinueReading = serie.currentBook?.let { current ->
+                                        { onOpenBook(current.id) }
+                                    },
+                                    onMarkRead = { actions.actions.markSerieRead(serie.id) },
+                                    onTogglePaused = { actions.actions.setSeriePaused(!serie.isPaused, serie.id) },
+                                    onToggleReadlist = { actions.actions.toggleReadlist(serie.id, serie.isInReadlist) },
                                 )
+                                if (viewModel.variant == LibraryVariant.Doujinshi) {
+                                    DoujinshiSerieCard(
+                                        serie = serie,
+                                        organization = doujinshiOrganizations[serie.id],
+                                        coverUrl = actions.staticUrls.serieCover(serie)?.toString(),
+                                        onOpen = { onOpenSerie(serie.id) },
+                                        onToggleFavorite = {
+                                            val current = doujinshiOrganizations[serie.id]?.isFavorite == true
+                                            viewModel.setDoujinshiFavorite(serie.id, !current)
+                                        },
+                                        onOpenCollection = { },
+                                        favoritePending = pendingFavoriteIds.contains(serie.id),
+                                        actions = cardActions,
+                                    )
+                                } else {
+                                    SerieCard(
+                                        serie = serie,
+                                        coverUrl = actions.staticUrls.serieCover(serie)?.toString(),
+                                        actions = cardActions,
+                                    )
+                                }
                             }
 
                             if (isLoading && series.isNotEmpty()) {
@@ -392,6 +553,7 @@ fun LibraryRoute(
                                 .align(Alignment.CenterEnd)
                                 .padding(end = 2.dp),
                         )
+                    }
                     }
                 }
             }

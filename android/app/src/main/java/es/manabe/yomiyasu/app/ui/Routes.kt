@@ -13,6 +13,7 @@ object Routes {
     const val Settings = "settings"
     const val OfflineDictionary = "offline-dictionary"
     const val Account = "account"
+    const val DoujinshiCollectionPattern = "doujinshi-collection/{collectionId}"
 
     const val SeriePattern = "serie/{serieId}?randomVariant={randomVariant}"
     const val BookPattern = "book/{bookId}"
@@ -21,4 +22,5 @@ object Routes {
         if (randomVariant == null) "serie/$id" else "serie/$id?randomVariant=$randomVariant"
 
     fun book(id: String) = "book/$id"
+    fun doujinshiCollection(id: String) = "doujinshi-collection/$id"
 }
