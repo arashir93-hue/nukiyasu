@@ -6,6 +6,7 @@ import {JwtAuthGuard} from "../auth/strategies/jwt.strategy";
 import {ContentAccessService} from "../content-access/content-access.service";
 import {DoujinshiFavoritesController} from "./doujinshi-favorites.controller";
 import {DoujinshiFavoritesService} from "./doujinshi-favorites.service";
+import {DoujinshiCollectionsService} from "./doujinshi-collections.service";
 
 describe("DoujinshiFavoritesController", () => {
     let app:INestApplication;
@@ -21,6 +22,16 @@ describe("DoujinshiFavoritesController", () => {
     const contentAccessService = {
         forUser:jest.fn().mockResolvedValue(policy)
     };
+    const collectionsService = {
+        batchCollectionStatus:jest.fn().mockResolvedValue({[serieId.toString()]:{collectionIds:[]}}),
+        listCollections:jest.fn().mockResolvedValue([]),
+        createCollection:jest.fn(),
+        updateCollection:jest.fn(),
+        deleteCollection:jest.fn(),
+        listItems:jest.fn(),
+        addItem:jest.fn(),
+        removeItem:jest.fn()
+    };
 
     beforeEach(async() => {
         jest.clearAllMocks();
@@ -28,7 +39,8 @@ describe("DoujinshiFavoritesController", () => {
             controllers:[DoujinshiFavoritesController],
             providers:[
                 {provide:DoujinshiFavoritesService, useValue:favoritesService},
-                {provide:ContentAccessService, useValue:contentAccessService}
+                {provide:ContentAccessService, useValue:contentAccessService},
+                {provide:DoujinshiCollectionsService, useValue:collectionsService}
             ]
         })
             .overrideGuard(JwtAuthGuard)
@@ -67,6 +79,61 @@ describe("DoujinshiFavoritesController", () => {
         expect(favoritesService.listFavorites).toHaveBeenCalledWith(userId, policy, 2, 10);
     });
 
+    it("crea colecciones y aplica trim mediante el DTO real", async() => {
+        await request(app.getHttpServer())
+            .post("/api/doujinshi/collections")
+            .send({name:"  Comedia  ", user:new Types.ObjectId().toString()})
+            .expect(201);
+
+        expect(collectionsService.createCollection).toHaveBeenCalledWith(userId, {name:"Comedia"});
+    });
+
+    it("rechaza nombres vacíos y de más de 80 caracteres", async() => {
+        await request(app.getHttpServer())
+            .post("/api/doujinshi/collections")
+            .send({name:"   "})
+            .expect(400);
+        await request(app.getHttpServer())
+            .post("/api/doujinshi/collections")
+            .send({name:"a".repeat(81)})
+            .expect(400);
+
+        expect(collectionsService.createCollection).not.toHaveBeenCalled();
+    });
+
+    it("actualiza solo los campos permitidos de una colección", async() => {
+        const collectionId = new Types.ObjectId();
+
+        await request(app.getHttpServer())
+            .patch(`/api/doujinshi/collections/${collectionId}`)
+            .send({name:"Nueva", isFavorite:true, sortOrder:3, user:new Types.ObjectId().toString(), normalizedName:"hack"})
+            .expect(200);
+
+        expect(collectionsService.updateCollection).toHaveBeenCalledWith(
+            userId,
+            collectionId,
+            {name:"Nueva", isFavorite:true, sortOrder:3}
+        );
+    });
+
+    it("delega las operaciones de colección usando el usuario del JWT", async() => {
+        const collectionId = new Types.ObjectId();
+
+        await request(app.getHttpServer())
+            .get(`/api/doujinshi/collections/${collectionId}/items?page=2&limit=5`)
+            .expect(200);
+        await request(app.getHttpServer())
+            .put(`/api/doujinshi/collections/${collectionId}/items/${serieId}`)
+            .expect(200);
+        await request(app.getHttpServer())
+            .delete(`/api/doujinshi/collections/${collectionId}/items/${serieId}`)
+            .expect(200);
+
+        expect(collectionsService.listItems).toHaveBeenCalledWith(userId, collectionId, policy, 2, 5);
+        expect(collectionsService.addItem).toHaveBeenCalledWith(userId, collectionId, serieId, policy);
+        expect(collectionsService.removeItem).toHaveBeenCalledWith(userId, collectionId, serieId);
+    });
+
     it("rechaza ObjectIds inválidos", async() => {
         await request(app.getHttpServer())
             .put("/api/doujinshi/series/not-an-id/favorite")
@@ -95,5 +162,6 @@ describe("DoujinshiFavoritesController", () => {
             .expect(201);
 
         expect(favoritesService.batchStatus).toHaveBeenCalledWith(userId, [serieId], policy);
+        expect(collectionsService.batchCollectionStatus).toHaveBeenCalledWith(userId, [serieId], policy);
     });
 });
