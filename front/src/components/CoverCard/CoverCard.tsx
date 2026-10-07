@@ -4,6 +4,7 @@ import {Link} from "react-router";
 import {useSettingsStore} from "../../stores/SettingsStore";
 import type {BookWithProgress} from "../../types/book";
 import type {SerieWithProgress} from "../../types/serie";
+import type {DoujinshiOrganization} from "../../types/doujinshi";
 import {Rating} from "../../ui/Rating";
 import {ProgressBar} from "../../ui/ProgressBar";
 import {Tooltip} from "../../ui/Tooltip";
@@ -32,6 +33,7 @@ export type CoverCardProps =
       serie: SerieWithProgress;
       noVariantIndicator?: boolean;
       className?: string;
+      organization?: DoujinshiOrganization;
     };
 
 export function CoverCard(props:CoverCardProps):React.ReactElement {
@@ -226,6 +228,7 @@ function SerieCoverCard({
   serie,
   noVariantIndicator,
   className,
+  organization,
 }:Extract<CoverCardProps, {kind:"serie"}>):React.ReactElement {
   const {siteSettings} = useSettingsStore();
   const [unreadBooks, setUnreadBooks] = useState(serie.unreadBooks);
@@ -285,7 +288,7 @@ function SerieCoverCard({
         </Link>
         <div className="flex items-center justify-between gap-1">
           <p className="truncate text-[11px] text-fg-muted">{serie.bookCount} libros</p>
-          <CardMenu kind="serie" serie={serie} unreadBooks={unreadBooks} onUnreadChanged={setUnreadBooks} />
+          <CardMenu kind="serie" serie={serie} unreadBooks={unreadBooks} onUnreadChanged={setUnreadBooks} organization={organization} />
         </div>
       </div>
     </div>

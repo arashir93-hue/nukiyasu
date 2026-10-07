@@ -11,6 +11,7 @@ import {invalidateReadlist} from "../../lib/invalidate";
 import {serieThumbnail} from "../../lib/media";
 import {CoverImage} from "../../components/CoverImage";
 import {keys} from "../../lib/queryKeys";
+import {useDoujinshiOrganizationBatch} from "../../lib/useDoujinshiOrganization";
 import {useOpenBook} from "../../lib/useOpenBook";
 import {useTitle} from "../../lib/useTitle";
 import {confirmDialog} from "../../stores/ConfirmStore";
@@ -66,6 +67,7 @@ function Serie():React.ReactElement {
         },
         enabled:!!serieData
     });
+    const {organizations} = useDoujinshiOrganizationBatch(serieData ? [serieData] : undefined);
 
     useTitle(serieData?.visibleName ?? (isLoading ? "Serie" : undefined));
 
@@ -149,7 +151,7 @@ function Serie():React.ReactElement {
                     <IconButton label="Volver atrás" onClick={()=>navigate(-1)}>
                         <ArrowLeft />
                     </IconButton>
-                    <CardMenu kind="serie" serie={serieData} unreadBooks={unreadBooks} onUnreadChanged={setUnreadBooks} />
+                    <CardMenu kind="serie" serie={serieData} unreadBooks={unreadBooks} onUnreadChanged={setUnreadBooks} organization={organizations[serieData._id]} />
                     <h1 className="min-w-0 flex-1 truncate px-1 text-base font-semibold text-fg">{serieData.visibleName}</h1>
                     {isFetching ? <Spinner size={14} className="text-fg-muted" /> : null}
                     <Badge variant="neutral">{serieData.bookCount} libros</Badge>

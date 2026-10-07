@@ -6,6 +6,7 @@ import type {SerieWithProgress} from "../../types/serie";
 import {IconButton} from "../../ui/IconButton";
 import {CoverCard} from "../CoverCard/CoverCard";
 import {useOpenBook} from "../../lib/useOpenBook";
+import {useDoujinshiOrganizationBatch} from "../../lib/useDoujinshiOrganization";
 
 interface ComponentScrollerProps {
   title: string;
@@ -29,6 +30,7 @@ export function ComponentScroller(props:ComponentScrollerProps):React.ReactEleme
   const ulRef = useRef<HTMLUListElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
+  const {organizations} = useDoujinshiOrganizationBatch(type === "series" ? components as SerieWithProgress[] : undefined);
 
   const updateEdges = useCallback(()=>{
     const ul = ulRef.current;
@@ -118,7 +120,7 @@ export function ComponentScroller(props:ComponentScrollerProps):React.ReactEleme
               ))
             : (components as SerieWithProgress[]).map((serie)=>(
                 <li key={serie._id} className="w-36 shrink-0">
-                  <CoverCard kind="serie" serie={serie} noVariantIndicator={noVariantIndicator} />
+                  <CoverCard kind="serie" serie={serie} noVariantIndicator={noVariantIndicator} organization={organizations[serie._id]} />
                 </li>
               ))}
         </ul>

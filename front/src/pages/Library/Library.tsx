@@ -8,6 +8,7 @@ import {CoverCard} from "../../components/CoverCard/CoverCard";
 import {useAuth} from "../../contexts/AuthContext";
 import {buildAlphabetQuery, buildSeriesQuery, useLibraryFilters} from "../../lib/useLibraryFilters";
 import {keys} from "../../lib/queryKeys";
+import {useDoujinshiOrganizationBatch} from "../../lib/useDoujinshiOrganization";
 import {rollRandomSerie, saveRandomCriteria} from "../../lib/randomSerie";
 import {confirmDialog} from "../../stores/ConfirmStore";
 import {useSettingsStore} from "../../stores/SettingsStore";
@@ -60,6 +61,7 @@ function Library({variant}:LibraryProps):React.ReactElement {
             return res ?? {pages:1, data:[]};
         }
     });
+    const {organizations} = useDoujinshiOrganizationBatch(variant === "doujinshi" ? series.data : undefined);
 
     const alphabetParams = buildAlphabetQuery(filters);
     const alphabetParamsString = alphabetParams.toString();
@@ -256,7 +258,7 @@ function Library({variant}:LibraryProps):React.ReactElement {
                     <ul className="grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-5 p-4 lg:p-6">
                         {series.data.map((serie)=>(
                             <li key={serie._id} className="[content-visibility:auto] [contain-intrinsic-size:auto_260px]">
-                                <CoverCard kind="serie" serie={serie} noVariantIndicator />
+                                <CoverCard kind="serie" serie={serie} noVariantIndicator organization={organizations[serie._id]} />
                             </li>
                         ))}
                     </ul>

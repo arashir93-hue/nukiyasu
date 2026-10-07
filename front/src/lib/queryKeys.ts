@@ -32,6 +32,11 @@ export const keys = {
   readlist: (variant: string) => ["readlist", variant] as const,
   paused: (variant: string) => ["paused", variant] as const,
 
+  // Organización personal de doujinshi
+  doujinshiFavorites: (page = 1, limit = 24) => ["doujinshi-favorites", page, limit] as const,
+  doujinshiCollections: ["doujinshi-collections"] as const,
+  doujinshiOrganization: (serieIds: string[]) => ["doujinshi-organization", ...[...serieIds].sort()] as const,
+
   // Progreso e historial
   progressLogs: (params?: unknown) => ["progress-logs", params] as const,
   dayLogs: (year: number, month: number, day: number) => ["day-logs", year, month, day] as const,

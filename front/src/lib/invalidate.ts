@@ -69,6 +69,13 @@ export function invalidateReadlist(): void {
   invalidate(["serie"]);
 }
 
+/** Organización personal de doujinshi, sin invalidar toda la biblioteca. */
+export function invalidateDoujinshiOrganization(): void {
+  invalidate(["doujinshi-organization"]);
+  invalidate(["doujinshi-favorites"]);
+  invalidate(["doujinshi-collections"]);
+}
+
 /** Datos de una serie concreta (edición, reseñas, nombres automáticos). */
 export function invalidateSerie(id: string): void {
   invalidate(keys.serie(id));

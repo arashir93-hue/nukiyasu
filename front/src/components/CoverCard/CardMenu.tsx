@@ -8,6 +8,7 @@ import {
   Download,
   Ellipsis,
   EyeOff,
+  Heart,
   Image,
   Info,
   ListChecks,
@@ -21,21 +22,23 @@ import {
   Undo2,
   Wand2,
 } from "lucide-react";
-import {lazy, Suspense, useRef, useState} from "react";
-import {useQueryClient} from "@tanstack/react-query";
+import {lazy, Suspense, useEffect, useRef, useState} from "react";
+import {useMutation, useQueryClient} from "@tanstack/react-query";
 import {useNavigate} from "react-router";
 import {toast} from "react-toastify";
 import {api} from "../../api/api";
+import {addDoujinshiFavorite, removeDoujinshiFavorite} from "../../api/doujinshi";
 import {getNihongoTrackerBookStatus, logBookInNihongoTracker} from "../../api/nihongoTracker";
 import {useAuth} from "../../contexts/AuthContext";
 import {addToReadlist, removeFromReadlist} from "../../helpers/series";
-import {invalidateBook, invalidateProgress, invalidateReadlist, invalidateSerie} from "../../lib/invalidate";
+import {invalidateBook, invalidateDoujinshiOrganization, invalidateProgress, invalidateReadlist, invalidateSerie} from "../../lib/invalidate";
 import {bookDownloadUrl} from "../../lib/media";
 import {useOpenBook} from "../../lib/useOpenBook";
 import {confirmDialog} from "../../stores/ConfirmStore";
 import {useSettingsStore} from "../../stores/SettingsStore";
 import type {Book, BookProgress, BookWithProgress} from "../../types/book";
 import type {SerieWithProgress} from "../../types/serie";
+import type {DoujinshiOrganization} from "../../types/doujinshi";
 import {Button} from "../../ui/Button";
 import {Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle} from "../../ui/Dialog";
 import {IconButton} from "../../ui/IconButton";
@@ -43,6 +46,7 @@ import {Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger} from
 import {BookCoversDialog} from "./BookCoversDialog";
 import {BookInfoDialog} from "./BookInfoDialog";
 import {ProgressEditor} from "./ProgressEditor";
+import {DoujinshiOrganizationDialog} from "../Doujinshi/DoujinshiOrganizationDialog";
 
 // Los formularios de administración se cargan solo cuando se abren
 const LazyEditBookDialog = lazy(() => import("./EditBookDialog").then((m)=>({default:m.EditBookDialog})));
@@ -63,6 +67,7 @@ export type CardMenuProps =
       serie: SerieWithProgress;
       unreadBooks: number;
       onUnreadChanged: (unread: number) => void;
+      organization?: DoujinshiOrganization;
     };
 
 export function CardMenu(props:CardMenuProps):React.ReactElement {
@@ -352,12 +357,39 @@ function BookCardMenu({book, insideSerie, deck, read, setRead, openBook}:Extract
   );
 }
 
-function SerieCardMenu({serie, unreadBooks, onUnreadChanged}:Extract<CardMenuProps, {kind:"serie"}>):React.ReactElement {
+function SerieCardMenu({serie, unreadBooks, onUnreadChanged, organization}:Extract<CardMenuProps, {kind:"serie"}>):React.ReactElement {
   const {userData} = useAuth();
   const navigate = useNavigate();
   const openBook = useOpenBook();
 
   const [editOpen, setEditOpen] = useState(false);
+  const [organizationOpen, setOrganizationOpen] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(organization?.isFavorite === true);
+
+  useEffect(()=>{
+    setIsFavorite(organization?.isFavorite === true);
+  }, [organization?.isFavorite]);
+
+  const favoriteMutation = useMutation({
+    mutationFn: ()=>isFavorite ? removeDoujinshiFavorite(serie._id) : addDoujinshiFavorite(serie._id),
+    onMutate:()=>{
+      const previous = isFavorite;
+      setIsFavorite(!previous);
+      return previous;
+    },
+    onSuccess:()=>{
+      invalidateDoujinshiOrganization();
+    },
+    onError:(_error, _variables, previous)=>{
+      if (previous !== undefined) setIsFavorite(previous);
+      toast.error("No se pudo actualizar el favorito");
+    },
+  });
+
+  function toggleFavorite():void {
+    if (favoriteMutation.isPending || serie.variant !== "doujinshi" || !organization) return;
+    favoriteMutation.mutate();
+  }
 
   async function readNext(): Promise<void> {
     if (unreadBooks === 0) {
@@ -442,6 +474,18 @@ function SerieCardMenu({serie, unreadBooks, onUnreadChanged}:Extract<CardMenuPro
 
           <MenuSeparator />
           <MenuLabel>Organización</MenuLabel>
+          {serie.variant === "doujinshi" ? (
+            <>
+              <MenuItem disabled={!organization || favoriteMutation.isPending} onSelect={toggleFavorite}>
+                <Heart fill={isFavorite ? "currentColor" : "none"} />
+                {isFavorite ? "Quitar de favoritos" : "Añadir a favoritos"}
+              </MenuItem>
+              <MenuItem onSelect={()=>setOrganizationOpen(true)}>
+                <Tags />
+                Añadir a colección
+              </MenuItem>
+            </>
+          ) : null}
           <MenuItem onSelect={()=>void toggleReadlist()}>
             {serie.readlist ? <BookmarkMinus /> : <BookmarkPlus />}
             {serie.readlist ? "Quitar de “Leer más tarde”" : "Añadir a “Leer más tarde”"}
@@ -476,6 +520,15 @@ function SerieCardMenu({serie, unreadBooks, onUnreadChanged}:Extract<CardMenuPro
         <Suspense fallback={null}>
           <LazyEditSerieDialog serie={serie} open={editOpen} onOpenChange={setEditOpen} />
         </Suspense>
+      ) : null}
+      {serie.variant === "doujinshi" ? (
+        <DoujinshiOrganizationDialog
+          serieId={serie._id}
+          serieName={serie.visibleName}
+          organization={organization}
+          open={organizationOpen}
+          onOpenChange={setOrganizationOpen}
+        />
       ) : null}
     </>
   );
