@@ -2,6 +2,8 @@ name: iOS IPA
 
 on:
   push:
+    branches:
+      - "**"
     paths:
       - "ios/**"
       - ".github/workflows/ios-ipa.yml"
@@ -103,3 +105,4 @@ jobs:
                  --notes "Compilaciones automáticas de iOS (IPA) y Android (APK). Se actualizan con cada push." \
             || true
           gh release upload "$TAG" build/release/Yomiyasu-ios.ipa --clobber
+
