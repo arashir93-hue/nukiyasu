@@ -1,4 +1,4 @@
-import type {SerieWithProgress} from "./serie";
+import type {Serie, SerieWithProgress} from "./serie";
 
 export interface DoujinshiCollection {
     _id: string;
@@ -24,6 +24,22 @@ export interface DoujinshiOrganizationBatch {
 }
 
 export interface DoujinshiFavoritePage {
-    data: SerieWithProgress[];
+    data: Serie[];
     pages: number;
+}
+
+export interface DoujinshiCollectionPage {
+    data: Serie[];
+    pages: number;
+}
+
+/** Los endpoints de organización devuelven series sin estado de progreso. */
+export function withSerieProgressDefaults(serie: Serie): SerieWithProgress {
+    return {
+        ...serie,
+        unreadBooks: 0,
+        type: "serie",
+        readlist: false,
+        paused: false,
+    };
 }

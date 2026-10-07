@@ -76,6 +76,11 @@ export function invalidateDoujinshiOrganization(): void {
   invalidate(["doujinshi-collections"]);
 }
 
+/** Items visibles de una colección concreta. */
+export function invalidateDoujinshiCollectionItems(collectionId: string): void {
+  invalidate(["doujinshi-collection-items", collectionId]);
+}
+
 /** Datos de una serie concreta (edición, reseñas, nombres automáticos). */
 export function invalidateSerie(id: string): void {
   invalidate(keys.serie(id));

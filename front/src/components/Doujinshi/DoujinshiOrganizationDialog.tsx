@@ -1,21 +1,20 @@
-import {useMutation, useQuery, useQueryClient} from "@tanstack/react-query";
+import {useMutation, useQuery} from "@tanstack/react-query";
 import {Check, LoaderCircle, Plus} from "lucide-react";
 import {useEffect, useState} from "react";
 import {toast} from "react-toastify";
 import {
   addDoujinshiToCollection,
-  createDoujinshiCollection,
   getDoujinshiOrganization,
   listDoujinshiCollections,
   removeDoujinshiFromCollection,
 } from "../../api/doujinshi";
 import {HttpError} from "../../types/error";
 import type {DoujinshiCollection, DoujinshiOrganization} from "../../types/doujinshi";
-import {invalidateDoujinshiOrganization} from "../../lib/invalidate";
+import {invalidateDoujinshiCollectionItems, invalidateDoujinshiOrganization} from "../../lib/invalidate";
 import {keys} from "../../lib/queryKeys";
 import {Button} from "../../ui/Button";
 import {Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle} from "../../ui/Dialog";
-import {Input} from "../../ui/Input";
+import {DoujinshiCollectionDialog} from "./DoujinshiCollectionDialog";
 
 interface DoujinshiOrganizationDialogProps {
   serieId: string;
@@ -31,10 +30,9 @@ function errorText(error: unknown, fallback: string): string {
 }
 
 export function DoujinshiOrganizationDialog({serieId, serieName, organization, open, onOpenChange}:DoujinshiOrganizationDialogProps):React.ReactElement {
-  const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState<string[]>(organization?.collectionIds ?? []);
-  const [newName, setNewName] = useState("");
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const organizationQuery = useQuery({
     queryKey: keys.doujinshiOrganization([serieId]),
@@ -65,6 +63,7 @@ export function DoujinshiOrganizationDialog({serieId, serieName, organization, o
         ? [...new Set([...current, variables.collectionId])]
         : current.filter((id)=>id !== variables.collectionId));
       invalidateDoujinshiOrganization();
+      invalidateDoujinshiCollectionItems(variables.collectionId);
     },
     onError:(error, variables)=>{
       setSelectedIds((current)=>variables.add
@@ -75,27 +74,6 @@ export function DoujinshiOrganizationDialog({serieId, serieName, organization, o
     onSettled:()=>setPendingId(null),
   });
 
-  const createMutation = useMutation({
-    mutationFn: async(name:string)=>{
-      const collection = await createDoujinshiCollection(name);
-      if (!collection) throw new Error("No se pudo crear la colección");
-      return collection;
-    },
-    onSuccess:async(collection:DoujinshiCollection)=>{
-      setNewName("");
-      await queryClient.invalidateQueries({queryKey:keys.doujinshiCollections});
-      setSelectedIds((current)=>[...new Set([...current, collection._id])]);
-      try {
-        await addDoujinshiToCollection(collection._id, serieId);
-        invalidateDoujinshiOrganization();
-      } catch (error) {
-        setSelectedIds((current)=>current.filter((id)=>id !== collection._id));
-        toast.error(errorText(error, "La colección se creó, pero no se pudo añadir la serie"));
-      }
-    },
-    onError:(error)=>toast.error(errorText(error, "No se pudo crear la colección")),
-  });
-
   function toggleCollection(collectionId:string):void {
     const add = !selectedIds.includes(collectionId);
     setSelectedIds((current)=>add
@@ -104,15 +82,22 @@ export function DoujinshiOrganizationDialog({serieId, serieName, organization, o
     collectionMutation.mutate({collectionId, add});
   }
 
-  function createCollection():void {
-    const name = newName.trim();
-    if (!name || createMutation.isPending) return;
-    createMutation.mutate(name);
+  async function addCreatedCollection(collection:DoujinshiCollection):Promise<void> {
+    setSelectedIds((current)=>[...new Set([...current, collection._id])]);
+    try {
+      await addDoujinshiToCollection(collection._id, serieId);
+      invalidateDoujinshiOrganization();
+      invalidateDoujinshiCollectionItems(collection._id);
+    } catch (error) {
+      setSelectedIds((current)=>current.filter((id)=>id !== collection._id));
+      toast.error(errorText(error, "La colección se creó, pero no se pudo añadir la serie"));
+    }
   }
 
   const collections = collectionsQuery.data ?? [];
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent size="sm">
         <DialogHeader>
@@ -148,24 +133,20 @@ export function DoujinshiOrganizationDialog({serieId, serieName, organization, o
             </div>
           )}
 
-          <div className="mt-5 flex gap-2">
-            <Input
-              value={newName}
-              onChange={(event)=>setNewName(event.target.value)}
-              onKeyDown={(event)=>{if (event.key === "Enter") createCollection();}}
-              placeholder="Nueva colección"
-              maxLength={80}
-              aria-label="Nombre de la nueva colección"
-            />
-            <Button size="sm" icon={<Plus className="size-4" />} loading={createMutation.isPending} disabled={!newName.trim()} onClick={createCollection}>
-              Crear
-            </Button>
-          </div>
+          <Button className="mt-5" variant="secondary" icon={<Plus className="size-4" />} onClick={()=>setCreateOpen(true)}>
+            Nueva colección
+          </Button>
         </DialogBody>
         <DialogFooter>
           <Button variant="ghost" onClick={()=>onOpenChange(false)}>Cerrar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <DoujinshiCollectionDialog
+      open={createOpen}
+      onOpenChange={setCreateOpen}
+      onSaved={(collection)=>{void addCreatedCollection(collection)}}
+    />
+    </>
   );
 }

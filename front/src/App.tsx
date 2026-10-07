@@ -11,6 +11,7 @@ const ProtectedLayout = lazy(() => import('./components/Protection/ProtectedLayo
 const Home = lazy(() => import('./pages/Home/Home'));
 const Serie = lazy(() => import('./pages/Serie/Serie'));
 const Library = lazy(() => import('./pages/Library/Library'));
+const DoujinshiCollection = lazy(() => import('./pages/DoujinshiCollection/DoujinshiCollection'));
 const Words = lazy(() => import('./pages/Words/Words'));
 const Stats = lazy(() => import('./pages/Stats/Stats'));
 const Calendar = lazy(() => import('./pages/History/pages/Calendar'));
@@ -42,6 +43,7 @@ function App() {
                         <Route path="manga" element={<Suspense fallback={<RouteFallback/>}><Library variant="manga"/></Suspense>}/>
                         <Route path="novels" element={<Suspense fallback={<RouteFallback/>}><Library variant="novela"/></Suspense>}/>
                         <Route path="doujinshi" element={<Suspense fallback={<RouteFallback/>}><Library variant="doujinshi"/></Suspense>}/>
+                        <Route path="doujinshi/collections/:collectionId" element={<Suspense fallback={<RouteFallback/>}><DoujinshiCollection/></Suspense>}/>
                         <Route path="artbooks" element={<Suspense fallback={<RouteFallback/>}><Library variant="artbook"/></Suspense>}/>
                     </Route>
                     <Route path="series/:id" element={<Suspense fallback={<RouteFallback/>}><Serie/></Suspense>}/>

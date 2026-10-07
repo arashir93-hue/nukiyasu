@@ -26,6 +26,7 @@ import {AlphabetStrip} from "./components/AlphabetStrip";
 import {LibraryGridSkeleton} from "./components/LibraryGridSkeleton";
 import {LibraryFiltersPopover} from "./components/LibraryFiltersPopover";
 import {activeFilterCount, sortOptions} from "./components/libraryFilterUtils";
+import {DoujinshiLibrarySections} from "./components/DoujinshiLibrarySections";
 
 interface LibraryProps {
     variant: LibraryVariant;
@@ -231,6 +232,8 @@ function Library({variant}:LibraryProps):React.ReactElement {
             </div>
 
             <div className="flex flex-1 flex-col">
+                {variant === "doujinshi" ? <DoujinshiLibrarySections /> : null}
+                {variant === "doujinshi" ? <h2 className="px-4 pt-8 text-base font-semibold text-fg lg:px-6">Todos</h2> : null}
                 {isLoading ? <LibraryGridSkeleton count={Math.min(parseInt(filters.limit), 25)} /> : null}
 
                 {isError ? (
