@@ -25,6 +25,7 @@ import {UserwordsModule} from "./userwords/userwords.module";
 import {InvisModule} from "./invis/invis.module";
 import {ContentAccessModule} from "./content-access/content-access.module";
 import {NihongoTrackerModule} from "./nihongo-tracker/nihongo-tracker.module";
+import {DoujinshiFavoritesModule} from "./doujinshi-favorites/doujinshi-favorites.module";
 
 @Module({
     imports: [
@@ -65,7 +66,8 @@ import {NihongoTrackerModule} from "./nihongo-tracker/nihongo-tracker.module";
         UserwordsModule,
         InvisModule,
         ContentAccessModule,
-        NihongoTrackerModule
+        NihongoTrackerModule,
+        DoujinshiFavoritesModule
     ],
 
     controllers: [AppController],
