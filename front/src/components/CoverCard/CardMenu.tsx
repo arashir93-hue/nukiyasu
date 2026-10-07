@@ -371,10 +371,12 @@ function SerieCardMenu({serie, unreadBooks, onUnreadChanged, organization}:Extra
   }, [organization?.isFavorite]);
 
   const favoriteMutation = useMutation({
-    mutationFn: ()=>isFavorite ? removeDoujinshiFavorite(serie._id) : addDoujinshiFavorite(serie._id),
-    onMutate:()=>{
+    mutationFn: (desiredState:boolean)=>desiredState
+      ? addDoujinshiFavorite(serie._id)
+      : removeDoujinshiFavorite(serie._id),
+    onMutate:(desiredState:boolean)=>{
       const previous = isFavorite;
-      setIsFavorite(!previous);
+      setIsFavorite(desiredState);
       return previous;
     },
     onSuccess:()=>{
@@ -388,7 +390,8 @@ function SerieCardMenu({serie, unreadBooks, onUnreadChanged, organization}:Extra
 
   function toggleFavorite():void {
     if (favoriteMutation.isPending || serie.variant !== "doujinshi" || !organization) return;
-    favoriteMutation.mutate();
+    const desiredState = !isFavorite;
+    favoriteMutation.mutate(desiredState);
   }
 
   async function readNext(): Promise<void> {
