@@ -4,6 +4,7 @@ import {Model, Types} from "mongoose";
 import {ContentAccessPolicy, ContentAccessService} from "../content-access/content-access.service";
 import {Serie, SerieDocument} from "../series/schemas/series.schema";
 import {DoujinshiFavorite, DoujinshiFavoriteDocument} from "./schemas/doujinshi-favorite.schema";
+import {serieCoverStages} from "../series/helpers/serie-cover-stages";
 
 export interface FavoriteStatus {
     isFavorite: boolean;
@@ -97,7 +98,8 @@ export class DoujinshiFavoritesService {
             {$sort: {createdAt: -1, _id: -1}},
             {$skip: (safePage - 1) * safeLimit},
             {$limit: safeLimit},
-            {$replaceRoot: {newRoot: "$serieInfo"}}
+            {$replaceRoot: {newRoot: "$serieInfo"}},
+            ...serieCoverStages()
         ]);
 
         const total = countResult[0]?.total || 0;

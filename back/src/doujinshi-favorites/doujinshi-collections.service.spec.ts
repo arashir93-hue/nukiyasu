@@ -234,6 +234,8 @@ describe("DoujinshiCollectionsService", () => {
             "serieInfo.variant":"doujinshi"
         }});
         expect(itemModel.aggregate.mock.calls[1][0]).toContainEqual({$skip:2});
+        expect(itemModel.aggregate.mock.calls[1][0]).toContainEqual(expect.objectContaining({$lookup:expect.objectContaining({from:"books"})}));
+        expect(JSON.stringify(itemModel.aggregate.mock.calls[1][0])).toContain("thumbnailPath");
     });
 
     it("batch devuelve únicamente colecciones propias y visibles, sin N+1", async() => {

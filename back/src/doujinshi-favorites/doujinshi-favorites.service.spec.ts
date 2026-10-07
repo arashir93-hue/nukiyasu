@@ -70,6 +70,31 @@ describe("DoujinshiFavoritesService", () => {
         );
     });
 
+    it("mantiene el favorito al consultarlo después de guardarlo", async() => {
+        const savedFavorites: Array<{user:Types.ObjectId; serie:Types.ObjectId}> = [];
+        favoriteModel.findOneAndUpdate.mockImplementation(async(filter:{user:Types.ObjectId; serie:Types.ObjectId}) => {
+            if (!savedFavorites.some(item => item.user.equals(filter.user) && item.serie.equals(filter.serie))) {
+                savedFavorites.push(filter);
+            }
+            return savedFavorites[savedFavorites.length - 1];
+        });
+        seriesModel.find.mockResolvedValue([{_id:normalDoujinshi}]);
+        favoriteModel.find.mockImplementation(async() => savedFavorites.map(item => ({serie:item.serie})));
+
+        await service.addFavorite(userA, normalDoujinshi, policy);
+        const status = await service.batchStatus(userA, [normalDoujinshi], policy);
+
+        favoriteModel.aggregate
+            .mockResolvedValueOnce([{total:1}])
+            .mockResolvedValueOnce([{_id:normalDoujinshi, variant:"doujinshi", thumbnailPath:"Serie/v01/001.jpg"}]);
+        const listed = await service.listFavorites(userA, policy);
+
+        expect(status[normalDoujinshi.toString()]).toEqual({isFavorite:true});
+        expect(listed.data).toEqual([{_id:normalDoujinshi, variant:"doujinshi", thumbnailPath:"Serie/v01/001.jpg"}]);
+        expect(savedFavorites).toHaveLength(1);
+        expect(savedFavorites[0]).toEqual({user:userA, serie:normalDoujinshi});
+    });
+
     it("no acepta series no doujinshi, inexistentes, missing u ocultas", async() => {
         for (const id of [manga, missingDoujinshi, matureDoujinshi]) {
             seriesModel.exists.mockResolvedValueOnce(null);
@@ -130,6 +155,8 @@ describe("DoujinshiFavoritesService", () => {
             "serieInfo.variant":"doujinshi"
         }});
         expect(favoriteModel.aggregate.mock.calls[1][0]).toContainEqual({$skip:2});
+        expect(favoriteModel.aggregate.mock.calls[1][0]).toContainEqual(expect.objectContaining({$lookup:expect.objectContaining({from:"books"})}));
+        expect(JSON.stringify(favoriteModel.aggregate.mock.calls[1][0])).toContain("thumbnailPath");
         expect(favoriteModel.aggregate.mock.calls[1][0]).toContainEqual({$limit:2});
     });
 

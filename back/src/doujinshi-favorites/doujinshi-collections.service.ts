@@ -7,6 +7,7 @@ import {CreateDoujinshiCollectionDto} from "./dto/create-doujinshi-collection.dt
 import {UpdateDoujinshiCollectionDto} from "./dto/update-doujinshi-collection.dto";
 import {DoujinshiCollection, DoujinshiCollectionDocument} from "./schemas/doujinshi-collection.schema";
 import {DoujinshiCollectionItem, DoujinshiCollectionItemDocument} from "./schemas/doujinshi-collection-item.schema";
+import {serieCoverStages} from "../series/helpers/serie-cover-stages";
 
 export interface CollectionItemStatus {
     isInCollection: boolean;
@@ -240,7 +241,8 @@ export class DoujinshiCollectionsService {
             {$sort: {addedAt: -1, _id: -1}},
             {$skip: (safePage - 1) * safeLimit},
             {$limit: safeLimit},
-            {$replaceRoot: {newRoot: "$serieInfo"}}
+            {$replaceRoot: {newRoot: "$serieInfo"}},
+            ...serieCoverStages()
         ]);
         const total = countResult[0]?.total || 0;
         return {data, pages: Math.ceil(total / safeLimit)};

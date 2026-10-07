@@ -12,7 +12,7 @@ async function request<TResponse>(url:string, config:RequestInit):Promise<TRespo
                 try {
                     await checkRefreshToken();
                     const responseSecondTry = await fetch(`/api/${url}`, config);
-                    if (responseSecondTry) {
+                    if (responseSecondTry.ok) {
                         return responseSecondTry.json() as TResponse;
                     }
                 } catch {
@@ -31,7 +31,7 @@ async function request<TResponse>(url:string, config:RequestInit):Promise<TRespo
                 if (!url.includes("auth") && !url.includes("invis")) {
                     await checkRefreshToken();
                     const responseSecondTry = await fetch(`/api/${url}`, config);
-                    if (responseSecondTry) {
+                    if (responseSecondTry.ok) {
                         return responseSecondTry.json() as TResponse;
                     }
                     toast.error("Debes estar autenticado para ejecutar esta acción");
