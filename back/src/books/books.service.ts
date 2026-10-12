@@ -252,6 +252,14 @@ export class BooksService {
       return this.bookModel.findByIdAndUpdate(id, updateBook, {new:true});
   }
 
+  async setThumbnailVersion(id:Types.ObjectId, thumbnailVersion:string) {
+      return this.bookModel.findByIdAndUpdate(
+          id,
+          {$set:{thumbnailVersion}},
+          {new:false}
+      );
+  }
+
   /**
    * Convierte un tomo de imágenes en tomo de mokuro al aparecer su html.
    * Conserva el nombre visible y la ordenación que tuviera el tomo.
@@ -280,6 +288,7 @@ export class BooksService {
       const readingBooks = serieBooks.filter(x=>x.status === "reading");
       let currentBook:Types.ObjectId | undefined = undefined;
       let thumbnail:string | undefined;
+      let thumbnailVersion:string | undefined;
 
       const paused = serieBooks.some(x=>{
           if (!x.lastProgress) return;
@@ -288,6 +297,7 @@ export class BooksService {
 
       if (readingBooks.length > 0) {
           thumbnail = isImageBasedVariant(variant) ?  `${readingBooks[0].seriePath}/${readingBooks[0].imagesFolder}/${readingBooks[0].thumbnailPath}` : `${readingBooks[0].seriePath}/${readingBooks[0].thumbnailPath}`;
+          thumbnailVersion = readingBooks[0].thumbnailVersion;
           currentBook = readingBooks[0]._id;
 
           if (readingBooks[0].mokured) {
@@ -297,6 +307,7 @@ export class BooksService {
       else if (unreadBooks.length === 0) {
           if (serieBooks.length > 0) {
               thumbnail = isImageBasedVariant(variant) ?  `${serieBooks[0].seriePath}/${serieBooks[0].imagesFolder}/${serieBooks[0].thumbnailPath}` : `${serieBooks[0].seriePath}/${serieBooks[0].thumbnailPath}`;
+              thumbnailVersion = serieBooks[0].thumbnailVersion;
               currentBook = serieBooks[0]._id;
 
               if (serieBooks[0].mokured) {
@@ -305,6 +316,7 @@ export class BooksService {
           }
       } else {
           thumbnail = isImageBasedVariant(variant) ?  `${unreadBooks[0].seriePath}/${unreadBooks[0].imagesFolder}/${unreadBooks[0].thumbnailPath}` : `${unreadBooks[0].seriePath}/${unreadBooks[0].thumbnailPath}`;
+          thumbnailVersion = unreadBooks[0].thumbnailVersion;
           currentBook = unreadBooks[0]._id;
 
           if (unreadBooks[0].mokured) {
@@ -316,6 +328,7 @@ export class BooksService {
           return {
               unreadBooks:unreadBooks.length,
               thumbnailPath:thumbnail,
+              thumbnailVersion,
               currentBook,
               type:"serie",
               paused

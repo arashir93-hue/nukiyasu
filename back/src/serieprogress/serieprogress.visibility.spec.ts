@@ -69,4 +69,19 @@ describe("Serieprogress mature visibility", () => {
         ).rejects.toBeInstanceOf(NotFoundException);
         expect(serieProgressService.pauseSerie).not.toHaveBeenCalled();
     });
+
+    it("propaga la versión de la miniatura elegida para la serie", () => {
+        const service = new SerieprogressService({} as Model<SerieProgress>, {} as ContentAccessService);
+        const result = service.getSerieProgress(
+            {bookCount:1, variant:"manga", serieprogress:undefined} as never,
+            [{
+                seriePath:"AIR",
+                imagesFolder:"AIRV01",
+                thumbnailPath:"001.jpg",
+                thumbnailVersion:"123:456",
+            }] as never
+        );
+
+        expect(result.thumbnailVersion).toBe("123:456");
+    });
 });

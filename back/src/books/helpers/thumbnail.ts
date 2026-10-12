@@ -32,6 +32,24 @@ export function thumbnailRelativePath(sourceRelativePath: string): string {
 }
 
 /**
+ * Token estable para invalidar la caché de una miniatura. Solo se consulta
+ * durante el reescaneo, nunca durante el renderizado de una portada.
+ */
+export async function getThumbnailVersion(
+    exteriorRoot: string,
+    sourceRelativePath: string
+): Promise<string | null> {
+    const targetPath = join(exteriorRoot, thumbnailRelativePath(sourceRelativePath));
+
+    try {
+        const stat = await fs.stat(targetPath);
+        return `${stat.mtimeMs}:${stat.size}`;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Genera la miniatura de una portada si no existe o si la original es más
  * reciente. Es idempotente y está pensada para ejecutarse en cada rescan.
  */

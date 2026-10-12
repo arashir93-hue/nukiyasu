@@ -27,6 +27,7 @@ export interface Book {
     sortName: string,
     imagesFolder: string,
     thumbnailPath: string,
+    thumbnailVersion?: string,
     createdDate: Date,
     releaseDate?:Date,
     missing: boolean,

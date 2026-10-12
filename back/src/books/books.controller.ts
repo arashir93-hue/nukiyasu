@@ -10,7 +10,7 @@ import {UsersService} from "../users/users.service";
 import {WebsocketsGateway} from "../websockets/websockets.gateway";
 import {UpdateBookDto, UpdateCoverDto} from "./dto/update-book.dto";
 import {getCharacterCount, getNovelCharacterCount} from "./helpers/helpers";
-import {ensureThumbnail} from "./helpers/thumbnail";
+import {ensureThumbnail, getThumbnailVersion} from "./helpers/thumbnail";
 import {resolveInside, streamFileToResponse, streamZipToResponse} from "./helpers/zipDownload";
 import {join} from "path";
 import * as path from "path";
@@ -158,7 +158,10 @@ export class BooksController {
         await fs.writeFile(cover, image);
 
         // Regenera la miniatura para que la nueva portada se vea al momento
-        await ensureThumbnail(mainFolderPath, join("novelas", foundBook.seriePath, foundBook.path + ".jpg"));
+        const coverPath = join("novelas", foundBook.seriePath, foundBook.path + ".jpg");
+        await ensureThumbnail(mainFolderPath, coverPath);
+        const thumbnailVersion = await getThumbnailVersion(mainFolderPath, coverPath);
+        if (thumbnailVersion) await this.booksService.setThumbnailVersion(book, thumbnailVersion);
 
         return {status:"ok"};
     }

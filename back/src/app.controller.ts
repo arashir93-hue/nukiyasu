@@ -93,6 +93,7 @@ export class AppController {
             policy
         );
 
-        sendStaticFile(res, "./../exterior", libraryPath.relativePath);
+        const cacheVersion = typeof req.query?.v === "string" && req.query?.v.length > 0;
+        sendStaticFile(res, "./../exterior", libraryPath.relativePath, false, cacheVersion);
     }
 }

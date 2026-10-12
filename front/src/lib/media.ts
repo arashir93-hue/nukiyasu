@@ -4,22 +4,28 @@ import {isImageBasedVariant, libraryFolderForVariant} from "../types/library";
 
 /** URLs de miniaturas y páginas estáticas (unificadas y sin duplicar lógica). */
 
+function versioned(url:string, version?:string):string {
+  if (!version) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}v=${encodeURIComponent(version)}`;
+}
+
 export function bookThumbnail(book: Book): string {
   if (book.mokured) {
-    return `/api/static/novelas/${book.seriePath}/${book.imagesFolder}/${book.thumbnailPath}`;
+    return versioned(`/api/static/novelas/${book.seriePath}/${book.imagesFolder}/${book.thumbnailPath}`, book.thumbnailVersion);
   }
 
   if (isImageBasedVariant(book.variant)) {
-    return `/api/static/${libraryFolderForVariant(book.variant)}/${book.seriePath}/${book.imagesFolder}/${book.thumbnailPath}`;
+    return versioned(`/api/static/${libraryFolderForVariant(book.variant)}/${book.seriePath}/${book.imagesFolder}/${book.thumbnailPath}`, book.thumbnailVersion);
   }
 
-  return `/api/static/novelas/${book.seriePath}/${book.thumbnailPath}`;
+  return versioned(`/api/static/novelas/${book.seriePath}/${book.thumbnailPath}`, book.thumbnailVersion);
 }
 
 export function serieThumbnail(serie: SerieWithProgress | Serie): string {
-  return isImageBasedVariant(serie.variant)
+  const url = isImageBasedVariant(serie.variant)
     ? `/api/static/${libraryFolderForVariant(serie.variant)}/${serie.thumbnailPath}`
     : `/api/static/novelas/${serie.thumbnailPath}`;
+  return versioned(url, serie.thumbnailVersion);
 }
 
 /** Clave de localStorage donde mokuro persiste el estado del volumen. */

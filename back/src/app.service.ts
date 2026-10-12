@@ -5,7 +5,7 @@ import {join, extname} from "path";
 import * as fs from "fs";
 import {BooksService} from "./books/books.service";
 import {extractUrlFromHtml, getCharacterCount, getNovelCharacterCount, getNovelCover, listImageFiles} from "./books/helpers/helpers";
-import {ensureThumbnails} from "./books/helpers/thumbnail";
+import {ensureThumbnail, getThumbnailVersion} from "./books/helpers/thumbnail";
 import {Book} from "./books/schemas/book.schema";
 import {WebsocketsGateway} from "./websockets/websockets.gateway";
 import {InjectQueue} from "@nestjs/bull";
@@ -339,7 +339,8 @@ export class AppService {
           }
 
           // Genera las miniaturas de portada que falten (incluidos libros ya existentes)
-          await this.ensureLibraryThumbnails(variant);
+          const thumbnailsChanged = await this.ensureLibraryThumbnails(variant);
+          areChanges = thumbnailsChanged || areChanges;
 
           // Marca los libros no encontrados como desaparecidos
           if (booksToMarkAsDeleted.length > 0) {
@@ -518,7 +519,8 @@ export class AppService {
           }
 
           // Genera las miniaturas de portada que falten (incluidos libros ya existentes)
-          await this.ensureLibraryThumbnails("novela");
+          const thumbnailsChanged = await this.ensureLibraryThumbnails("novela");
+          areChanges = thumbnailsChanged || areChanges;
 
           // Marca los libros no encontrados como desaparecidos
           if (booksToMarkAsDeleted.length > 0) {
@@ -607,26 +609,50 @@ export class AppService {
    * estén desactualizadas) para todos los libros de la biblioteca. Se ejecuta
    * en cada rescan y es idempotente.
    */
-  private async ensureLibraryThumbnails(variant:LibraryVariant) {
-      const books = await this.booksService.findNonMissing(variant);
+  private async ensureLibraryThumbnails(variant:LibraryVariant):Promise<boolean> {
+      const books = await this.booksService.findAvailable(variant);
       const exteriorRoot = join(process.cwd(), "..", "exterior");
 
-      const sourcePaths = books
-          .map((book) => this.coverRelativePath(book))
-          .filter((sourcePath): sourcePath is string => Boolean(sourcePath));
+      const booksWithSources = books
+          .map((book) => ({book, sourcePath:this.coverRelativePath(book)}))
+          .filter((item): item is {book:Book & {_id:NonNullable<Book["_id"]>}; sourcePath:string} => Boolean(item.sourcePath && item.book._id));
 
-      if (sourcePaths.length === 0) return;
+      const sourcePaths = booksWithSources.map((item) => item.sourcePath);
+
+      if (sourcePaths.length === 0) return false;
 
       this.logger.log(`\x1b[34mRevisando miniaturas de ${variant} (${sourcePaths.length} portadas)...`);
 
-      const result = await ensureThumbnails(exteriorRoot, sourcePaths);
+      const counters = {created:0, skipped:0, missing:0, failed:0};
+      let versionsChanged = false;
 
-      if (result.created > 0 || result.failed > 0) {
+      let next = 0;
+      const worker = async() => {
+          while (next < booksWithSources.length) {
+              const {book, sourcePath} = booksWithSources[next++];
+              const result = await ensureThumbnail(exteriorRoot, sourcePath);
+              counters[result]++;
+
+              const version = await getThumbnailVersion(exteriorRoot, sourcePath);
+              if (version && version !== book.thumbnailVersion) {
+                  await this.booksService.setThumbnailVersion(book._id, version);
+                  versionsChanged = true;
+              }
+          }
+      };
+
+      await Promise.all(
+          Array.from({length:Math.min(4, booksWithSources.length)}, worker)
+      );
+
+      if (counters.created > 0 || counters.failed > 0) {
           this.logger.log(
-              `\x1b[34mMiniaturas de ${variant}: ${result.created} generadas, ` +
-              `${result.skipped} al día, ${result.missing} sin original, ${result.failed} fallidas`
+              `\x1b[34mMiniaturas de ${variant}: ${counters.created} generadas, ` +
+              `${counters.skipped} al día, ${counters.missing} sin original, ${counters.failed} fallidas`
           );
       }
+
+      return versionsChanged;
   }
 
   /** Loggea los libros nuevos que fallaron durante un escaneo. */

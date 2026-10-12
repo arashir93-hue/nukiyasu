@@ -26,10 +26,17 @@ class StaticUrls @Inject constructor(
         return builder.build()
     }
 
+    private fun versioned(url: HttpUrl?, version: String?): HttpUrl? {
+        if (url == null || version.isNullOrBlank()) return url
+        return url.newBuilder()
+            .addQueryParameter("v", version)
+            .build()
+    }
+
     fun serieCover(serie: Serie): HttpUrl? {
         val thumbnailPath = serie.thumbnailPath ?: return null
         val folder = serie.variant?.staticFolder ?: "mangas"
-        return url("$folder/$thumbnailPath")
+        return versioned(url("$folder/$thumbnailPath"), serie.thumbnailVersion)
     }
 
     fun bookCover(book: Book): HttpUrl? {
@@ -40,15 +47,15 @@ class StaticUrls @Inject constructor(
             Variant.Novela -> {
                 val imagesFolder = book.imagesFolder
                 if (book.isMokured && imagesFolder != null) {
-                    url("${book.variant.staticFolder}/$seriePath/$imagesFolder/$thumbnailPath")
+                    versioned(url("${book.variant.staticFolder}/$seriePath/$imagesFolder/$thumbnailPath"), book.thumbnailVersion)
                 } else {
-                    url("${book.variant.staticFolder}/$seriePath/$thumbnailPath")
+                    versioned(url("${book.variant.staticFolder}/$seriePath/$thumbnailPath"), book.thumbnailVersion)
                 }
             }
             else -> {
                 val imagesFolder = book.imagesFolder ?: return null
                 val folder = book.variant?.staticFolder ?: "mangas"
-                url("$folder/$seriePath/$imagesFolder/$thumbnailPath")
+                versioned(url("$folder/$seriePath/$imagesFolder/$thumbnailPath"), book.thumbnailVersion)
             }
         }
     }

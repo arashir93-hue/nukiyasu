@@ -96,12 +96,14 @@ export class SerieprogressService {
         const result: {
             unreadBooks:number,
             thumbnailPath:string,
+            thumbnailVersion?:string,
             currentBook:Book,
             type:"serie",
             paused:boolean
         } = {
             unreadBooks:serieData.bookCount,
             thumbnailPath:isImageBasedVariant(serieData.variant) ? `${serieBooks[0].seriePath}/${serieBooks[0].imagesFolder}/${serieBooks[0].thumbnailPath}` : `${serieBooks[0].seriePath}/${serieBooks[0].thumbnailPath}`,
+            thumbnailVersion:serieBooks[0].thumbnailVersion,
             currentBook:serieBooks[0],
             type:"serie",
             paused:false
@@ -136,6 +138,7 @@ export class SerieprogressService {
         result.unreadBooks = unreadBooks.length;
         const currentBook = unreadBooks[0];
         result.currentBook = currentBook;
+        result.thumbnailVersion = currentBook.thumbnailVersion;
         result.thumbnailPath = isImageBasedVariant(serieData.variant) ? `${currentBook.seriePath}/${currentBook.imagesFolder}/${currentBook.thumbnailPath}` : `${currentBook.seriePath}/${currentBook.thumbnailPath}`;
 
         if (currentBook.mokured) {

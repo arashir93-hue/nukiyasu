@@ -17,6 +17,7 @@ export interface Serie {
     missing: false;
     status: string;
     thumbnailPath: string;
+    thumbnailVersion?: string;
     currentBook:string;
     valoration:number;
     alternativeNames: string[];

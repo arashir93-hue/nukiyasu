@@ -15,19 +15,22 @@ export function serieCoverStages():PipelineStage[] {
                 {$match:{missing:{$ne:true}}},
                 {$sort:{sortName:1, _id:1}},
                 {$limit:1},
-                {$project:{seriePath:1, imagesFolder:1, thumbnailPath:1}}
+                {$project:{seriePath:1, imagesFolder:1, thumbnailPath:1, thumbnailVersion:1}}
             ]
         }},
         {$unwind:{path:"$coverBook", preserveNullAndEmptyArrays:true}},
-        {$set:{thumbnailPath:{$cond:[
-            {$and:[
-                {$ne:["$coverBook.seriePath", null]},
-                {$ne:["$coverBook.imagesFolder", null]},
-                {$ne:["$coverBook.thumbnailPath", null]}
+        {$set:{
+            thumbnailPath:{$cond:[
+                {$and:[
+                    {$ne:["$coverBook.seriePath", null]},
+                    {$ne:["$coverBook.imagesFolder", null]},
+                    {$ne:["$coverBook.thumbnailPath", null]}
+                ]},
+                {$concat:["$coverBook.seriePath", "/", "$coverBook.imagesFolder", "/", "$coverBook.thumbnailPath"]},
+                "$thumbnailPath"
             ]},
-            {$concat:["$coverBook.seriePath", "/", "$coverBook.imagesFolder", "/", "$coverBook.thumbnailPath"]},
-            "$thumbnailPath"
-        ]}}},
+            thumbnailVersion:"$coverBook.thumbnailVersion"
+        }},
         {$project:{coverBook:0}}
     ];
 }

@@ -105,4 +105,17 @@ class StaticUrlsTest {
             urls.serieCover(serie)?.toString(),
         )
     }
+
+    @Test
+    fun `cover url includes stable thumbnail version when provided`() {
+        val imageBook = book(
+            """{"_id":"b5","visibleName":"Vol 5","variant":"manga","seriePath":"Serie",
+               "imagesFolder":"Vol 5","thumbnailPath":"001.jpg","thumbnailVersion":"123.5:456"}""",
+        )
+
+        assertEquals(
+            "https://example.test/api/static/mangas/Serie/Vol%205/001.jpg?v=123.5%3A456",
+            urls.bookCover(imageBook)?.toString(),
+        )
+    }
 }

@@ -7,6 +7,7 @@ export interface SerieWithProgress extends Serie {
     readlist:boolean;
     paused:boolean;
     thumbnailPath:string;
+    thumbnailVersion?:string;
     type?:string;
     totalCharacters?:number;
 }

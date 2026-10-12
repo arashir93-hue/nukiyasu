@@ -32,6 +32,10 @@ export class Book {
   @Prop({type: String, required: true})
   thumbnailPath: string;
 
+  /** Cambia únicamente cuando se regenera la miniatura asociada. */
+  @Prop({type: String})
+  thumbnailVersion?: string;
+
   @Prop({type: Date})
   releaseDate?: Date;
 

@@ -272,6 +272,7 @@ data class Serie(
     val paused: Boolean? = null,
     val readlist: ReadlistValue? = null,
     val thumbnailPath: String? = null,
+    val thumbnailVersion: String? = null,
     val currentBook: CurrentBook? = null,
     val reviews: List<Review>? = null,
     /** Las series antiguas sin este campo se consideran no maduras. */
@@ -308,6 +309,7 @@ data class Book(
     val sortName: String? = null,
     val imagesFolder: String? = null,
     val thumbnailPath: String? = null,
+    val thumbnailVersion: String? = null,
     val createdDate: String? = null,
     val releaseDate: String? = null,
     val lastModifiedDate: String? = null,

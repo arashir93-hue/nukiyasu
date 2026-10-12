@@ -67,9 +67,18 @@ export function sendStaticFile(
     res: Response,
     root: string,
     relativePath: string,
-    alreadyFellBack = false
+    alreadyFellBack = false,
+    versioned = false
 ): void {
-    res.sendFile(relativePath, {root}, (err?: Error) => {
+    // Las URLs versionadas son inmutables para el cliente: se puede conservar
+    // la caché sin riesgo de servir una miniatura anterior. Las rutas antiguas
+    // siguen siendo revalidables para no romper instalaciones existentes.
+    res.setHeader(
+        "Cache-Control",
+        versioned ? "private, max-age=31536000, immutable" : "private, no-cache"
+    );
+
+    res.sendFile(relativePath, {root, cacheControl:false}, (err?: Error) => {
         if (!err) return;
 
         if (res.headersSent) {
@@ -81,7 +90,7 @@ export function sendStaticFile(
 
         if (fallback) {
             res.setHeader("Cache-Control", "no-cache");
-            sendStaticFile(res, root, fallback, true);
+            sendStaticFile(res, root, fallback, true, false);
             return;
         }
 

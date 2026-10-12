@@ -17,6 +17,7 @@ describe("Static library mature visibility", () => {
     function createResponse() {
         return {
             headersSent:false,
+            setHeader:jest.fn(),
             sendFile:jest.fn((_path, _options, callback) => callback()),
             sendStatus:jest.fn(),
             end:jest.fn()
@@ -69,7 +70,7 @@ describe("Static library mature visibility", () => {
         expect(contentAccess.assertStaticFileAccessible).toHaveBeenCalledWith("doujinshi", "Serie", policy);
         expect(response.sendFile).toHaveBeenCalledWith(
             "/doujinshi/Serie/vol01/001.jpg",
-            {root:"./../exterior"},
+            {root:"./../exterior", cacheControl:false},
             expect.any(Function)
         );
     });
@@ -97,8 +98,27 @@ describe("Static library mature visibility", () => {
         );
         expect(response.sendFile).toHaveBeenCalledWith(
             "/mangas/Normal/cover.jpg",
-            {root:"./../exterior"},
+            {root:"./../exterior", cacheControl:false},
             expect.any(Function)
+        );
+    });
+
+    it("permite cache larga únicamente en una ruta versionada", async() => {
+        const contentAccess = {
+            forUser:jest.fn().mockResolvedValue(policy),
+            assertStaticFileAccessible:jest.fn().mockResolvedValue(undefined)
+        };
+        const controller = createController(contentAccess);
+        const response = createResponse();
+
+        await controller.serveFiles(
+            {user:{userId}, path:"/api/static/thumbnails/mangas/Normal/001.webp", query:{v:"123:456"}} as unknown as Request,
+            response
+        );
+
+        expect(response.setHeader).toHaveBeenCalledWith(
+            "Cache-Control",
+            "private, max-age=31536000, immutable"
         );
     });
 
