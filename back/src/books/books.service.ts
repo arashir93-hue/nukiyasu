@@ -270,10 +270,34 @@ export class BooksService {
       pages: number;
       characters: number;
       pageChars: number[];
+      sourceVersion?: string;
   }): Promise<BookDocument | null> {
       return this.bookModel.findByIdAndUpdate(
           id,
-          {...fields, format: "mokuro", lastModifiedDate: new Date()},
+          {$set:{...fields, format: "mokuro", missing:false, lastModifiedDate: new Date()}},
+          {new: true}
+      );
+  }
+
+  async refreshMokuro(id:Types.ObjectId, fields: {
+      imagesFolder: string;
+      thumbnailPath: string;
+      pages: number;
+      characters: number;
+      pageChars: number[];
+      sourceVersion: string;
+  }): Promise<BookDocument | null> {
+      return this.bookModel.findByIdAndUpdate(
+          id,
+          {$set:{...fields, format: "mokuro", missing:false}},
+          {new: true}
+      );
+  }
+
+  async markMokuroPresent(id:Types.ObjectId, sourceVersion:string): Promise<BookDocument | null> {
+      return this.bookModel.findByIdAndUpdate(
+          id,
+          {$set:{sourceVersion, missing:false}},
           {new: true}
       );
   }
@@ -376,6 +400,7 @@ export class BooksService {
       variant:LibraryVariant;
       pageChars?:number[];
       format?:"mokuro" | "images";
+      sourceVersion?:string;
   }): Promise<Book | null> {
       const found = await this.bookModel.findOne({path: newBook.path, variant:newBook.variant});
 
@@ -388,9 +413,16 @@ export class BooksService {
           this.logger.log(
               "\x1b[34m" + newBook.path + " restaurada a la biblioteca"
           );
+          const physicalFields:Record<string, unknown> = {missing:false};
+          for (const field of ["imagesFolder", "pages", "characters", "thumbnailPath", "pageChars", "format", "sourceVersion"] as const) {
+              const value = newBook[field];
+              if (value !== undefined) physicalFields[field] = value;
+          }
+
           return this.bookModel.findOneAndUpdate(
               {path: newBook.path, variant:newBook.variant},
-              {missing: false}
+              {$set:physicalFields},
+              {new:true}
           );
       }
       // Si no existe, crearlo
@@ -404,6 +436,11 @@ export class BooksService {
 
   findAvailable(variant:LibraryVariant): Promise<Book[]> {
       return this.bookModel.find({missing:{$ne:true}, variant});
+  }
+
+  /** Todos los libros de una variante, incluidos los marcados como missing. */
+  findForScan(variant:LibraryVariant): Promise<Book[]> {
+      return this.bookModel.find({variant});
   }
 
   findMissing(variant:LibraryVariant): Promise<Book[]> {

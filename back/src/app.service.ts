@@ -4,7 +4,8 @@ import {Cron} from "@nestjs/schedule";
 import {join, extname} from "path";
 import * as fs from "fs";
 import {BooksService} from "./books/books.service";
-import {extractUrlFromHtml, getCharacterCount, getNovelCharacterCount, getNovelCover, listImageFiles} from "./books/helpers/helpers";
+import {extractUrlFromHtml, getCharacterCount, getMokuroSourceVersion, getNovelCharacterCount, getNovelCover, listImageFiles} from "./books/helpers/helpers";
+import {decideMokuroSync, getReferencedImageFolders} from "./books/helpers/mokuro";
 import {ensureThumbnail, getThumbnailVersion} from "./books/helpers/thumbnail";
 import {Book} from "./books/schemas/book.schema";
 import {WebsocketsGateway} from "./websockets/websockets.gateway";
@@ -187,61 +188,65 @@ export class AppService {
           // FIN PROCESO DE SERIES
 
           // INICIO PROCESO DE LIBROS
-          // Busca todos los libros no marcados como desaparecidos de la base de datos
-          const savedBooks = await this.booksService.findNonMissing(variant);
+          // Incluye también libros missing para poder reactivar el mismo documento
+          // cuando reaparece su HTML, conservando progreso e historial.
+          const savedBooks = await this.booksService.findForScan(variant);
 
           const savedBookNames = new Set(savedBooks.map((book) => book.path));
+          const savedBooksByPath = new Map(savedBooks.map((book) => [book.path, book]));
           const existingHtmlBookNames = new Set(existingBooks.map((book) => book.bookName));
 
           // Carpetas de imágenes referenciadas por un html (mokuro): no son
           // tomos por sí mismas, sino las páginas de ese html. Los tomos de
           // imágenes no cuentan: su carpeta es su propio contenido.
-          const referencedImageFolders = new Set<string>(
-              savedBooks
-                  .filter((book) => book.format !== "images" && book.imagesFolder)
-                  .map((book) => `${book.seriePath}/${book.imagesFolder}`)
-          );
+          const referencedImageFolders = getReferencedImageFolders(savedBooks);
 
-          // Filtra los libros nuevos (html)
-          const booksToAddInDb = existingBooks.filter(
-              (value) => !savedBookNames.has(value.bookName)
-          );
-
-          // Añade los libros nuevos a la base de datos
-          if (booksToAddInDb.length > 0) {
-              this.logger.log("\x1b[34mEncontrados libros nuevos");
-              areChanges = true;
-
-              const addResults = await Promise.allSettled(booksToAddInDb.map(async(elem) => {
+          // Registra libros HTML nuevos y actualiza en el mismo documento los
+          // Mokuro existentes cuando cambia su origen físico.
+          if (existingBooks.length > 0) {
+              const htmlResults = await Promise.allSettled(existingBooks.map(async(elem) => {
                   if (!elem.bookPath) return;
 
                   const imagesFolder = await extractUrlFromHtml(elem.bookPath);
-
                   if (!imagesFolder) return;
 
-                  // Marca la carpeta como páginas de este html para que no se
-                  // registre también como tomo de imágenes
                   referencedImageFolders.add(`${elem.seriePath}/${imagesFolder.folderName}`);
+                  const sourceVersion = await getMokuroSourceVersion(elem.bookPath, imagesFolder.totalImages);
+                  const savedBook = savedBooksByPath.get(elem.bookName);
 
-                  const savedBook = savedBooks.find((book) => book.path === elem.bookName);
+                  if (savedBook?._id) {
+                      const action = decideMokuroSync(savedBook, {
+                          sourceVersion,
+                          pages: imagesFolder.totalImages,
+                          imagesFolder: imagesFolder.folderName,
+                          thumbnailPath: imagesFolder.thumbnailPath
+                      });
 
-                  if (savedBook) {
-                      // La carpeta era un tomo de imágenes y ahora tiene html:
-                      // se convierte en tomo de mokuro
-                      if (savedBook.format === "images" && savedBook._id) {
-                          const charData = await getCharacterCount(elem.bookPath);
+                      if (action === "unchanged") return;
+                      areChanges = true;
 
-                          this.logger.log(`\x1b[34m${elem.bookName} convertido a tomo de mokuro`);
-
-                          await this.booksService.convertToMokuro(savedBook._id, {
-                              imagesFolder: imagesFolder.folderName,
-                              thumbnailPath: imagesFolder.thumbnailPath,
-                              pages: imagesFolder.totalImages,
-                              characters: charData.total,
-                              pageChars: charData.pages
-                          });
+                      if (action === "baseline") {
+                          await this.booksService.markMokuroPresent(savedBook._id, sourceVersion);
+                          return;
                       }
 
+                      const charData = await getCharacterCount(elem.bookPath);
+                      const fields = {
+                          imagesFolder: imagesFolder.folderName,
+                          thumbnailPath: imagesFolder.thumbnailPath,
+                          pages: imagesFolder.totalImages,
+                          characters: charData.total,
+                          pageChars: charData.pages,
+                          sourceVersion
+                      };
+
+                      if (savedBook.format === "images") {
+                          this.logger.log(`\x1b[34m${elem.bookName} convertido a tomo de mokuro`);
+                          await this.booksService.convertToMokuro(savedBook._id, fields);
+                      } else {
+                          this.logger.log(`\x1b[34m${elem.bookName} actualizado desde Mokuro`);
+                          await this.booksService.refreshMokuro(savedBook._id, fields);
+                      }
                       return;
                   }
 
@@ -260,13 +265,15 @@ export class AppService {
                       pages: imagesFolder.totalImages,
                       characters: charData.total,
                       pageChars:charData.pages,
+                      sourceVersion,
                       variant,
                       format:"mokuro" as "mokuro" | "images"
                   };
+                  areChanges = true;
                   await this.booksService.updateOrCreate(newBook);
               }));
 
-              this.logFailedBooks(addResults, variant);
+              this.logFailedBooks(htmlResults, variant);
           }
 
           // Carpetas de imágenes sin html que las referencie: candidatas a tomo.
@@ -296,7 +303,7 @@ export class AppService {
           // Tomos de imágenes nuevos (sin colisión con un html del mismo nombre)
           const imageBooksToAdd = imageFolderCandidates.filter(
               (folder) =>
-                  !savedBookNames.has(folder.folderName) &&
+                  (!savedBookNames.has(folder.folderName) || missingBookFormats.has(folder.folderName)) &&
                   !existingHtmlBookNames.has(folder.folderName) &&
                   missingBookFormats.get(folder.folderName) !== "mokuro"
           );
@@ -304,6 +311,7 @@ export class AppService {
           // Filtra los libros a marcar como borrados
           const booksToMarkAsDeleted = savedBooks.filter(
               (value) =>
+                  value.missing !== true &&
                   !existingHtmlBookNames.has(value.path) &&
                   !imageBookNames.has(value.path)
           );

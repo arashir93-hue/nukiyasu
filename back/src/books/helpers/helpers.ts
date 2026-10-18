@@ -164,3 +164,12 @@ export async function extractUrlFromHtml(
 
     return null; // Return null if no match found
 }
+
+/**
+ * Firma barata del origen Mokuro. Permite detectar cambios en un HTML o en
+ * su número de imágenes sin volver a contar todos los caracteres japoneses.
+ */
+export async function getMokuroSourceVersion(bookPath:string, totalImages:number):Promise<string> {
+    const stat = await fs.stat(bookPath);
+    return `${stat.mtimeMs}:${stat.size}:${totalImages}`;
+}

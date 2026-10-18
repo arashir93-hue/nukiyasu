@@ -36,6 +36,10 @@ export class Book {
   @Prop({type: String})
   thumbnailVersion?: string;
 
+  /** Firma barata del HTML Mokuro y de su carpeta de imágenes. */
+  @Prop({type: String})
+  sourceVersion?: string;
+
   @Prop({type: Date})
   releaseDate?: Date;
 

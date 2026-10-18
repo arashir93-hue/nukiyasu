@@ -139,7 +139,41 @@ describe("BooksService mature visibility", () => {
 
         expect(findOneAndUpdate).toHaveBeenCalledWith(
             {path:"v01", variant:"manga"},
-            {missing:false}
+            {$set:{missing:false, characters:0, thumbnailPath:"001.jpg"}},
+            {new:true}
+        );
+    });
+
+    it("refresca un Mokuro conservando el mismo _id y metadatos de progreso", async() => {
+        const id = new Types.ObjectId();
+        const findByIdAndUpdate = jest.fn().mockResolvedValue({_id:id});
+        const service = new BooksService(
+            {findByIdAndUpdate} as unknown as Model<BookDocument>,
+            joinedSeriesMatch
+        );
+
+        await service.refreshMokuro(id, {
+            imagesFolder:"v01",
+            thumbnailPath:"001.jpg",
+            pages:168,
+            characters:1200,
+            pageChars:[10, 20],
+            sourceVersion:"200:40:168"
+        });
+
+        expect(findByIdAndUpdate).toHaveBeenCalledWith(
+            id,
+            {$set:{
+                imagesFolder:"v01",
+                thumbnailPath:"001.jpg",
+                pages:168,
+                characters:1200,
+                pageChars:[10, 20],
+                sourceVersion:"200:40:168",
+                format:"mokuro",
+                missing:false
+            }},
+            {new:true}
         );
     });
 });
