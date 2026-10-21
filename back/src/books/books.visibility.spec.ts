@@ -35,6 +35,84 @@ describe("BooksService mature visibility", () => {
         })
     } as unknown as ContentAccessService;
 
+    function createService(bookAggregate:ReturnType<typeof createAggregate>) {
+        return new BooksService(
+            {aggregate:jest.fn().mockReturnValue(bookAggregate)} as unknown as Model<BookDocument>,
+            joinedSeriesMatch
+        );
+    }
+
+    function paginationStages(bookAggregate:ReturnType<typeof createAggregate>) {
+        return bookAggregate.stages.filter((stage:Record<string, unknown>) =>
+            "$skip" in stage || "$limit" in stage
+        );
+    }
+
+    it.each([
+        {page:1, skip:0, first:1, last:100},
+        {page:2, skip:100, first:101, last:200},
+        {page:3, skip:200, first:201, last:300}
+    ])("pagina sin status $page aplica skip/limit una sola vez", async({page, skip, first, last}) => {
+        const bookAggregate = createAggregate(
+            Array.from({length:100}, (_, index) => ({path:`book-${first + index}`}))
+        );
+
+        await createService(bookAggregate).filterAccessibleBooks(
+            new Types.ObjectId(),
+            "all",
+            {page, limit:100, sort:"sortName"},
+            {showMatureContent:true, seriesMatch:{}}
+        );
+
+        expect(paginationStages(bookAggregate)).toEqual([
+            {$skip:skip},
+            {$limit:100}
+        ]);
+        expect(bookAggregate.stages).toContainEqual({$sort:{sortName:"asc", _id:"asc"}});
+        expect(last - first + 1).toBe(100);
+    });
+
+    it("pagina después del filtrado por status y no vuelve a paginar al principio", async() => {
+        const bookAggregate = createAggregate(Array.from({length:42}, (_, index) => ({path:`book-${index}`})));
+
+        const books = await createService(bookAggregate).filterAccessibleBooks(
+            new Types.ObjectId(),
+            "all",
+            {page:3, limit:100, status:"completed", sort:"sortName"},
+            {showMatureContent:true, seriesMatch:{}}
+        );
+
+        const statusIndex = bookAggregate.stages.findIndex((stage:Record<string, unknown>) =>
+            JSON.stringify(stage) === JSON.stringify({$match:{status:"completed"}})
+        );
+        const skipIndex = bookAggregate.stages.findIndex((stage:Record<string, unknown>) => "$skip" in stage);
+
+        expect(books).toHaveLength(42);
+        expect(paginationStages(bookAggregate)).toEqual([
+            {$skip:200},
+            {$limit:100}
+        ]);
+        expect(statusIndex).toBeGreaterThan(-1);
+        expect(statusIndex).toBeLessThan(skipIndex);
+    });
+
+    it("mantiene un orden estable incluso sin campo sort explícito", async() => {
+        const bookAggregate = createAggregate([]);
+
+        await createService(bookAggregate).filterAccessibleBooks(
+            new Types.ObjectId(),
+            "all",
+            {page:2, limit:100},
+            {showMatureContent:true, seriesMatch:{}}
+        );
+
+        expect(bookAggregate.stages).toContainEqual({$sort:{_id:"asc"}});
+        expect(paginationStages(bookAggregate)).toEqual([
+            {$skip:100},
+            {$limit:100}
+        ]);
+    });
+
     it("une con series y filtra antes de la primera paginación", async() => {
         const bookAggregate = createAggregate([{visibleName:"Normal"}]);
         const bookModel = {

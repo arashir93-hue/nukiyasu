@@ -67,17 +67,21 @@ export class BooksService {
       // Filtrado por serie
       if (query.serie) aggregate.match({"serie":new Types.ObjectId(query.serie)});
 
-      // Si no se quiere filtrar por estado, aplicar los límites antes de hacer la operación
+      // Orden estable: el _id desempata libros con el mismo campo de ordenación.
+      // Así una página no cambia de composición entre peticiones consecutivas.
       if (query.sort) {
-          aggregate.match({[query.sort.replace("!", "")]:{$exists:true}});
-          if (query.sort.includes("!")) {
-              aggregate.sort({[query.sort.replace("!", "")]:"desc"});
-          } else {
-              aggregate.sort({[query.sort]:"asc"});
-          }
+          const sortField = query.sort.replace("!", "");
+          const sortDirection = query.sort.includes("!") ? "desc" : "asc";
+          aggregate.match({[sortField]:{$exists:true}});
+          const sortSpec:Record<string, "asc" | "desc"> = {[sortField]:sortDirection};
+          if (sortField !== "_id") sortSpec._id = "asc";
+          aggregate.sort(sortSpec);
+      } else {
+          aggregate.sort({_id:"asc"});
       }
   
-      if (query.limit && query.page) {
+      // Sin filtro por estado se puede paginar antes de los lookup de usuario.
+      if (!query.status && query.limit && query.page) {
           aggregate.skip((query.page - 1) * query.limit).limit(parseInt(`${query.limit}`));
       }
 
@@ -128,7 +132,8 @@ export class BooksService {
       // Filtrado por estado
       if (query.status) aggregate.match({"status":query.status});
 
-      if (query.limit && query.page) {
+      // Con filtro por estado la paginación debe esperar al match de status.
+      if (query.status && query.limit && query.page) {
           aggregate.skip((query.page - 1) * query.limit).limit(parseInt(`${query.limit}`));
       }
 
